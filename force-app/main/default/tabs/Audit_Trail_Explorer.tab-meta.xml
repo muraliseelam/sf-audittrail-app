@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Audit Trail Explorer</label>
+    <lwcComponent>auditExplorer</lwcComponent>
+    <motif>Custom53: Bell</motif>
+    <description>Search and analyse Setup Audit Trail events.</description>
+</CustomTab>

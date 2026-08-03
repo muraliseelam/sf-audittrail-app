@@ -1,0 +1,256 @@
+<template>
+    <lightning-card title="Audit Trail Explorer" icon-name="standard:record_lookup">
+        <div slot="actions">
+            <lightning-button
+                label="Export CSV"
+                icon-name="utility:download"
+                disabled={exportDisabled}
+                onclick={handleExport}
+            ></lightning-button>
+        </div>
+
+        <div class="slds-var-p-horizontal_medium">
+            <template lwc:if={canViewSetup}>
+                <!-- Filters -->
+                <div class="slds-grid slds-wrap slds-gutters_x-small">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
+                        <lightning-input
+                            type="search"
+                            label="Search description, section or action"
+                            value={searchText}
+                            placeholder="e.g. permission set jane"
+                            field-level-help="All words must appear. Description and Section cannot be filtered by SOQL, so they are matched as results stream in."
+                            onchange={handleSearchTextChange}
+                            onkeyup={handleSearchKeyUp}
+                        ></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                        <lightning-combobox
+                            label="Date range"
+                            value={preset}
+                            options={datePresets}
+                            onchange={handlePresetChange}
+                        ></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12">
+                        <lightning-input
+                            type="search"
+                            label="Filter by user"
+                            value={userSearchTerm}
+                            placeholder="Type at least 2 characters"
+                            onchange={handleUserTermChange}
+                        ></lightning-input>
+                        <template lwc:if={hasUserResults}>
+                            <div class="slds-box slds-box_x-small slds-var-m-top_xx-small">
+                                <template for:each={userResults} for:item="user">
+                                    <button
+                                        key={user.id}
+                                        type="button"
+                                        class="audit-user-result"
+                                        data-id={user.id}
+                                        onclick={handleUserSelect}
+                                    >
+                                        {user.name}
+                                        <span class="slds-text-body_small slds-text-color_weak">({user.username})</span>
+                                    </button>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:if={selectedUsers.length}>
+                            <div class="slds-var-m-top_xx-small">
+                                <lightning-pill-container
+                                    items={userPills}
+                                    onitemremove={handleUserRemove}
+                                ></lightning-pill-container>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <template lwc:if={isCustomRange}>
+                    <div class="slds-grid slds-wrap slds-gutters_x-small slds-var-m-top_x-small">
+                        <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12">
+                            <lightning-input
+                                type="datetime"
+                                label="From"
+                                value={customStart}
+                                onchange={handleCustomStart}
+                            ></lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12">
+                            <lightning-input
+                                type="datetime"
+                                label="To"
+                                value={customEnd}
+                                onchange={handleCustomEnd}
+                            ></lightning-input>
+                        </div>
+                    </div>
+                </template>
+
+                <template lwc:if={sectionOptions.length}>
+                    <div class="slds-var-m-top_x-small">
+                        <lightning-dual-listbox
+                            label="Sections"
+                            source-label="Available"
+                            selected-label="Selected"
+                            options={sectionOptions}
+                            value={selectedSections}
+                            size="4"
+                            field-level-help="Populated from the events discovered so far. Section is not filterable in SOQL, so it is matched in Apex."
+                            onchange={handleSectionChange}
+                        ></lightning-dual-listbox>
+                    </div>
+                </template>
+
+                <div class="slds-var-m-top_small slds-grid slds-gutters_x-small">
+                    <lightning-button
+                        variant="brand"
+                        label="Search"
+                        disabled={loading}
+                        onclick={handleSearch}
+                        class="slds-var-m-right_x-small"
+                    ></lightning-button>
+                    <lightning-button
+                        label="Reset"
+                        disabled={loading}
+                        onclick={handleClear}
+                        class="slds-var-m-right_x-small"
+                    ></lightning-button>
+                    <template lwc:if={loading}>
+                        <lightning-button label="Stop" onclick={handleStop}></lightning-button>
+                    </template>
+                </div>
+
+                <!-- Retention notice: the data genuinely disappears, so say so. -->
+                <div class="slds-var-m-top_small">
+                    <lightning-icon
+                        icon-name="utility:info"
+                        size="xx-small"
+                        class="slds-var-m-right_xx-small"
+                    ></lightning-icon>
+                    <span class="audit-progress">{retentionMessage}</span>
+                </div>
+
+                <template lwc:if={error}>
+                    <div class="slds-var-m-top_small">
+                        <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                            <span>{error}</span>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Progress -->
+                <div class="slds-var-m-top_small slds-grid slds-grid_vertical-align-center">
+                    <span class="slds-text-heading_small slds-var-m-right_small">{resultCount} events</span>
+                    <span class="audit-progress">{progressText}</span>
+                </div>
+                <template lwc:if={loading}>
+                    <lightning-progress-bar variant="circular" value="100" size="small"></lightning-progress-bar>
+                </template>
+
+                <!-- Insights -->
+                <template lwc:if={hasFacets}>
+                    <div class="slds-grid slds-wrap slds-gutters_x-small slds-var-m-top_small">
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <p class="slds-text-title_caps slds-var-m-bottom_xx-small">Top sections</p>
+                            <template for:each={sectionFacets} for:item="facet">
+                                <div key={facet.label} class="audit-facet-row">
+                                    <span class="audit-facet-label" title={facet.label}>{facet.label}</span>
+                                    <span class="audit-facet-bar" style={facet.style}></span>
+                                    <span class="audit-facet-count">{facet.count}</span>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <p class="slds-text-title_caps slds-var-m-bottom_xx-small">Top users</p>
+                            <template for:each={userFacets} for:item="facet">
+                                <div key={facet.label} class="audit-facet-row">
+                                    <span class="audit-facet-label" title={facet.label}>{facet.label}</span>
+                                    <span class="audit-facet-bar" style={facet.style}></span>
+                                    <span class="audit-facet-count">{facet.count}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Results -->
+                <template lwc:if={hasRows}>
+                    <div class="slds-var-m-top_small" style="height: 30rem">
+                        <lightning-datatable
+                            key-field="recordId"
+                            data={rows}
+                            columns={columnsWithActions}
+                            hide-checkbox-column
+                            onrowaction={handleRowAction}
+                        ></lightning-datatable>
+                    </div>
+                </template>
+
+                <template lwc:if={showEmptyState}>
+                    <div class="slds-var-m-top_large slds-align_absolute-center slds-text-color_weak">
+                        No audit events matched your filters in this range.
+                    </div>
+                </template>
+
+                <template lwc:if={canLoadMore}>
+                    <div class="slds-var-m-top_small slds-align_absolute-center">
+                        <lightning-button label="Search further back" onclick={handleLoadMore}></lightning-button>
+                    </div>
+                </template>
+
+                <!-- Row detail -->
+                <template lwc:if={selectedRow}>
+                    <div class="audit-detail slds-var-p-around_medium slds-var-m-top_small slds-var-m-bottom_medium">
+                        <div class="slds-grid slds-grid_align-spread slds-var-m-bottom_x-small">
+                            <span class="slds-text-heading_small">Event detail</span>
+                            <lightning-button-icon
+                                icon-name="utility:close"
+                                variant="bare"
+                                alternative-text="Close"
+                                onclick={handleCloseDetail}
+                            ></lightning-button-icon>
+                        </div>
+                        <div class="slds-grid slds-wrap slds-gutters_x-small">
+                            <div class="slds-col slds-size_1-of-2 slds-var-m-bottom_x-small">
+                                <p class="audit-detail-label">Date</p>
+                                <p class="audit-detail-value">{selectedRowDate}</p>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-var-m-bottom_x-small">
+                                <p class="audit-detail-label">User</p>
+                                <p class="audit-detail-value">{selectedRow.userName}</p>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-var-m-bottom_x-small">
+                                <p class="audit-detail-label">Section</p>
+                                <p class="audit-detail-value">{selectedRow.section}</p>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2 slds-var-m-bottom_x-small">
+                                <p class="audit-detail-label">Action</p>
+                                <p class="audit-detail-value">{selectedRow.action}</p>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-var-m-bottom_x-small">
+                                <p class="audit-detail-label">Description</p>
+                                <p class="audit-detail-value">{selectedRow.display}</p>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <p class="audit-detail-label">Delegate user</p>
+                                <p class="audit-detail-value">{selectedRow.delegateUser}</p>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <p class="audit-detail-label">Namespace</p>
+                                <p class="audit-detail-value">{selectedRow.namespacePrefix}</p>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </template>
+
+            <template lwc:else>
+                <div class="slds-var-m-vertical_large slds-align_absolute-center slds-text-color_weak">
+                    You need the "View Setup and Configuration" permission to use the Audit Trail Explorer.
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

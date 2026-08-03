@@ -1,0 +1,60 @@
+.audit-progress {
+    font-size: 0.8rem;
+    color: #514f4d;
+}
+
+.audit-detail {
+    background: #f3f3f3;
+    border-radius: 0.25rem;
+}
+
+.audit-detail-label {
+    font-size: 0.75rem;
+    color: #514f4d;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.audit-detail-value {
+    word-break: break-word;
+}
+
+.audit-facet-bar {
+    background: #0176d3;
+    height: 0.5rem;
+    border-radius: 0.25rem;
+    display: block;
+}
+
+.audit-facet-row {
+    display: grid;
+    grid-template-columns: 10rem 1fr 3rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.125rem 0;
+}
+
+.audit-facet-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+.audit-facet-count {
+    text-align: right;
+    font-size: 0.8rem;
+    color: #514f4d;
+}
+
+.audit-user-result {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.audit-user-result:hover {
+    background: #f3f3f3;
+}

@@ -1,5 +1,6 @@
 import { createElement } from 'lwc';
 import AuditExplorer from 'c/auditExplorer';
+import { csvCell, csvRow } from '../csv';
 import getContext from '@salesforce/apex/AuditQueryController.getContext';
 import search from '@salesforce/apex/AuditQueryController.search';
 
@@ -126,5 +127,19 @@ describe('c-audit-explorer', () => {
         await flush();
 
         expect(element.shadowRoot.textContent).toContain('Permission required');
+    });
+
+    it('neutralises formula injection in exported CSV cells', () => {
+        // Audit descriptions echo admin-controlled text, so a value starting
+        // with a formula trigger must not stay executable in Excel or Sheets.
+        ['=1+1', '+1', '-1', '@SUM(A1)', '\tcmd'].forEach((payload) => {
+            expect(csvCell(payload)).toBe(`"'${payload}"`);
+        });
+
+        // Ordinary values must be left untouched, and quotes still escaped.
+        expect(csvCell('Manage Users')).toBe('"Manage Users"');
+        expect(csvCell('a "b" c')).toBe('"a ""b"" c"');
+        expect(csvCell(null)).toBe('""');
+        expect(csvRow(['a', '=b'])).toBe('"a","\'=b"');
     });
 });

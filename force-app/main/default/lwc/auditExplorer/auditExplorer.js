@@ -2,6 +2,7 @@ import { LightningElement, track } from 'lwc';
 import search from '@salesforce/apex/AuditQueryController.search';
 import getContext from '@salesforce/apex/AuditQueryController.getContext';
 import searchUsers from '@salesforce/apex/AuditQueryController.searchUsers';
+import { csvRow } from './csv';
 
 const COLUMNS = [
     {
@@ -330,10 +331,10 @@ export default class AuditExplorer extends LightningElement {
             return;
         }
         const header = ['Date', 'User', 'Section', 'Action', 'Description', 'Delegate User', 'Namespace'];
-        const lines = [header.map(this.csvCell).join(',')];
+        const lines = [csvRow(header)];
         this.rows.forEach((row) => {
             lines.push(
-                [
+                csvRow([
                     new Date(row.eventDateMillis).toISOString(),
                     row.userName,
                     row.section,
@@ -341,9 +342,7 @@ export default class AuditExplorer extends LightningElement {
                     row.display,
                     row.delegateUser,
                     row.namespacePrefix
-                ]
-                    .map(this.csvCell)
-                    .join(',')
+                ])
             );
         });
         const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
@@ -352,13 +351,6 @@ export default class AuditExplorer extends LightningElement {
         link.download = `audit-trail-${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
-    }
-
-    csvCell(value) {
-        if (value === null || value === undefined) {
-            return '""';
-        }
-        return `"${String(value).replace(/"/g, '""')}"`;
     }
 
     // ---------- display helpers ----------

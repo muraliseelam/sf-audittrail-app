@@ -1,5 +1,5 @@
 @IsTest
-public class MockAuditTrailProvider implements AuditTrailProvider {
+public with sharing class MockAuditTrailProvider implements AuditTrailProvider {
     public List<AuditEventRow> allRows = new List<AuditEventRow>();
     public Integer fetchCount = 0;
 

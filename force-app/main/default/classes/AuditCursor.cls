@@ -7,7 +7,7 @@
  * at exactly that timestamp, so the next query can exclude them precisely -
  * no skipped rows and no duplicates.
  */
-public class AuditCursor {
+public with sharing class AuditCursor {
     @AuraEnabled
     public Long lastDateMillis;
     @AuraEnabled

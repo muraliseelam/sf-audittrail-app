@@ -166,7 +166,7 @@ public with sharing class AuditQueryService {
      * Pre-computes the criteria that cannot be pushed into SOQL, so the per-row
      * work inside the scan loop stays cheap.
      */
-    private class CompiledFilter {
+    private with sharing class CompiledFilter {
         private Set<String> sections;
         private List<String> terms;
 

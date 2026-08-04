@@ -1,9 +1,20 @@
 /**
  * Guards access to Setup Audit Trail data.
  *
- * Querying SetupAuditTrail requires the "View Setup and Configuration" permission.
- * That permission is not expressed as normal object CRUD, so it is checked
- * explicitly here to produce a clear message instead of an opaque SOQL failure.
+ * Reading SetupAuditTrail requires the "View Setup and Configuration"
+ * permission. Rather than inspecting permission assignments, this asks the
+ * platform directly whether the running user can read the object.
+ *
+ * That equivalence was verified empirically in a scratch org: a user whose
+ * profile grants ViewSetup sees isAccessible() == true, and a user on
+ * "Minimum Access - Salesforce" (which lacks it) sees false.
+ * AuditPermissionServiceTest pins the negative case down so the gate cannot
+ * silently open up.
+ *
+ * Using the describe beats querying PermissionSetAssignment on three counts:
+ * it is the object-level access check a security review expects to see, it
+ * costs no SOQL query, and it removes the need for a system-mode query against
+ * the permission tables.
  */
 public with sharing class AuditPermissionService {
     public class AuditPermissionException extends Exception {
@@ -16,17 +27,7 @@ public with sharing class AuditPermissionService {
         if (overrideHasPermission != null) {
             return overrideHasPermission;
         }
-        // A profile's permissions are also exposed as a PermissionSet row
-        // (IsOwnedByProfile = true), so this single query covers both profile
-        // and permission-set grants.
-        return ![
-            SELECT Id
-            FROM PermissionSetAssignment
-            WHERE
-                AssigneeId = :UserInfo.getUserId()
-                AND PermissionSet.PermissionsViewSetup = TRUE
-            LIMIT 1
-        ].isEmpty();
+        return Schema.SObjectType.SetupAuditTrail.isAccessible();
     }
 
     public static void assertCanViewSetup() {

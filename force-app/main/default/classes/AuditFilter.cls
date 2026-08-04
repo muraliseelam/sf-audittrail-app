@@ -6,7 +6,7 @@
  * not allow in a WHERE clause (Section and Display are not filterable), so they
  * are applied in Apex by AuditQueryService.
  */
-public class AuditFilter {
+public with sharing class AuditFilter {
     @AuraEnabled
     public Long startDateMillis;
     @AuraEnabled

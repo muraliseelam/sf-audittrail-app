@@ -32,8 +32,12 @@ public with sharing class SetupAuditTrailProvider implements AuditTrailProvider 
         }
         soql += ' ORDER BY CreatedDate DESC LIMIT :rowLimit';
 
+        // USER_MODE enforces the running user's object and field permissions on
+        // this query. The SOQL text itself is assembled only from the string
+        // literals above - every caller-supplied value arrives as a bind
+        // variable - so there is no injection path into Database.query.
         List<AuditEventRow> rows = new List<AuditEventRow>();
-        for (SetupAuditTrail record : Database.query(soql)) {
+        for (SetupAuditTrail record : Database.query(soql, AccessLevel.USER_MODE)) {
             rows.add(new AuditEventRow(record));
         }
         return rows;

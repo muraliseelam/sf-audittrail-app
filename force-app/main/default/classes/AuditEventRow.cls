@@ -4,7 +4,7 @@
  * Dates are carried as epoch milliseconds so the client can render them in the
  * running user's timezone without any server-side timezone assumptions.
  */
-public class AuditEventRow {
+public with sharing class AuditEventRow {
     @AuraEnabled
     public String recordId;
     @AuraEnabled

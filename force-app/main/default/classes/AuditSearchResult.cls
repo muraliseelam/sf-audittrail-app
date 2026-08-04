@@ -2,7 +2,7 @@
  * Result of one progressive-search call: the matches found, how far back the
  * scan reached, and the cursor needed to continue.
  */
-public class AuditSearchResult {
+public with sharing class AuditSearchResult {
     @AuraEnabled
     public List<AuditEventRow> rows = new List<AuditEventRow>();
     @AuraEnabled
@@ -30,7 +30,7 @@ public class AuditSearchResult {
     @AuraEnabled
     public List<AuditFacet> userFacets = new List<AuditFacet>();
 
-    public class AuditFacet implements Comparable {
+    public with sharing class AuditFacet implements Comparable {
         @AuraEnabled
         public String label;
         @AuraEnabled

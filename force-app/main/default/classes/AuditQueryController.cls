@@ -36,6 +36,10 @@ public with sharing class AuditQueryController {
     /** Type-ahead for the user filter. Audit rows carry no user list of their own. */
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> searchUsers(String term) {
+        // Gated on the same permission as the audit data itself: this method
+        // exists only to build a filter over that data, so it must not be a way
+        // for an unprivileged user to enumerate the org's user list.
+        AuditPermissionService.assertCanViewSetup();
         List<Map<String, String>> results = new List<Map<String, String>>();
         if (String.isBlank(term) || term.length() < 2) {
             return results;

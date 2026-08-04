@@ -46,3 +46,6 @@ $RECYCLE.BIN/
 
 # Code Analyzer output
 sca-report.json
+
+CodeAnalyzerReport.html
+ca.json

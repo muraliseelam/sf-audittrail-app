@@ -6,6 +6,19 @@ const lwcConfig = require('@salesforce/eslint-config-lwc/recommended');
 const globals = require('globals');
 
 module.exports = defineConfig([
+    // Salesforce Code Analyzer merges its own bundled eslint-plugin-jest rules
+    // onto every file it scans, and that plugin resolves the Jest version from
+    // its own node_modules - where jest is absent. Auto-detection then throws
+    // and takes the entire ESLint engine down mid-scan, which surfaces in the
+    // security-review report as a Critical "UnexpectedEngineError" rather than
+    // as a clean result. Pinning the version here applies to every file, so the
+    // scan the reviewer runs matches the one run locally.
+    {
+        settings: {
+            jest: { version: 29 }
+        }
+    },
+
     // Aura configuration
     {
         files: ['**/aura/**/*.js'],

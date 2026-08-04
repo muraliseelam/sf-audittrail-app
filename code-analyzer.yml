@@ -1,0 +1,19 @@
+# Salesforce Code Analyzer configuration.
+#
+# Committed so the AppExchange security-review scan is reproducible: running
+# `sf code-analyzer run --workspace force-app --rule-selector Recommended:AppExchange`
+# from a clean checkout must produce the same report that was submitted.
+#
+# Without this file the ESLint engine reports "eslint.config.js was found but
+# not applied" and silently falls back to its own bundled defaults, so the scan
+# would not reflect the rules this project actually enforces.
+engines:
+  eslint:
+    auto_discover_eslint_config: true
+  # PMD's ecmascript ruleset does not understand LWC modules and reports every
+  # `window`/`document` reference as a GlobalVariable violation. ESLint, with
+  # the official @salesforce/eslint-config-lwc config, is the correct linter for
+  # this source and is enabled above.
+  pmd:
+    file_extensions:
+      apex: ['.cls', '.trigger']

@@ -40,7 +40,12 @@ public with sharing class AuditQueryController {
         if (String.isBlank(term) || term.length() < 2) {
             return results;
         }
-        String pattern = '%' + String.escapeSingleQuotes(term.trim()) + '%';
+        // Bind variables are already injection-safe, so the term must NOT be
+        // escaped for quotes - doing so would bind a literal backslash and break
+        // searches for names like O'Brien. Only the LIKE wildcards need escaping,
+        // so a user typing "%" doesn't match everyone.
+        String sanitized = term.trim().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_');
+        String pattern = '%' + sanitized + '%';
         for (User u : [
             SELECT Id, Name, Username
             FROM User

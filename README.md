@@ -59,16 +59,33 @@ that don't need it never pay for storage.
 
 ## Install
 
+**Install into any Salesforce org** (Enterprise, Unlimited, Performance or Developer edition):
+
+```
+https://login.salesforce.com/packaging/installPackage.apexp?p0=04tbm000000aeOjAAI
+```
+
+For a sandbox, swap `login.salesforce.com` for `test.salesforce.com`. Or use the CLI:
+
 ```bash
-sf org login web --alias my-org
-sf project deploy start --source-dir force-app --target-org my-org
+sf package install --package 04tbm000000aeOjAAI --target-org my-org --wait 20
 sf org assign permset --name Audit_Trail_Viewer --target-org my-org
 ```
 
-Then open the **Audit Trail Explorer** app from the App Launcher.
+After installing, assign the **Audit Trail Viewer** permission set and open
+**Audit Trail Explorer** from the App Launcher.
 
-The `Audit Trail Viewer` permission set grants "View Setup and Configuration"
-(and its `ViewRoles` dependency), which Salesforce requires to read the audit trail.
+That permission set grants "View Setup and Configuration" (and its `ViewRoles`
+dependency), which Salesforce requires to read the audit trail.
+
+> Professional Edition is not supported, because it cannot run custom Apex.
+
+### Deploying from source instead
+
+```bash
+sf project deploy start --source-dir force-app --target-org my-org
+sf org assign permset --name Audit_Trail_Viewer --target-org my-org
+```
 
 ## Development
 

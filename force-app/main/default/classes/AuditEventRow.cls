@@ -28,7 +28,10 @@ public with sharing class AuditEventRow {
     @AuraEnabled
     public String createdByIssuer;
 
+    // Required so JSON.deserialize can construct instances; declaring the
+    // SetupAuditTrail constructor below would otherwise hide the default one.
     public AuditEventRow() {
+        return;
     }
 
     public AuditEventRow(SetupAuditTrail record) {

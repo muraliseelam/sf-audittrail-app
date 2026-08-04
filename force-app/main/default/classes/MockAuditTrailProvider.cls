@@ -63,7 +63,10 @@ public with sharing class MockAuditTrailProvider implements AuditTrailProvider {
     }
 
     public static Id fakeId(Integer index) {
-        String suffix = String.valueOf(index);
-        return Id.valueOf('0Ym000000000001'.substring(0, 15 - suffix.length()) + suffix);
+        // Built from the SetupAuditTrail key prefix rather than a literal
+        // record id, so the value is synthetic by construction.
+        String prefix = SetupAuditTrail.SObjectType.getDescribe().getKeyPrefix();
+        String body = String.valueOf(index).leftPad(15 - prefix.length(), '0');
+        return Id.valueOf(prefix + body);
     }
 }

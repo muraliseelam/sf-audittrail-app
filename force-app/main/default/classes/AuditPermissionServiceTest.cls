@@ -81,4 +81,28 @@ private class AuditPermissionServiceTest {
         Assert.isTrue(AuditPermissionService.canViewSetup(), 'An admin should pass the gate.');
         AuditPermissionService.assertCanViewSetup();
     }
+
+    @IsTest
+    static void packagedPermissionSetAloneGrantsAccess() {
+        // This is the exact experience of a customer who installs the package
+        // and assigns only the permission set we ship: an otherwise minimal
+        // user must be able to use the app. It also proves the permission set
+        // is not under-granting after ViewRoles was removed from it.
+        User restricted = buildUser('Minimum Access - Salesforce');
+        insert restricted;
+
+        PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'Audit_Trail_Viewer' LIMIT 1];
+        insert new PermissionSetAssignment(AssigneeId = restricted.Id, PermissionSetId = ps.Id);
+
+        Test.startTest();
+        System.runAs(restricted) {
+            Assert.isTrue(
+                AuditPermissionService.canViewSetup(),
+                'The shipped permission set alone must be enough to use the app.'
+            );
+            // And the data path must genuinely open, not just the gate.
+            AuditQueryController.search(null, null, 5);
+        }
+        Test.stopTest();
+    }
 }

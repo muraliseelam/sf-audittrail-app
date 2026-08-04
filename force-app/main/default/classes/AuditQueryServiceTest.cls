@@ -227,4 +227,42 @@ private class AuditQueryServiceTest {
 
         System.assertEquals(true, result.done, 'Defaults should still complete');
     }
+
+    @IsTest
+    static void cursorRejectsMalformedIdsFromClient() {
+        // The cursor round-trips through the browser, so it is untrusted input.
+        AuditCursor cursor = new AuditCursor();
+        cursor.lastDateMillis = Datetime.now().getTime();
+        cursor.seenIdsAtLastDate = new List<String>{
+            MockAuditTrailProvider.fakeId(1),
+            'not-an-id',
+            '',
+            null
+        };
+
+        Test.startTest();
+        Set<Id> ids = cursor.seenIdSet();
+        Test.stopTest();
+
+        Assert.areEqual(1, ids.size(), 'Only the well-formed id should survive.');
+        Assert.isTrue(ids.contains(MockAuditTrailProvider.fakeId(1)));
+    }
+
+    @IsTest
+    static void cursorCapsSeenIdsToBoundTheBind() {
+        // A crafted cursor must not be able to push an unbounded bind into the
+        // query. The cap sits far above any real timestamp collision.
+        AuditCursor cursor = new AuditCursor();
+        List<String> many = new List<String>();
+        for (Integer i = 1; i <= 5200; i++) {
+            many.add(MockAuditTrailProvider.fakeId(i));
+        }
+        cursor.seenIdsAtLastDate = many;
+
+        Test.startTest();
+        Set<Id> ids = cursor.seenIdSet();
+        Test.stopTest();
+
+        Assert.areEqual(5000, ids.size(), 'The seen-id set must be capped.');
+    }
 }

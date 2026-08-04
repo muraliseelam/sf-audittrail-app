@@ -75,7 +75,7 @@ private class SetupAuditTrailProviderTest {
     private static SetupAuditTrail buildRecord(String userName) {
         Map<String, Object> raw = new Map<String, Object>{
             'attributes' => new Map<String, Object>{ 'type' => 'SetupAuditTrail' },
-            'Id' => '0Ym000000000001',
+            'Id' => MockAuditTrailProvider.fakeId(1),
             'CreatedDate' => '2026-01-01T10:00:00.000+0000',
             'Section' => 'Manage Users',
             'Action' => 'PermSetAssign',

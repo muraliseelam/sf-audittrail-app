@@ -20,13 +20,7 @@ public with sharing class AuditPermissionService {
     public class AuditPermissionException extends Exception {
     }
 
-    @TestVisible
-    private static Boolean overrideHasPermission = null;
-
     public static Boolean canViewSetup() {
-        if (overrideHasPermission != null) {
-            return overrideHasPermission;
-        }
         return Schema.SObjectType.SetupAuditTrail.isAccessible();
     }
 

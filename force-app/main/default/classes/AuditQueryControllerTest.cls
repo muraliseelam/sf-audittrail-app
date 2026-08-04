@@ -2,7 +2,6 @@
 private class AuditQueryControllerTest {
     @IsTest
     static void searchReturnsRowsForPermittedUser() {
-        AuditPermissionService.overrideHasPermission = true;
         AuditQueryService.provider = new MockAuditTrailProvider(
             new List<AuditEventRow>{
                 MockAuditTrailProvider.row(1, Datetime.now().addDays(-1), 'Manage Users', 'deactivate', 'Deactivated user Jane')
@@ -22,7 +21,6 @@ private class AuditQueryControllerTest {
 
     @IsTest
     static void searchRoundTripsCursorJson() {
-        AuditPermissionService.overrideHasPermission = true;
         List<AuditEventRow> rows = new List<AuditEventRow>();
         for (Integer i = 0; i < 6; i++) {
             rows.add(MockAuditTrailProvider.row(i + 1, Datetime.now().addMinutes(-i), 'Apex Class', 'a', 'row ' + i));
@@ -52,15 +50,24 @@ private class AuditQueryControllerTest {
     }
 
     @IsTest
-    static void searchThrowsClearErrorWithoutPermission() {
-        AuditPermissionService.overrideHasPermission = false;
-
+    static void searchHidesInternalErrorDetail() {
+        // A malformed cursor triggers a deserialization failure inside the
+        // controller. The client must get the generic message rather than the
+        // platform's exception text, which can carry query and limit internals.
         Test.startTest();
         try {
-            AuditQueryController.search(null, null, 10);
-            System.assert(false, 'Expected a permission failure');
+            AuditQueryController.search(null, '{"lastDateMillis":"not-a-number"}', 10);
+            Assert.fail('Expected the malformed cursor to fail.');
         } catch (AuraHandledException e) {
-            System.assertNotEquals(null, e.getMessage());
+            Assert.isTrue(
+                e.getMessage().contains('could not be completed'),
+                'Expected the generic message, got: ' + e.getMessage()
+            );
+            Assert.isFalse(
+                e.getMessage().containsIgnoreCase('SELECT') ||
+                e.getMessage().containsIgnoreCase('SetupAuditTrail'),
+                'Internal detail must not reach the client: ' + e.getMessage()
+            );
         }
         Test.stopTest();
     }

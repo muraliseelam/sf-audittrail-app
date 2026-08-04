@@ -5,6 +5,15 @@
  * the cursor from the previous response, until `done` is true or the user stops.
  */
 public with sharing class AuditQueryController {
+    /**
+     * Client-facing text for an unexpected failure.
+     *
+     * Platform exception messages can carry query fragments and limit details,
+     * so they are not returned verbatim - that is treated as information
+     * disclosure. The real detail stays in the server-side debug log.
+     */
+    private static final String GENERIC_ERROR = 'The audit search could not be completed. Please try again, or contact your administrator if the problem persists.';
+
     @AuraEnabled(cacheable=false)
     public static AuditSearchResult search(String filterJson, String cursorJson, Integer pageSize) {
         try {
@@ -16,9 +25,22 @@ public with sharing class AuditQueryController {
                 ? null
                 : (AuditCursor) JSON.deserialize(cursorJson, AuditCursor.class);
             return AuditQueryService.search(filter, cursor, pageSize);
-        } catch (Exception e) {
+        } catch (AuditPermissionService.AuditPermissionException e) {
+            // Written for the user and names the permission they need, so it is
+            // deliberately passed through unchanged.
             throw new AuraHandledException(e.getMessage());
+        } catch (Exception e) {
+            throw genericFailure(e);
         }
+    }
+
+    private static AuraHandledException genericFailure(Exception e) {
+        System.debug(LoggingLevel.ERROR, 'Audit search failed: ' + e.getTypeName() + ': ' + e.getMessage());
+        AuraHandledException safe = new AuraHandledException(GENERIC_ERROR);
+        // AuraHandledException surfaces its message only once setMessage is
+        // called; without this the client receives "Script-thrown exception".
+        safe.setMessage(GENERIC_ERROR);
+        return safe;
     }
 
     /** Metadata the UI needs on load: retention window and the user's access. */
@@ -41,14 +63,17 @@ public with sharing class AuditQueryController {
         // for an unprivileged user to enumerate the org's user list.
         AuditPermissionService.assertCanViewSetup();
         List<Map<String, String>> results = new List<Map<String, String>>();
-        if (String.isBlank(term) || term.length() < 2) {
+        String trimmed = term == null ? '' : term.trim();
+        if (trimmed.length() < 2) {
             return results;
         }
         // Bind variables are already injection-safe, so the term must NOT be
         // escaped for quotes - doing so would bind a literal backslash and break
         // searches for names like O'Brien. Only the LIKE wildcards need escaping,
-        // so a user typing "%" doesn't match everyone.
-        String sanitized = term.trim().replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_');
+        // so a user typing "%" doesn't match everyone. The escape character
+        // itself must be doubled first, or the later replacements would be
+        // escaped by it.
+        String sanitized = trimmed.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_');
         String pattern = '%' + sanitized + '%';
         for (User u : [
             SELECT Id, Name, Username

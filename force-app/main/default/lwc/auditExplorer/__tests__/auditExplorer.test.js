@@ -4,11 +4,7 @@ import { csvCell, csvRow } from '../csv';
 import getContext from '@salesforce/apex/AuditQueryController.getContext';
 import search from '@salesforce/apex/AuditQueryController.search';
 
-jest.mock(
-    '@salesforce/apex/AuditQueryController.getContext',
-    () => ({ default: jest.fn() }),
-    { virtual: true }
-);
+jest.mock('@salesforce/apex/AuditQueryController.getContext', () => ({ default: jest.fn() }), { virtual: true });
 jest.mock('@salesforce/apex/AuditQueryController.search', () => ({ default: jest.fn() }), {
     virtual: true
 });
@@ -132,11 +128,21 @@ describe('c-audit-explorer', () => {
     it('neutralises formula injection in exported CSV cells', () => {
         // Audit descriptions echo admin-controlled text, so a value starting
         // with a formula trigger must not stay executable in Excel or Sheets.
-        ['=1+1', '+1', '-1', '@SUM(A1)', '\tcmd', ' =1+1', '\u00a0=1+1', '\n=1+1', '\u200b=1+1', '\u0001=1+1', '\ufeff=1+1'].forEach(
-            (payload) => {
-                expect(csvCell(payload)).toBe(`"'${payload}"`);
-            }
-        );
+        [
+            '=1+1',
+            '+1',
+            '-1',
+            '@SUM(A1)',
+            '\tcmd',
+            ' =1+1',
+            '\u00a0=1+1',
+            '\n=1+1',
+            '\u200b=1+1',
+            '\u0001=1+1',
+            '\ufeff=1+1'
+        ].forEach((payload) => {
+            expect(csvCell(payload)).toBe(`"'${payload}"`);
+        });
 
         // Ordinary values must be left untouched, and quotes still escaped.
         expect(csvCell('Manage Users')).toBe('"Manage Users"');

@@ -26,11 +26,11 @@ It is entirely read-only.
 `SetupAuditTrail` is unusually limited, which is why a plain SOQL-backed list view
 isn't enough. Verified against a live org:
 
-| Field | Filterable in SOQL |
-| --- | --- |
-| `CreatedDate`, `Action`, `CreatedById` | yes |
-| **`Section`** | **no** |
-| **`Display`** (description) | **no** |
+| Field                                  | Filterable in SOQL |
+| -------------------------------------- | ------------------ |
+| `CreatedDate`, `Action`, `CreatedById` | yes                |
+| **`Section`**                          | **no**             |
+| **`Display`** (description)            | **no**             |
 
 It also supports **no aggregate functions** — `COUNT(Id)`, `MIN(CreatedDate)` and
 `GROUP BY` all fail.
@@ -76,7 +76,10 @@ After installing, assign the **Audit Trail Viewer** permission set and open
 **Audit Trail Explorer** from the App Launcher.
 
 That permission set grants "View Setup and Configuration" (and its `ViewRoles`
-dependency), which Salesforce requires to read the audit trail.
+dependency), which Salesforce requires to read the audit trail. It grants
+nothing else - no object CRUD/FLS, no additional system permission. This is
+the minimum access the app needs; see
+[`docs/PRIVACY.md`](docs/PRIVACY.md) for the full data-handling statement.
 
 > Professional Edition is not supported, because it cannot run custom Apex.
 
@@ -86,6 +89,21 @@ dependency), which Salesforce requires to read the audit trail.
 sf project deploy start --source-dir force-app --target-org my-org
 sf org assign permset --name Audit_Trail_Viewer --target-org my-org
 ```
+
+## Uninstall
+
+The package stores no data, so uninstalling leaves no residue to clean up.
+
+- **Packaged install:** Setup → Installed Packages → Audit Trail Explorer →
+  **Uninstall**. This removes the app, tab, Apex classes, and permission set.
+  Unassign the `Audit_Trail_Viewer` permission set first if you assigned it to
+  users (Salesforce will otherwise warn about the dependency during
+  uninstall).
+- **Source deploy:** `sf project delete source --source-dir force-app --target-org my-org`,
+  or delete the metadata listed under [Layout](#layout) via Setup.
+
+No custom object, custom setting, or Big Object is created, so there is no
+data-retention step and nothing to archive before removal.
 
 ## Development
 
@@ -97,10 +115,38 @@ sf project deploy start --source-dir force-app --test-level RunLocalTests
 
 ### Layout
 
-| Path | Purpose |
-| --- | --- |
-| `classes/AuditQueryService.cls` | Progressive search engine |
-| `classes/AuditQueryController.cls` | `@AuraEnabled` facade |
-| `classes/AuditTrailProvider.cls` | Data-source seam (`SetupAuditTrail` rows can't be inserted in tests) |
-| `classes/AuditPermissionService.cls` | "View Setup and Configuration" check |
-| `lwc/auditExplorer` | The UI |
+| Path                                 | Purpose                                                              |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| `classes/AuditQueryService.cls`      | Progressive search engine                                            |
+| `classes/AuditQueryController.cls`   | `@AuraEnabled` facade                                                |
+| `classes/AuditTrailProvider.cls`     | Data-source seam (`SetupAuditTrail` rows can't be inserted in tests) |
+| `classes/AuditPermissionService.cls` | "View Setup and Configuration" check                                 |
+| `lwc/auditExplorer`                  | The UI                                                               |
+
+## Packaging status
+
+This repository currently ships an **unlocked package with no namespace**
+(`sfdx-project.json` → `"namespace": ""`, alias `Audit Trail Explorer` /
+`04tbm000000aeOjAAI`). An unlocked package **cannot be converted in place**
+into a namespaced managed (2GP) package suitable for an AppExchange managed
+listing - that requires linking a namespace to the Dev Hub used to create a
+new managed package from this same source, then creating and promoting a new
+package version. That is an org/Dev Hub configuration step, not a code
+change, and is tracked separately from this repository.
+
+## More documentation
+
+| Document                                                                                       | Covers                                                                |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                                                 | Component design, why progressive search is needed, known limitations |
+| [`docs/PRIVACY.md`](docs/PRIVACY.md)                                                           | What data the app reads, what it never stores/sends                   |
+| [`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)                 | Full security architecture review (CRUD/FLS, injection, auth)         |
+| [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Code Analyzer findings and their disposition                          |
+| [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                        |
+| [`SECURITY.md`](SECURITY.md)                                                                   | How to report a vulnerability                                         |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                           | Development setup and PR checklist                                    |
+| [`CHANGELOG.md`](CHANGELOG.md)                                                                 | Notable changes by version                                            |
+
+## License
+
+Apache License 2.0 - see [`LICENSE`](LICENSE).

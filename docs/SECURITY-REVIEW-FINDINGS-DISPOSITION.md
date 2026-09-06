@@ -21,11 +21,11 @@ misleadingly clean report.
 ## Result
 
 | Severity | Count |
-|---|---|
+| -------- | ----- |
 | Critical | **0** |
-| High | **0** |
-| Moderate | 11 |
-| Low | 73 |
+| High     | **0** |
+| Moderate | 11    |
+| Low      | 73    |
 
 Additionally, run separately: **Salesforce Graph Engine, RetireJS and the regex secrets
 engine each report 0 violations.**

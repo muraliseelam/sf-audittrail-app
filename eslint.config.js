@@ -22,10 +22,7 @@ module.exports = defineConfig([
     // Aura configuration
     {
         files: ['**/aura/**/*.js'],
-        extends: [
-            ...auraConfig.configs.recommended,
-            ...auraConfig.configs.locker
-        ]
+        extends: [...auraConfig.configs.recommended, ...auraConfig.configs.locker]
     },
 
     // LWC configuration

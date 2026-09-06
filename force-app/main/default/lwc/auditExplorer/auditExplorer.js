@@ -204,7 +204,12 @@ export default class AuditExplorer extends LightningElement {
         try {
             // Keep asking for the next time-slice until the page is filled, the
             // range is exhausted, or the user stops it.
-            while (!this.done && !this.stopRequested && this.rows.length < targetCount && calls < MAX_CALLS_PER_ACTION) {
+            while (
+                !this.done &&
+                !this.stopRequested &&
+                this.rows.length < targetCount &&
+                calls < MAX_CALLS_PER_ACTION
+            ) {
                 calls++;
                 // Sequential by necessity: each call needs the cursor returned
                 // by the previous one, so these cannot be parallelised.

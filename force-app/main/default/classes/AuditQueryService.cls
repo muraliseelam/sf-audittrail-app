@@ -40,9 +40,7 @@ public with sharing class AuditQueryService {
             lowerBound = retentionFloor;
         }
 
-        AuditCursor working = (cursor == null || cursor.lastDateMillis == null)
-            ? new AuditCursor()
-            : cursor;
+        AuditCursor working = (cursor == null || cursor.lastDateMillis == null) ? new AuditCursor() : cursor;
         Datetime upperBound = working.lastDateMillis == null
             ? (effective.endDate() == null ? Datetime.now() : effective.endDate())
             : working.lastDate();
@@ -198,15 +196,13 @@ public with sharing class AuditQueryService {
             if (terms.isEmpty()) {
                 return true;
             }
-            String haystack = (
-                    String.valueOf(row.display) +
-                    ' ' +
-                    String.valueOf(row.section) +
-                    ' ' +
-                    String.valueOf(row.action) +
-                    ' ' +
-                    String.valueOf(row.userName)
-                )
+            String haystack = (String.valueOf(row.display) +
+                ' ' +
+                String.valueOf(row.section) +
+                ' ' +
+                String.valueOf(row.action) +
+                ' ' +
+                String.valueOf(row.userName))
                 .toLowerCase();
             // All terms must be present, so multi-word searches narrow results.
             for (String term : terms) {

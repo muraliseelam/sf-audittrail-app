@@ -9,3 +9,8 @@
 .vscode
 
 coverage/
+
+# npm-managed lockfile: always regenerated in npm's own 2-space format, so
+# formatting it with the project's 4-space style would just be undone by the
+# next `npm install` and create needless diff noise.
+package-lock.json

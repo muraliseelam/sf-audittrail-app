@@ -117,8 +117,20 @@ private class AuditQueryServiceTest {
     @IsTest
     static void searchTextRequiresAllTerms() {
         List<AuditEventRow> rows = new List<AuditEventRow>{
-            MockAuditTrailProvider.row(1, BASE, 'Manage Users', 'permsetAssign', 'Assigned permission set Admin to Jane'),
-            MockAuditTrailProvider.row(2, BASE.addMinutes(-1), 'Manage Users', 'permsetAssign', 'Assigned permission set Admin to Bob'),
+            MockAuditTrailProvider.row(
+                1,
+                BASE,
+                'Manage Users',
+                'permsetAssign',
+                'Assigned permission set Admin to Jane'
+            ),
+            MockAuditTrailProvider.row(
+                2,
+                BASE.addMinutes(-1),
+                'Manage Users',
+                'permsetAssign',
+                'Assigned permission set Admin to Bob'
+            ),
             MockAuditTrailProvider.row(3, BASE.addMinutes(-2), 'Manage Users', 'deactivate', 'Deactivated user Jane')
         };
         AuditQueryService.provider = new MockAuditTrailProvider(rows);
@@ -233,12 +245,7 @@ private class AuditQueryServiceTest {
         // The cursor round-trips through the browser, so it is untrusted input.
         AuditCursor cursor = new AuditCursor();
         cursor.lastDateMillis = Datetime.now().getTime();
-        cursor.seenIdsAtLastDate = new List<String>{
-            MockAuditTrailProvider.fakeId(1),
-            'not-an-id',
-            '',
-            null
-        };
+        cursor.seenIdsAtLastDate = new List<String>{ MockAuditTrailProvider.fakeId(1), 'not-an-id', '', null };
 
         Test.startTest();
         Set<Id> ids = cursor.seenIdSet();

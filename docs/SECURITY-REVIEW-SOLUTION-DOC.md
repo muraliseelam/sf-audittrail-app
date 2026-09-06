@@ -34,14 +34,14 @@ and no custom setting.
 
 ## 3. Data handling
 
-| Question | Answer |
-|---|---|
-| Does the solution store data outside Salesforce? | **No.** |
-| Does the solution make external callouts? | **No.** There is no `HttpRequest`, no named credential, and no remote site setting in the package. |
-| Does the solution create or modify any record? | **No.** The package performs no DML of any kind. |
-| Does the solution include a custom object? | **No.** |
-| Where is data persisted? | Nowhere. Every request reads `SetupAuditTrail` live and returns the rows to the browser. Nothing is cached server-side. |
-| Is any data sent to a third party? | **No.** |
+| Question                                         | Answer                                                                                                                  |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Does the solution store data outside Salesforce? | **No.**                                                                                                                 |
+| Does the solution make external callouts?        | **No.** There is no `HttpRequest`, no named credential, and no remote site setting in the package.                      |
+| Does the solution create or modify any record?   | **No.** The package performs no DML of any kind.                                                                        |
+| Does the solution include a custom object?       | **No.**                                                                                                                 |
+| Where is data persisted?                         | Nowhere. Every request reads `SetupAuditTrail` live and returns the rows to the browser. Nothing is cached server-side. |
+| Is any data sent to a third party?               | **No.**                                                                                                                 |
 
 Because nothing is stored, there is no data-retention, data-residency or data-deletion
 surface. Uninstalling the package removes the code and leaves no residue.
@@ -60,11 +60,11 @@ pins both cases with real users on real profiles.
 
 Every `@AuraEnabled` method calls this gate before doing any work:
 
-| Method | Gated | Notes |
-|---|---|---|
-| `search` | Yes | |
-| `searchUsers` | Yes | Type-ahead over the User object for the "changed by" filter |
-| `getContext` | Not gated, by design | Returns only compile-time constants, `Datetime.now()`, and the calling user's own access boolean. It discloses nothing the caller does not already know about themselves, and the UI needs it to render the "you lack permission" state. |
+| Method        | Gated                | Notes                                                                                                                                                                                                                                    |
+| ------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search`      | Yes                  |                                                                                                                                                                                                                                          |
+| `searchUsers` | Yes                  | Type-ahead over the User object for the "changed by" filter                                                                                                                                                                              |
+| `getContext`  | Not gated, by design | Returns only compile-time constants, `Datetime.now()`, and the calling user's own access boolean. It discloses nothing the caller does not already know about themselves, and the UI needs it to render the "you lack permission" state. |
 
 The shipped permission set `Audit_Trail_Viewer` grants `ViewSetup`, the app, the tab, and
 Apex class access - nothing more.

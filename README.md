@@ -134,12 +134,22 @@ new managed package from this same source, then creating and promoting a new
 package version. That is an org/Dev Hub configuration step, not a code
 change, and is tracked separately from this repository.
 
+**Verified in a live org:** the existing unlocked package installs cleanly
+and `RunLocalTests` passes with 97% coverage (`HasPassedCodeCoverageCheck=true`).
+The namespace (`atexplorer`) is registered but **not yet linked** to the
+packaging Dev Hub, which is the current blocker for creating a new managed
+package. See [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for
+the full evidence and remaining checklist. **This package has not undergone
+AppExchange security review and is not yet a managed package** - nothing in
+this repository should be read as claiming otherwise.
+
 ## More documentation
 
 | Document                                                                                       | Covers                                                                |
 | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                                                 | Component design, why progressive search is needed, known limitations |
 | [`docs/PRIVACY.md`](docs/PRIVACY.md)                                                           | What data the app reads, what it never stores/sends                   |
+| [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)                                   | Live-org install/test/namespace validation evidence and checklist     |
 | [`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)                 | Full security architecture review (CRUD/FLS, injection, auth)         |
 | [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Code Analyzer findings and their disposition                          |
 | [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                        |

@@ -21,6 +21,24 @@ Salesforce packages are versioned.
 - CI workflow (`.github/workflows/ci.yml`) that runs `npm run lint`,
   `npm run prettier:verify`, and `npm run test:unit` on every push and pull
   request.
+- `docs/LIVE-ORG-VALIDATION.md` recording live-org validation performed
+  outside CI (package install, `RunLocalTests` results, and the current
+  namespace-linkage blocker for a managed 2GP package).
+
+### Verified in a live org (not run in CI)
+
+- Existing unlocked package `04tbm000000aeOjAAI` installs successfully in a
+  clean dev org and the `Audit_Trail_Viewer` permission set assigns without
+  error.
+- `RunLocalTests` passed 22/22 (test run `707bm00001DpAzr`) with 97% test-run
+  coverage; the package version report shows
+  `HasPassedCodeCoverageCheck=true`.
+- Namespace `atexplorer` is registered, but is **not yet linked** to the Dev
+  Hub used for packaging (`pbo2` has zero `NamespaceRegistry` records), which
+  remains the blocker for creating a new managed (2GP) package. See
+  [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the full
+  checklist. **This package is not yet a managed package and has not
+  undergone AppExchange security review.**
 
 ### Fixed
 

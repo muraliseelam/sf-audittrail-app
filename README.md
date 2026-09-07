@@ -62,12 +62,20 @@ The app clamps every request to that floor and states the limit in the UI. Reten
 beyond 180 days requires archiving, which is planned as an **opt-in** add-on so orgs
 that don't need it never pay for storage.
 
-## Install
+## Install (development/test orgs only — unreleased beta)
 
-**Install into any Salesforce org** (Enterprise, Unlimited, Performance or Developer edition):
+**This specific package version (`04tbm000000aeOjAAI`) is an unreleased
+(beta) unlocked package version, not a managed package, and has not passed
+AppExchange Security Review.** Salesforce restricts installation of
+unreleased/beta package versions to **Developer Edition orgs, sandboxes, and
+trial/scratch orgs — not production orgs**. Use it only to evaluate the app
+in a development or test environment.
 
-This is currently an **unlocked beta package** (not a managed package - see
-[Packaging status](#packaging-status)):
+Because this version is unreleased, it does not carry the upgrade guarantees
+of a released package: a later officially released version (once one exists)
+may require a fresh install rather than an in-place upgrade over this beta
+version, and this beta version should not be treated as equivalent to, or a
+preview guaranteed to upgrade cleanly into, that future release.
 
 ```
 https://login.salesforce.com/packaging/installPackage.apexp?p0=04tbm000000aeOjAAI

@@ -8,6 +8,9 @@ Browser (Lightning Web Component: auditExplorer)
   v
 AuditQueryController          Single external surface. Every method calls
   |                            AuditPermissionService before doing anything else.
+  |                            Also issues one SOQL query directly, against the
+  |                            standard User object, for the "changed by"
+  |                            type-ahead (searchUsers) - see below.
   v
 AuditQueryService             Progressive, time-sliced scan engine. Applies
   |                            filters SOQL cannot (Section, free-text search).
@@ -15,11 +18,20 @@ AuditQueryService             Progressive, time-sliced scan engine. Applies
 AuditTrailProvider (interface)
   |
   v
-SetupAuditTrailProvider       The only class that builds/issues SOQL.
+SetupAuditTrailProvider       The only class that queries SetupAuditTrail.
   |
   v
 SetupAuditTrail (standard, read-only Salesforce object)
 ```
+
+`SetupAuditTrailProvider` is the only class that queries `SetupAuditTrail`,
+but it is not the only class in the package that issues SOQL:
+`AuditQueryController.searchUsers` runs a second, independent query directly
+against the standard `User` object (`Id`, `Name`, `Username` only, for active
+users, under `WITH USER_MODE`) to power the "changed by" filter's type-ahead.
+See [`docs/PRIVACY.md`](PRIVACY.md#what-the-app-reads) for what that query
+reads, why, and its permission gate; it is never persisted, cached, or
+logged, same as everything else in this app.
 
 Supporting types: `AuditFilter` (request), `AuditCursor` (keyset pagination
 state), `AuditEventRow` (one flattened result row), `AuditSearchResult`

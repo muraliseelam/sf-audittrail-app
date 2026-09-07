@@ -1,6 +1,9 @@
 # Audit Trail Explorer — Solution Documentation
 
-Prepared for the AppExchange/AgentExchange security review.
+Prepared ahead of an eventual AppExchange/AgentExchange security review
+submission. **This package has not yet been submitted for, or passed, that
+review** — see [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for
+its current unreleased-beta, unlocked-package status.
 
 ## 1. What the solution does
 
@@ -18,12 +21,14 @@ Browser (Lightning Web Component)
   |  imperative Apex
   v
 AuditQueryController          @AuraEnabled facade - the ONLY external surface
-  |  (every method calls AuditPermissionService first)
+  |  (every method calls AuditPermissionService first; also issues one SOQL
+  |   query directly, against the standard User object, for the "changed by"
+  |   type-ahead - see section 6)
   v
 AuditQueryService             progressive, time-sliced scan; Apex-side filtering
   |
   v
-SetupAuditTrailProvider       the only class that issues SOQL
+SetupAuditTrailProvider       the only class that queries SetupAuditTrail
   |
   v
 SetupAuditTrail (standard object, read-only)
@@ -34,14 +39,14 @@ and no custom setting.
 
 ## 3. Data handling
 
-| Question                                         | Answer                                                                                                                  |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Does the solution store data outside Salesforce? | **No.**                                                                                                                 |
-| Does the solution make external callouts?        | **No.** There is no `HttpRequest`, no named credential, and no remote site setting in the package.                      |
-| Does the solution create or modify any record?   | **No.** The package performs no DML of any kind.                                                                        |
-| Does the solution include a custom object?       | **No.**                                                                                                                 |
-| Where is data persisted?                         | Nowhere. Every request reads `SetupAuditTrail` live and returns the rows to the browser. Nothing is cached server-side. |
-| Is any data sent to a third party?               | **No.**                                                                                                                 |
+| Question                                         | Answer                                                                                                                                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Does the solution store data outside Salesforce? | **No.**                                                                                                                                                                        |
+| Does the solution make external callouts?        | **No.** There is no `HttpRequest`, no named credential, and no remote site setting in the package.                                                                             |
+| Does the solution create or modify any record?   | **No.** The package performs no DML of any kind.                                                                                                                               |
+| Does the solution include a custom object?       | **No.**                                                                                                                                                                        |
+| Where is data persisted?                         | Nowhere. Every request reads `SetupAuditTrail` (and, for the user type-ahead described below, `User`) live and returns the rows to the browser. Nothing is cached server-side. |
+| Is any data sent to a third party?               | **No.**                                                                                                                                                                        |
 
 Because nothing is stored, there is no data-retention, data-residency or data-deletion
 surface. Uninstalling the package removes the code and leaves no residue.
@@ -79,10 +84,14 @@ Apex class access - nothing more.
 
 ## 6. Injection defences
 
-**SOQL.** `SetupAuditTrailProvider` is the only class that builds a query string. Every
-fragment appended to it is a compile-time string literal - there is no path by which user
-input reaches the query text. All user-supplied values (`CreatedById`, `Action`, date
-bounds, excluded ids, row limit) are passed as bind variables. The row limit is bound from
+**SOQL.** `SetupAuditTrailProvider` is the only class that builds the
+`SetupAuditTrail` query string; `AuditQueryController.searchUsers` is the
+only other class that issues SOQL, against `User` (see section 3 and the
+LIKE-wildcards note below). In both queries, every literal fragment is a
+compile-time string literal - there is no path by which user input reaches
+the query text. All user-supplied values (`CreatedById`, `Action`, date
+bounds, excluded ids, row limit, the type-ahead search term) are passed as
+bind variables. The row limit on the `SetupAuditTrail` query is bound from
 the private constant `SCAN_BATCH`, not from the client.
 
 **LIKE wildcards.** For the user type-ahead, the search term is bound (never

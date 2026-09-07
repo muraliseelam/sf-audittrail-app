@@ -2,16 +2,28 @@
 
 Audit Trail Explorer is a read-only Salesforce app. It performs no DML, makes no
 external callouts, and stores no data outside the standard `SetupAuditTrail`
-object it reads. See [`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)
-for the full architecture and data-handling review prepared for the AppExchange
-security review, and [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md)
+object it reads (plus one type-ahead query against the standard `User` object -
+see [`docs/PRIVACY.md`](docs/PRIVACY.md)). See
+[`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)
+for the full architecture and data-handling review prepared ahead of an
+eventual AppExchange security review, and
+[`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md)
 for the Salesforce Code Analyzer findings and their disposition.
+
+> **Package status:** the current package (`04tbm000000aeOjAAI`) is an
+> **unreleased (beta) unlocked package version**, not a managed package. It
+> has not been submitted for, or passed, AppExchange Security Review, and has
+> no AppExchange listing. See
+> [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the exact
+> current status.
 
 ## Supported versions
 
-This is an unlocked/managed package distributed as a single current version.
-Only the latest released package version is supported; install the latest
-version to get security fixes.
+There is currently only one package version, the unreleased beta identified
+above - there is no separately "released" version to compare it against, so
+report issues against whatever version you installed. Once a managed package
+version exists and is released, this section will be updated to describe an
+ongoing support policy (typically: only the most recent released version).
 
 ## Reporting a vulnerability
 

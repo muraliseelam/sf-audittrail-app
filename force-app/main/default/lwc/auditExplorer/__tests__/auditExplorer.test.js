@@ -104,6 +104,120 @@ describe('c-audit-explorer', () => {
         expect(table.data.length).toBe(3);
     });
 
+    it('accumulates section and user facets across progressive load-more calls', async () => {
+        getContext.mockResolvedValue(CONTEXT);
+
+        // First call fills the page exactly (50 rows, matching PAGE_SIZE), so
+        // the component's internal loop stops after one call even though
+        // done is false - "Search further back" becomes available.
+        const firstPage = Array.from({ length: 50 }, (_, i) => buildRow(i + 1));
+        search.mockResolvedValueOnce({
+            rows: firstPage,
+            cursor: { lastDateMillis: Date.now() - 50 * 60000, seenIdsAtLastDate: [] },
+            scannedCount: 50,
+            scannedThroughMillis: Date.now() - 50 * 60000,
+            done: false,
+            observedSections: ['Manage Users'],
+            observedActions: ['changedpassword'],
+            // The server only computes facets over rows scanned in this one
+            // call - the regression this test guards against is the client
+            // blindly replacing its facets with only this.
+            sectionFacets: [{ label: 'Manage Users', count: 50 }],
+            actionFacets: [],
+            userFacets: [{ label: 'Test User', count: 50 }]
+        });
+
+        const element = createComponent();
+        await flush();
+
+        const loadMoreButton = Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find(
+            (button) => button.label === 'Search further back'
+        );
+        expect(loadMoreButton).toBeTruthy();
+
+        // Second call (triggered by clicking "Search further back") returns a
+        // single row in a different section/user and finishes the search.
+        search.mockResolvedValueOnce({
+            rows: [{ ...buildRow(51), section: 'Apex Class', userName: 'Other User' }],
+            cursor: { lastDateMillis: Date.now() - 51 * 60000, seenIdsAtLastDate: [] },
+            scannedCount: 1,
+            scannedThroughMillis: Date.now() - 51 * 60000,
+            done: true,
+            observedSections: ['Apex Class'],
+            observedActions: [],
+            sectionFacets: [{ label: 'Apex Class', count: 1 }],
+            actionFacets: [],
+            userFacets: [{ label: 'Other User', count: 1 }]
+        });
+
+        loadMoreButton.click();
+        await flush();
+
+        expect(search).toHaveBeenCalledTimes(2);
+        const table = element.shadowRoot.querySelector('lightning-datatable');
+        expect(table.data.length).toBe(51);
+
+        // Facets must reflect the entire accumulated 51-row result set, not
+        // just the 1 row from the second call - both sections/users must be
+        // present, ordered by count descending (the first call's 50 before
+        // the second call's 1).
+        const labels = Array.from(element.shadowRoot.querySelectorAll('.audit-facet-label')).map(
+            (el) => el.textContent
+        );
+        expect(labels.slice(0, 2)).toEqual(['Manage Users', 'Apex Class']);
+        expect(labels.slice(2, 4)).toEqual(['Test User', 'Other User']);
+    });
+
+    it('resets facets to only the new search results, not the previous search', async () => {
+        getContext.mockResolvedValue(CONTEXT);
+        search.mockResolvedValueOnce({
+            rows: [buildRow(1)],
+            cursor: { lastDateMillis: Date.now(), seenIdsAtLastDate: [] },
+            scannedCount: 1,
+            scannedThroughMillis: Date.now(),
+            done: true,
+            observedSections: ['Manage Users'],
+            observedActions: [],
+            sectionFacets: [{ label: 'Manage Users', count: 1 }],
+            actionFacets: [],
+            userFacets: [{ label: 'Test User', count: 1 }]
+        });
+
+        const element = createComponent();
+        await flush();
+        expect(element.shadowRoot.textContent).toContain('Manage Users');
+
+        // A brand-new search (e.g. Reset) must not carry over facets from
+        // the previous search's accumulated rows.
+        search.mockResolvedValueOnce({
+            rows: [{ ...buildRow(2), section: 'Apex Class', userName: 'Other User' }],
+            cursor: { lastDateMillis: Date.now(), seenIdsAtLastDate: [] },
+            scannedCount: 1,
+            scannedThroughMillis: Date.now(),
+            done: true,
+            observedSections: ['Apex Class'],
+            observedActions: [],
+            sectionFacets: [{ label: 'Apex Class', count: 1 }],
+            actionFacets: [],
+            userFacets: [{ label: 'Other User', count: 1 }]
+        });
+
+        const resetButton = Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find(
+            (button) => button.label === 'Reset'
+        );
+        expect(resetButton).toBeTruthy();
+        resetButton.click();
+        await flush();
+
+        const table = element.shadowRoot.querySelector('lightning-datatable');
+        expect(table.data.length).toBe(1);
+        const labels = Array.from(element.shadowRoot.querySelectorAll('.audit-facet-label')).map(
+            (el) => el.textContent
+        );
+        expect(labels).toEqual(['Apex Class', 'Other User']);
+        expect(element.shadowRoot.textContent).not.toContain('Manage Users');
+    });
+
     it('hides the explorer when the user lacks View Setup', async () => {
         getContext.mockResolvedValue({ ...CONTEXT, canViewSetup: false });
 
@@ -139,7 +253,18 @@ describe('c-audit-explorer', () => {
             '\n=1+1',
             '\u200b=1+1',
             '\u0001=1+1',
-            '\ufeff=1+1'
+            '\ufeff=1+1',
+            // Full-width variants of the same four trigger characters
+            // (some spreadsheet/IME environments normalize these to their
+            // ASCII equivalents on paste/import), both bare and preceded by
+            // a leading whitespace/control/zero-width character.
+            '\uFF1D1+1',
+            '\uFF0B1',
+            '\uFF0D1',
+            '\uFF20SUM(A1)',
+            ' \uFF1D1+1',
+            '\u200b\uFF1D1+1',
+            '\u0001\uFF0B1'
         ].forEach((payload) => {
             expect(csvCell(payload)).toBe(`"'${payload}"`);
         });

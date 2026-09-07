@@ -1,6 +1,10 @@
 # Audit Trail Explorer — Code Analyzer Findings Disposition
 
-Companion to `CodeAnalyzerReport.html`, submitted with the security review.
+Companion to `CodeAnalyzerReport.html`, prepared ahead of an eventual
+AppExchange security review submission. **This package has not yet been
+submitted for, or passed, AppExchange Security Review** — see
+[`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for its current
+unreleased-beta, unlocked-package status.
 
 Scan command (reproducible from a clean checkout):
 

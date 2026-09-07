@@ -11,6 +11,20 @@ change history visible (in a much less usable form) under
 usernames of users who made setup changes, and human-readable descriptions of
 those changes (for example, "Changed profile Sales User").
 
+**User type-ahead.** The "Filter by user" field also queries the standard
+`User` object — `Id`, `Name`, and `Username` only, for **active users**
+matching what the caller typed (`AuditQueryController.searchUsers`, backed by
+a `SELECT ... FROM User ... WITH USER_MODE` query). This exists solely so the
+caller can pick a person to filter the audit search by, without needing to
+already know that user's Id. It is gated behind the same "View Setup and
+Configuration" check as the audit data itself (so it cannot be used as a
+general user-directory lookup by someone who shouldn't have access to the
+audit trail in the first place), runs under `USER_MODE` so field-level
+security on `User` is enforced for the running user, requires at least 2
+characters of input, returns at most 20 matches, and — like everything else
+in this app — the results are used only to render the UI and are never
+stored, cached, or logged.
+
 ## What the app does _not_ do
 
 | Question                                                                                                   | Answer                                                                                                                               |

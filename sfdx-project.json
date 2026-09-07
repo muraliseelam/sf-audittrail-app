@@ -1,20 +1,21 @@
 {
-  "packageDirectories": [
-    {
-      "versionName": "Version 1.0",
-      "versionNumber": "1.0.0.NEXT",
-      "path": "force-app",
-      "default": true,
-      "package": "Audit Trail Explorer",
-      "versionDescription": "Zero-storage search, analysis and export for the Salesforce Setup Audit Trail."
+    "packageDirectories": [
+        {
+            "versionName": "Version 1.0",
+            "versionNumber": "1.0.0.NEXT",
+            "path": "force-app",
+            "default": true,
+            "package": "Audit Trail Explorer",
+            "versionDescription": "Zero-storage search, analysis and export for the Salesforce Setup Audit Trail."
+        }
+    ],
+    "name": "sf-audittrail-app",
+    "namespace": "",
+    "sfdcLoginUrl": "https://login.salesforce.com",
+    "sourceApiVersion": "64.0",
+    "packageAliases": {
+        "Audit Trail Explorer": "0Hobm0000005681CAA",
+        "Audit Trail Explorer@1.0.0-1": "04tbm000000aeOjAAI",
+        "Audit Trail Explorer@1.0.0-2": "04tbm000000gaALAAY"
     }
-  ],
-  "name": "sf-audittrail-app",
-  "namespace": "",
-  "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "64.0",
-  "packageAliases": {
-    "Audit Trail Explorer": "0Hobm0000005681CAA",
-    "Audit Trail Explorer@1.0.0-1": "04tbm000000aeOjAAI"
-  }
 }

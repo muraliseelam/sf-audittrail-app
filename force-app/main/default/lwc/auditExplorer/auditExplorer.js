@@ -204,7 +204,12 @@ export default class AuditExplorer extends LightningElement {
         try {
             // Keep asking for the next time-slice until the page is filled, the
             // range is exhausted, or the user stops it.
-            while (!this.done && !this.stopRequested && this.rows.length < targetCount && calls < MAX_CALLS_PER_ACTION) {
+            while (
+                !this.done &&
+                !this.stopRequested &&
+                this.rows.length < targetCount &&
+                calls < MAX_CALLS_PER_ACTION
+            ) {
                 calls++;
                 // Sequential by necessity: each call needs the cursor returned
                 // by the previous one, so these cannot be parallelised.
@@ -234,8 +239,29 @@ export default class AuditExplorer extends LightningElement {
         this.scannedTotal += result.scannedCount || 0;
         this.scannedThroughMillis = result.scannedThroughMillis;
         this.mergeSectionOptions(result.observedSections);
-        this.sectionFacets = this.toChartRows(result.sectionFacets);
-        this.userFacets = this.toChartRows(result.userFacets);
+        // The server computes facets only over the rows scanned in this one
+        // call, so using result.sectionFacets/userFacets directly would make
+        // "Top sections"/"Top users" reset to the latest page instead of
+        // reflecting everything displayed so far. Recompute from the full
+        // accumulated row set instead, so a "Search further back" call adds
+        // to the picture rather than replacing it.
+        this.sectionFacets = this.toChartRows(this.computeFacets(this.rows, (row) => row.section));
+        this.userFacets = this.toChartRows(this.computeFacets(this.rows, (row) => row.userName));
+    }
+
+    /** Counts occurrences of keyFn(row) across rows, highest count first (ties broken alphabetically). */
+    computeFacets(rows, keyFn) {
+        const counts = new Map();
+        rows.forEach((row) => {
+            const key = keyFn(row);
+            if (!key) {
+                return;
+            }
+            counts.set(key, (counts.get(key) || 0) + 1);
+        });
+        return Array.from(counts.entries())
+            .map(([label, count]) => ({ label, count }))
+            .sort((a, b) => (b.count !== a.count ? b.count - a.count : a.label.localeCompare(b.label)));
     }
 
     mergeSectionOptions(observed) {

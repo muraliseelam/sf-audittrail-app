@@ -1,6 +1,10 @@
 # Audit Trail Explorer — Code Analyzer Findings Disposition
 
-Companion to `CodeAnalyzerReport.html`, submitted with the security review.
+Companion to `CodeAnalyzerReport.html`, prepared ahead of an eventual
+AppExchange security review submission. **This package has not yet been
+submitted for, or passed, AppExchange Security Review** — see
+[`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for its current
+unreleased-beta, unlocked-package status.
 
 Scan command (reproducible from a clean checkout):
 
@@ -21,11 +25,11 @@ misleadingly clean report.
 ## Result
 
 | Severity | Count |
-|---|---|
+| -------- | ----- |
 | Critical | **0** |
-| High | **0** |
-| Moderate | 11 |
-| Low | 73 |
+| High     | **0** |
+| Moderate | 11    |
+| Low      | 73    |
 
 Additionally, run separately: **Salesforce Graph Engine, RetireJS and the regex secrets
 engine each report 0 violations.**

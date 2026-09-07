@@ -10,14 +10,7 @@ private class SetupAuditTrailProviderTest {
         SetupAuditTrailProvider provider = new SetupAuditTrailProvider();
 
         Test.startTest();
-        List<AuditEventRow> rows = provider.fetch(
-            Datetime.now(),
-            Datetime.now().addDays(-30),
-            null,
-            null,
-            null,
-            10
-        );
+        List<AuditEventRow> rows = provider.fetch(Datetime.now(), Datetime.now().addDays(-30), null, null, null, 10);
         Test.stopTest();
 
         System.assertNotEquals(null, rows, 'Query must execute without error');

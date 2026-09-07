@@ -4,7 +4,13 @@ private class AuditQueryControllerTest {
     static void searchReturnsRowsForPermittedUser() {
         AuditQueryService.provider = new MockAuditTrailProvider(
             new List<AuditEventRow>{
-                MockAuditTrailProvider.row(1, Datetime.now().addDays(-1), 'Manage Users', 'deactivate', 'Deactivated user Jane')
+                MockAuditTrailProvider.row(
+                    1,
+                    Datetime.now().addDays(-1),
+                    'Manage Users',
+                    'deactivate',
+                    'Deactivated user Jane'
+                )
             }
         );
 
@@ -33,11 +39,7 @@ private class AuditQueryControllerTest {
 
         Test.startTest();
         AuditSearchResult first = AuditQueryController.search(JSON.serialize(filter), null, 3);
-        AuditSearchResult second = AuditQueryController.search(
-            JSON.serialize(filter),
-            JSON.serialize(first.cursor),
-            3
-        );
+        AuditSearchResult second = AuditQueryController.search(JSON.serialize(filter), JSON.serialize(first.cursor), 3);
         Test.stopTest();
 
         System.assertEquals(3, first.rows.size());
@@ -64,8 +66,7 @@ private class AuditQueryControllerTest {
                 'Expected the generic message, got: ' + e.getMessage()
             );
             Assert.isFalse(
-                e.getMessage().containsIgnoreCase('SELECT') ||
-                e.getMessage().containsIgnoreCase('SetupAuditTrail'),
+                e.getMessage().containsIgnoreCase('SELECT') || e.getMessage().containsIgnoreCase('SetupAuditTrail'),
                 'Internal detail must not reach the client: ' + e.getMessage()
             );
         }

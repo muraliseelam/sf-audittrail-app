@@ -44,13 +44,7 @@ public with sharing class MockAuditTrailProvider implements AuditTrailProvider {
     }
 
     /** Builds a descending-by-date row, as the real provider always returns. */
-    public static AuditEventRow row(
-        Integer index,
-        Datetime occurredAt,
-        String section,
-        String action,
-        String display
-    ) {
+    public static AuditEventRow row(Integer index, Datetime occurredAt, String section, String action, String display) {
         AuditEventRow r = new AuditEventRow();
         r.recordId = fakeId(index);
         r.eventDateMillis = occurredAt.getTime();
@@ -67,9 +61,7 @@ public with sharing class MockAuditTrailProvider implements AuditTrailProvider {
         // record id, so the value is synthetic by construction.
         // DEFERRED avoids eagerly loading every child relationship just to read
         // the key prefix - this runs in a loop in the paging tests.
-        String prefix = SetupAuditTrail.SObjectType
-            .getDescribe(SObjectDescribeOptions.DEFERRED)
-            .getKeyPrefix();
+        String prefix = SetupAuditTrail.SObjectType.getDescribe(SObjectDescribeOptions.DEFERRED).getKeyPrefix();
         String body = String.valueOf(index).leftPad(15 - prefix.length(), '0');
         return Id.valueOf(prefix + body);
     }

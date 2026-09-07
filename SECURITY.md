@@ -30,12 +30,15 @@ ongoing support policy (typically: only the most recent released version).
 Please **do not** open a public GitHub issue for a suspected security
 vulnerability.
 
-Instead, report it privately using one of these channels:
+Instead, report it privately by emailing:
 
-- GitHub: use the repository's **Security** tab → **Report a vulnerability**
-  (private security advisory), or
-- Open a draft security advisory at
-  `https://github.com/muraliseelam/sf-audittrail-app/security/advisories/new`.
+**`muralirseelam+sf-audittrail-security@gmail.com`**
+
+This inbox is monitored specifically for this project. GitHub's private
+vulnerability reporting (the Security tab's "Report a vulnerability" flow) is
+**not currently enabled** for this repository, so please use the email
+address above rather than that GitHub flow. If that changes, this section
+will be updated to reflect it.
 
 Please include:
 

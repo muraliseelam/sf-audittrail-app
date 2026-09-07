@@ -3,6 +3,11 @@
 A Salesforce app that gives admins and auditors a fast, filterable UI over the
 **Setup Audit Trail** — with **zero storage footprint**.
 
+> **Package status: unlocked beta.** This is currently distributed as an
+> unlocked package, not a managed package, and has not been submitted for or
+> passed AppExchange Security Review. It has no AppExchange listing. See
+> [Packaging status](#packaging-status) below for the exact remaining steps.
+
 ## What it does
 
 - Search 180 days of setup/config changes by **description text, section, user and date range**
@@ -60,6 +65,9 @@ that don't need it never pay for storage.
 ## Install
 
 **Install into any Salesforce org** (Enterprise, Unlimited, Performance or Developer edition):
+
+This is currently an **unlocked beta package** (not a managed package - see
+[Packaging status](#packaging-status)):
 
 ```
 https://login.salesforce.com/packaging/installPackage.apexp?p0=04tbm000000aeOjAAI
@@ -125,7 +133,7 @@ sf project deploy start --source-dir force-app --test-level RunLocalTests
 
 ## Packaging status
 
-This repository currently ships an **unlocked package with no namespace**
+This repository currently ships an **unlocked beta package with no namespace**
 (`sfdx-project.json` → `"namespace": ""`, alias `Audit Trail Explorer` /
 `04tbm000000aeOjAAI`). An unlocked package **cannot be converted in place**
 into a namespaced managed (2GP) package suitable for an AppExchange managed
@@ -134,12 +142,15 @@ new managed package from this same source, then creating and promoting a new
 package version. That is an org/Dev Hub configuration step, not a code
 change, and is tracked separately from this repository.
 
-**Verified in a live org:** the existing unlocked package installs cleanly
-and `RunLocalTests` passes with 97% coverage (`HasPassedCodeCoverageCheck=true`).
-The namespace (`atexplorer`) is registered but **not yet linked** to the
-packaging Dev Hub, which is the current blocker for creating a new managed
-package. See [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for
-the full evidence and remaining checklist. **This package has not undergone
+**Verified in a live org:** the existing unlocked beta package installs
+cleanly and `RunLocalTests` passes with 97% coverage
+(`HasPassedCodeCoverageCheck=true`). The namespace (`atexplorer`) is
+registered but **not yet linked** to the packaging Dev Hub. Linkage is
+currently blocked by a **platform-level defect in the SalesforceDX Namespace
+Registry's OAuth/PKCE flow** - not a configuration error in this repository
+or org - so a new managed (2GP) package cannot yet be created. See
+[`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the full
+evidence and remaining checklist. **This package has not undergone
 AppExchange security review and is not yet a managed package** - nothing in
 this repository should be read as claiming otherwise.
 

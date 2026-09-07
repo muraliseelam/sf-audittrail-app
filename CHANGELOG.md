@@ -34,11 +34,15 @@ Salesforce packages are versioned.
   coverage; the package version report shows
   `HasPassedCodeCoverageCheck=true`.
 - Namespace `atexplorer` is registered, but is **not yet linked** to the Dev
-  Hub used for packaging (`pbo2` has zero `NamespaceRegistry` records), which
-  remains the blocker for creating a new managed (2GP) package. See
+  Hub used for packaging (`pbo2` has zero `NamespaceRegistry` records).
+  Linkage is currently blocked by a platform-level defect in the
+  SalesforceDX Namespace Registry's OAuth/PKCE flow (not a configuration
+  error in this org or repository), which remains the blocker for creating a
+  new managed (2GP) package. See
   [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the full
-  checklist. **This package is not yet a managed package and has not
-  undergone AppExchange security review.**
+  checklist. **This package is currently an unlocked beta package - it is
+  not yet a managed package and has not undergone AppExchange security
+  review.**
 
 ### Fixed
 

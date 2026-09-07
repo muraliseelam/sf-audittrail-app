@@ -43,13 +43,16 @@ review approval, certification, or managed-package release — see
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Namespace registered                  | `atexplorer` (in the `nsorg` org)                                                                                                                                                                                                                                                                                                                                                   |
 | Namespace linked to packaging Dev Hub | **Not yet** — `pbo2` (the Dev Hub used for packaging) currently has **zero** `NamespaceRegistry` records                                                                                                                                                                                                                                                                            |
+| Root cause                            | A platform-level defect in the SalesforceDX Namespace Registry's OAuth/PKCE flow currently prevents linking the registered namespace to the packaging Dev Hub. This is a Salesforce platform issue, not a configuration mistake in this org or repository, and is outside the control of this codebase.                                                                             |
 | Blocker                               | Namespace linkage to the Dev Hub is the current blocker for creating a new managed (2GP) package. As documented in the [README](../README.md#packaging-status) and [`docs/ARCHITECTURE.md`](ARCHITECTURE.md#packaging), the existing unlocked package **cannot be converted in place** — a new managed package must be created from this source only after the namespace is linked. |
 
 ## Remaining manual/live checklist
 
-- [ ] Link the `atexplorer` namespace to the `pbo2` Dev Hub (`NamespaceRegistry`
-      must show a record connecting them) before any managed package can be
-      created.
+- [ ] Resolve the SalesforceDX Namespace Registry OAuth/PKCE issue (via a
+      Salesforce support case, retry once the platform defect is fixed, or an
+      alternate linkage path), then link the `atexplorer` namespace to the
+      `pbo2` Dev Hub (`NamespaceRegistry` must show a record connecting them)
+      before any managed package can be created.
 - [ ] Create a new 2GP managed package from this source under the linked
       namespace; create and promote a release-candidate package version.
 - [ ] Re-run `RunLocalTests` against the _new_ managed package version and
@@ -64,5 +67,8 @@ review approval, certification, or managed-package release — see
       managed package's install URL, and remove the unlocked-package install
       instructions.
 
-Do not describe the package as "managed" or "AppExchange-ready" in any
-listing or marketing copy until the steps above are complete.
+**Current state: this is an unlocked beta package.** It has not been
+converted to a managed package, has not been submitted for AppExchange
+Security Review, and has no AppExchange listing. Do not describe it as
+"managed", "AppExchange-approved", or "AppExchange-ready" in any listing,
+documentation, or marketing copy until the steps above are complete.

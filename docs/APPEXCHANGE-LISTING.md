@@ -5,6 +5,14 @@ makes no claims of AppExchange certification, security review approval,
 customer adoption, or install counts — those are added by Salesforce/AppExchange
 processes, not by this repository.
 
+> **Not ready to publish as-is.** The package described here is currently an
+> **unlocked beta package**, not a managed package, and has not been
+> submitted for AppExchange Security Review. Do not publish this listing (or
+> any variant of it) until the package described in
+> [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) is a reviewed,
+> managed package. Update the install link and package-type references below
+> at that time.
+
 ## Listing name
 
 Audit Trail Explorer

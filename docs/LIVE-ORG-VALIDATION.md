@@ -11,14 +11,58 @@ review approval, certification, or managed-package release — see
 
 ## Package install validation
 
-| Item                    | Result                                         |
-| ----------------------- | ---------------------------------------------- |
-| Package installed       | Existing unlocked package `04tbm000000aeOjAAI` |
-| Target org              | `orgfarm-dev-ed`                               |
-| Install result          | Succeeded                                      |
-| Permission set assigned | `Audit_Trail_Viewer` — assigned successfully   |
+### Current: package version `1.0.0.2` (`04tbm000000gaALAAY`)
+
+Built from this exact source commit.
+
+| Item                         | Result                                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Package version              | `1.0.0.2` (`04tbm000000gaALAAY`)                                                                        |
+| Package-version request      | `08cbm000000JDHhAAO`                                                                                    |
+| Metadata files               | 43                                                                                                      |
+| Package coverage             | 97%                                                                                                     |
+| `HasPassedCodeCoverageCheck` | `true`                                                                                                  |
+| Validation skipped           | `false` (validation ran)                                                                                |
+| Target org                   | Clean active QA scratch org, alias `qa`, org ID `00DO500000q61ptMAA` (no packages installed beforehand) |
+| Install request              | `0HfO50000041ge1KAA`                                                                                    |
+| Install result               | Succeeded                                                                                               |
+| Permission set assigned      | `Audit_Trail_Viewer` — assigned successfully                                                            |
+
+### Superseded: package version `1.0.0.1` (`04tbm000000aeOjAAI`)
+
+Retained for historical traceability only; do not install this version - see
+[README.md](../README.md#install-development-test-orgs-only--unreleased-beta).
+
+| Item                    | Result                                       |
+| ----------------------- | -------------------------------------------- |
+| Target org              | `orgfarm-dev-ed`                             |
+| Install result          | Succeeded                                    |
+| Permission set assigned | `Audit_Trail_Viewer` — assigned successfully |
 
 ## Apex test run (RunLocalTests)
+
+### Current: package version `1.0.0.2`
+
+| Item                   | Result                                                                                               |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| Test run id            | `707O500002wjQxU`                                                                                    |
+| Tests passed           | **28 / 28 (0 failures)**                                                                             |
+| Org-wide coverage      | 97%                                                                                                  |
+| Package version report | `IsReleased=false`, `ValidationSkipped=false`, `CodeCoverage=97%`, `HasPassedCodeCoverageCheck=true` |
+
+This reconciles the note below: the full 28 `@IsTest` methods present in this
+source (across `AuditPermissionServiceTest`, `AuditQueryControllerTest`,
+`AuditQueryServiceTest`, and `SetupAuditTrailProviderTest`) all ran and
+passed against package version `1.0.0.2`, confirming the 22/22 result
+recorded for `1.0.0.1` below reflected that earlier, superseded build rather
+than any discrepancy in the current source.
+
+Tooling API additionally confirmed the LWC bundle installed with this
+package version includes both fixes from this PR: `csv.js` recognizes
+full-width formula-trigger characters, and `auditExplorer.js` computes
+facets from the accumulated row set (`computeFacets`).
+
+### Superseded: package version `1.0.0.1`
 
 | Item                         | Result                                                                                               |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -26,16 +70,6 @@ review approval, certification, or managed-package release — see
 | Tests passed                 | 22 / 22 (0 failures)                                                                                 |
 | Test-run / org-wide coverage | 97%                                                                                                  |
 | Package version report       | `IsReleased=false`, `ValidationSkipped=false`, `CodeCoverage=97%`, `HasPassedCodeCoverageCheck=true` |
-
-> **Note for reconciliation:** the source in this repository contains 28
-> `@IsTest` methods across `AuditPermissionServiceTest`,
-> `AuditQueryControllerTest`, `AuditQueryServiceTest`, and
-> `SetupAuditTrailProviderTest`. The org run above reported 22/22. This may
-> simply reflect which package version/test scope `RunLocalTests` selected
-> in that org (for example, an older installed package version predating
-> some tests) rather than a discrepancy in this source — worth confirming
-> against the exact package version installed the next time this is run,
-> but it does not indicate a failing test.
 
 ## Namespace / managed (2GP) package status
 
@@ -55,12 +89,17 @@ review approval, certification, or managed-package release — see
       before any managed package can be created.
 - [ ] Create a new 2GP managed package from this source under the linked
       namespace; create and promote a release-candidate package version.
-- [ ] Re-run `RunLocalTests` against the _new_ managed package version and
-      reconcile the 22 vs. 28 test count above against that version's exact
-      Apex class set.
-- [ ] Validate install of the new managed package version into a clean org
-      (fresh org, not `orgfarm-dev-ed`, to catch any dependency the existing
-      unlocked-package org may be masking).
+- [x] ~~Re-run `RunLocalTests` against the new package version and reconcile
+      the 22 vs. 28 test count~~ - done for unlocked beta `1.0.0.2`
+      (`04tbm000000gaALAAY`): 28/28 passed, 97% org-wide coverage, matching
+      this source's full test suite. The eventual managed (2GP) package
+      version should still get its own `RunLocalTests` run once created, as
+      package version identity changes with each new version.
+- [x] ~~Validate install of the new package version into a clean org~~ - done
+      for unlocked beta `1.0.0.2`: installed successfully into a clean active
+      QA scratch org (`00DO500000q61ptMAA`) with no packages installed
+      beforehand. The eventual managed (2GP) package version should still be
+      validated with its own clean-org install once created.
 - [ ] Submit the managed package version for AppExchange Security Review.
 - [ ] Only after security review approval: update `README.md`,
       `docs/APPEXCHANGE-LISTING.md`, and this file to reference the new

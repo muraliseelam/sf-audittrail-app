@@ -71,14 +71,17 @@ Every `@AuraEnabled` method calls this gate before doing any work:
 | `searchUsers` | Yes                  | Type-ahead over the User object for the "changed by" filter                                                                                                                                                                              |
 | `getContext`  | Not gated, by design | Returns only compile-time constants, `Datetime.now()`, and the calling user's own access boolean. It discloses nothing the caller does not already know about themselves, and the UI needs it to render the "you lack permission" state. |
 
-The shipped permission set `Audit_Trail_Viewer` grants `ViewSetup`, the app, the tab, and
-Apex class access - nothing more.
+The shipped permission set `Audit_Trail_Viewer` grants `ViewSetup` and its
+`ViewRoles` prerequisite (Salesforce requires `ViewRoles` to enable
+`ViewSetup`), plus the app, the tab, and Apex class access - no object
+CRUD/FLS grant and no other system permission.
 
 ## 5. CRUD/FLS and sharing enforcement
 
-- The single production SOQL statement runs as
-  `Database.query(soql, AccessLevel.USER_MODE)`, so CRUD and FLS are enforced by the
-  platform rather than by hand-written describe checks.
+- Both production SOQL paths enforce CRUD/FLS at the platform level rather
+  than via hand-written describe checks: the `SetupAuditTrail` query runs as
+  `Database.query(soql, AccessLevel.USER_MODE)`, and the `User` type-ahead
+  query (`AuditQueryController.searchUsers`) runs `WITH USER_MODE`.
 - Every Apex class in the package is declared `with sharing`.
 - `SetupAuditTrail` is a read-only platform-owned object, so there is no DML to enforce.
 

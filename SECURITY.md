@@ -10,20 +10,22 @@ eventual AppExchange security review, and
 [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md)
 for the Salesforce Code Analyzer findings and their disposition.
 
-> **Package status:** the current package (`04tbm000000aeOjAAI`) is an
-> **unreleased (beta) unlocked package version**, not a managed package. It
-> has not been submitted for, or passed, AppExchange Security Review, and has
-> no AppExchange listing. See
+> **Package status:** the current package version (`1.0.0.2`,
+> `04tbm000000gaALAAY`) is an **unreleased (beta) unlocked package version**,
+> not a managed package. It has not been submitted for, or passed,
+> AppExchange Security Review, and has no AppExchange listing. See
 > [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the exact
 > current status.
 
 ## Supported versions
 
-There is currently only one package version, the unreleased beta identified
-above - there is no separately "released" version to compare it against, so
-report issues against whatever version you installed. Once a managed package
-version exists and is released, this section will be updated to describe an
-ongoing support policy (typically: only the most recent released version).
+There are currently two package versions, both unreleased betas: `1.0.0.2`
+(`04tbm000000gaALAAY`, current) and `1.0.0.1` (`04tbm000000aeOjAAI`,
+superseded). There is no separately "released" version to compare either
+against, so report issues against whichever version you installed. Once a
+managed package version exists and is released, this section will be
+updated to describe an ongoing support policy (typically: only the most
+recent released version).
 
 ## Reporting a vulnerability
 

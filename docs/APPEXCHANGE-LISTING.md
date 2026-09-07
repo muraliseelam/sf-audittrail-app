@@ -19,14 +19,14 @@ Audit Trail Explorer
 
 ## Tagline (≤ 10 words)
 
-Search, filter, and export your Setup Audit Trail — with zero storage.
+Search, filter, and export your Setup Audit Trail.
 
 ## Short description (≤ 250 characters)
 
-Fast, filterable search over Salesforce's Setup Audit Trail. Find configuration
-changes by description, section, user, or date — something native Setup
-cannot do — and export results to CSV. Read-only. No custom objects, no
-external callouts, no data stored anywhere.
+Fast, filterable search over Salesforce's Setup Audit Trail. Search by
+description, section, user, or date — something native Setup can't do —
+and export to CSV. Read-only, no custom objects, no external callouts,
+nothing stored.
 
 ## Full description
 
@@ -42,7 +42,7 @@ storage to your org.
 - Search up to 180 days (Salesforce's retention limit) of setup/configuration
   changes by free text, section, action, changed-by user, and date range.
 - See which sections and users show up most in your current result set.
-- Open any event for full detail: delegate user, namespace, context, issuer.
+- Open any event for detail: delegate user and namespace.
 - Export the current result set to CSV for offline review or audit
   evidence — with spreadsheet-formula-injection protection built in.
 
@@ -52,9 +52,11 @@ storage to your org.
   nothing server-side. Uninstalling the package leaves zero residue.
 - Call out anywhere. No named credential, no remote site setting, no
   third-party service of any kind.
-- Grant any access a user doesn't already have. It enforces the same "View
+- Bypass Salesforce's permission model. The runtime enforces the same "View
   Setup and Configuration" permission Salesforce requires to view the audit
-  trail natively.
+  trail natively; assigning the packaged permission set is what grants a
+  user `ViewSetup` (and its `ViewRoles` prerequisite) to use the app - it
+  does not grant any access beyond that.
 
 **Requirements**
 

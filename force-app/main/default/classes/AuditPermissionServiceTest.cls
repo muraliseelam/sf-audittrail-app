@@ -83,26 +83,78 @@ private class AuditPermissionServiceTest {
     }
 
     @IsTest
-    static void packagedPermissionSetAloneGrantsAccess() {
-        // This is the exact experience of a customer who installs the package
-        // and assigns only the permission set we ship: an otherwise minimal
-        // user must be able to use the app. It also proves the permission set
-        // is not under-granting after ViewRoles was removed from it.
+    static void packagedPermissionSetOpensTheAppWhenItCanGrantViewSetup() {
+        // A customer installs the package and assigns only the permission set
+        // we ship. What that permission set can actually grant depends on the
+        // packaging model: Salesforce strips system permissions such as
+        // ViewSetup from a MANAGED package's permission set on install, as an
+        // anti-privilege-escalation measure, but keeps them for source and
+        // unlocked deploys.
+        //
+        // So the invariant worth pinning is the equivalence itself: the gate
+        // must open exactly when the assigned permission set really carries
+        // ViewSetup, and stay shut when the platform stripped it. Asserting
+        // unconditionally that the permission set alone is sufficient would be
+        // asserting something the managed platform forbids.
         User restricted = buildUser('Minimum Access - Salesforce');
         insert restricted;
 
-        PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'Audit_Trail_Viewer' LIMIT 1];
+        PermissionSet ps = [
+            SELECT Id, PermissionsViewSetup
+            FROM PermissionSet
+            WHERE Name = 'Audit_Trail_Viewer' AND IsOwnedByProfile = FALSE
+            LIMIT 1
+        ];
         insert new PermissionSetAssignment(AssigneeId = restricted.Id, PermissionSetId = ps.Id);
+
+        Boolean grantsViewSetup = ps.PermissionsViewSetup;
 
         Test.startTest();
         System.runAs(restricted) {
-            Assert.isTrue(
+            Assert.areEqual(
+                grantsViewSetup,
                 AuditPermissionService.canViewSetup(),
-                'The shipped permission set alone must be enough to use the app.'
+                'The gate must open exactly when the shipped permission set grants View Setup and Configuration.'
             );
-            // And the data path must genuinely open, not just the gate.
-            AuditQueryController.search(null, null, 5);
+
+            if (grantsViewSetup) {
+                // The data path must genuinely open, not just the gate.
+                AuditQueryController.search(null, null, 5);
+            }
         }
         Test.stopTest();
+    }
+
+    @IsTest
+    static void packagedPermissionSetGrantsApexAccessRegardlessOfPackaging() {
+        // Apex class access, unlike system permissions, survives managed
+        // packaging. If this regressed, subscribers would hit a bare "class
+        // not visible" failure before ever reaching our permission message.
+        PermissionSet ps = [
+            SELECT Id
+            FROM PermissionSet
+            WHERE Name = 'Audit_Trail_Viewer' AND IsOwnedByProfile = FALSE
+            LIMIT 1
+        ];
+
+        Set<String> granted = new Set<String>();
+        for (SetupEntityAccess access : [
+            SELECT SetupEntityId
+            FROM SetupEntityAccess
+            WHERE ParentId = :ps.Id AND SetupEntityType = 'ApexClass'
+        ]) {
+            granted.add(access.SetupEntityId);
+        }
+
+        for (ApexClass cls : [
+            SELECT Id, Name
+            FROM ApexClass
+            WHERE Name IN ('AuditQueryController', 'AuditQueryService', 'AuditPermissionService')
+        ]) {
+            Assert.isTrue(
+                granted.contains(cls.Id),
+                'The shipped permission set must grant access to ' + cls.Name + '.'
+            );
+        }
     }
 }

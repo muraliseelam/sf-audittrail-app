@@ -28,7 +28,10 @@ public with sharing class AuditPermissionService {
         if (!canViewSetup()) {
             throw new AuditPermissionException(
                 'You need the "View Setup and Configuration" permission to read the Setup Audit Trail. ' +
-                'Ask your administrator to assign the Audit Trail Viewer permission set.'
+                    'Ask your administrator to grant it. Note that Salesforce does not allow an installed ' +
+                    'managed package to grant this permission, so it must be assigned in your own org - ' +
+                    'via your profile, or a permission set your administrator creates - in addition to the ' +
+                    'Audit Trail Viewer permission set.'
             );
         }
     }

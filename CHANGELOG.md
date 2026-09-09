@@ -70,6 +70,11 @@ Salesforce packages are versioned.
 - **Source deploy of the same commit** to a clean scratch org passes
   `RunLocalTests` **29/29 with 0 failures**, confirming the shipped
   permission set alone is still sufficient outside managed packaging.
+- **The administrator workaround is empirically verified**, not merely
+  documented. In the managed subscriber org, a freshly created Minimum
+  Access user assigned only the installed `Audit_Trail_Viewer` cannot open
+  the app; the same user, additionally granted `ViewSetup` through a separate
+  local permission set, can. Both assertions pass.
 - Managed beta `1.0.0.1` (`04thm000002OtOnAAK`) is superseded: it installed
   cleanly but failed 1 of 28 Apex tests, which is what surfaced the managed
   permission-stripping behavior described under **Changed**.

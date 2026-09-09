@@ -104,6 +104,25 @@ Consequences, all now reflected in the shipped app and docs:
   the assigned permission set genuinely carries `ViewSetup`, which holds
   under both packaging models.
 
+### The administrator workaround is verified, not just documented
+
+Run in the managed subscriber org `00DRL00000Vkme62AB` against installed
+managed beta `1.0.0.2`, using a throwaway local test class and a freshly
+created **Minimum Access - Salesforce** user (not the org administrator, who
+already holds `ViewSetup` via profile and would mask the result). The class
+was deployed only to that scratch org and is deliberately not part of this
+repository.
+
+| Scenario                                                                           | Gate (`SetupAuditTrail.isAccessible()`) | Result |
+| ---------------------------------------------------------------------------------- | --------------------------------------- | ------ |
+| Installed `Audit_Trail_Viewer` alone (`PermissionsViewSetup` asserted `false`)     | closed                                  | Pass   |
+| `Audit_Trail_Viewer` **plus** a separate local permission set granting `ViewSetup` | **open**                                | Pass   |
+
+2 / 2 passed. This confirms end-to-end that a subscriber administrator
+granting "View Setup and Configuration" separately does open the app, and
+that the packaged permission set on its own does not — exactly as the README,
+the listing draft, and the in-app messaging now state.
+
 ## Namespace / managed (2GP) package status
 
 | Item                                  | Result                                             |
@@ -127,9 +146,11 @@ the Dev Hub above and cannot be moved to another Dev Hub later.
       done for managed beta `1.0.0.2` into `00DRL00000Vkme62AB`.
 - [x] ~~Run Apex tests against the managed package version in a subscriber
       org~~ — done: 29/29.
-- [ ] Live UI smoke test of the managed install, with **View Setup and
-      Configuration** granted separately, to confirm end-to-end that the
-      documented administrator workaround actually opens the app.
+- [x] ~~Live verification that the documented administrator workaround
+      actually works~~ — done in the managed subscriber org
+      `00DRL00000Vkme62AB`, see below.
+- [ ] Live UI smoke test of the managed install by a human, for
+      screenshots and listing assets.
 - [ ] Promote a managed package version from beta to released.
 - [ ] Submit the released managed package version for AppExchange Security
       Review.

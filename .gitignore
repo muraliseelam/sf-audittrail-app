@@ -44,8 +44,20 @@ $RECYCLE.BIN/
 **/.venv/
 **/venv/
 
-# Code Analyzer output
+# Code Analyzer scan artifacts (regenerate with the command documented in
+# code-analyzer.yml; never commit them)
 sca-report.json
-
-CodeAnalyzerReport.html
+ca-report.json
 ca.json
+ca-*.json
+rules.txt
+rules-*.json
+CodeAnalyzerReport.html
+CodeAnalyzerReport.csv
+
+# Local spec-driven-development workflow tooling (OpenSpec change drafts and
+# editor/assistant prompt definitions). Personal working state, not part of the
+# shipped app.
+openspec/
+.github/skills/
+.github/prompts/

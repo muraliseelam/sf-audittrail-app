@@ -1,13 +1,23 @@
 # Salesforce Code Analyzer configuration.
 #
 # Committed so the AppExchange security-review scan is reproducible: running
-# `sf code-analyzer run --workspace force-app --rule-selector Recommended:AppExchange`
+#
+#   sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
+#     --rule-selector Recommended --rule-selector AppExchange
+#
 # from a clean checkout must produce the same report that was submitted.
 #
-# Without this file the ESLint engine reports "eslint.config.js was found but
-# not applied" and silently falls back to its own bundled defaults, so the scan
-# would not reflect the rules this project actually enforces.
+# `Recommended` and `AppExchange` are passed as two selectors, not as
+# `Recommended:AppExchange`. A colon-separated selector is an INTERSECTION, and
+# no rule carries both tags, so `Recommended:AppExchange` resolves to 0 rules
+# and reports a vacuous "0 violations". Repeating the flag unions the two sets
+# (266 + 29 = 295 rules for this workspace). Always confirm the rule count with
+# `sf code-analyzer rules` before trusting a clean result.
 engines:
+    # Without auto_discover_eslint_config the ESLint engine reports
+    # "eslint.config.js was found but not applied" and silently falls back to its
+    # own bundled defaults, so the scan would not reflect the rules this project
+    # actually enforces.
     eslint:
         auto_discover_eslint_config: true
     # PMD's ecmascript ruleset does not understand LWC modules and reports every
@@ -17,3 +27,12 @@ engines:
     pmd:
         file_extensions:
             apex: ['.cls', '.trigger']
+    # The Graph Engine's stock 30s per-path budget is not enough for
+    # AuditQueryController.search: path evaluation times out, and the engine
+    # then reports "0 violations" alongside an easily missed "Internal execution
+    # error" — another vacuous all-clear. With these values the scan completes
+    # honestly, covering 14,503 paths across all 3 entry points in ~7 minutes.
+    # Do not lower them without re-checking that no entry point times out.
+    sfge:
+        java_thread_timeout: 600000
+        java_max_heap_size: 4g

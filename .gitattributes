@@ -1,0 +1,18 @@
+# Normalise line endings to LF in the repository and in every working tree.
+#
+# Without this, a Windows checkout (core.autocrlf=true) produces CRLF files
+# that Prettier rejects, so `npm run prettier:verify` fails locally while the
+# identical CI step passes on Linux. Pinning eol=lf makes the local gate and
+# the CI gate agree.
+* text=auto eol=lf
+
+# Binary assets: never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary

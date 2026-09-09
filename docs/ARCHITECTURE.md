@@ -103,17 +103,26 @@ validated against real data (122 records over 18 pages, 0 duplicates/skips).
 
 ## Packaging
 
-This package is currently distributed as an **unlocked beta package** with no
-namespace (`sfdx-project.json` → `"namespace": ""`). An unlocked package
-cannot be converted in place into a namespaced managed (2GP) package — that
-requires linking a namespace to the Dev Hub used to create a _new_ managed
-package, which is an org/Dev Hub configuration step outside this repository.
+This package is distributed as an **unreleased managed (2GP) beta** under the
+`atexplorer` namespace (`sfdx-project.json` → `"namespace": "atexplorer"`,
+package `0Hohm0000000NHZCA2`, current version `04thm000002OtQPAA0`).
 
-A namespace (`atexplorer`) has been registered, but is not yet linked to the
-Dev Hub used for packaging. Linkage is currently blocked by a platform-level
-defect in the SalesforceDX Namespace Registry's OAuth/PKCE flow (not a
-configuration error in this org or repository), which is the current blocker
-for creating that new managed package. See
+The earlier **unlocked** lineage (`0Hobm0000005681CAA`) is superseded. An
+unlocked package cannot be converted in place into a namespaced managed
+package, so the managed lineage was created fresh from the same source once
+the `atexplorer` namespace was linked to the packaging Dev Hub. The managed
+lineage is permanently bound to that Dev Hub.
+
+### Managed packaging strips system permissions
+
+Salesforce removes system permissions from a managed package's permission
+sets on install, as an anti-privilege-escalation measure. The shipped
+`Audit_Trail_Viewer` permission set therefore **cannot** grant `ViewSetup` to
+subscribers of the managed package, even though the source declares it; it
+still grants the app, its tab, and its Apex classes. Subscriber
+administrators must grant **View Setup and Configuration** separately. The
+same permission set remains self-sufficient for source deploys and the
+unlocked package, so this constraint is specific to managed installs. See
 [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for the verified
 install/test evidence and the exact steps remaining before
 an AppExchange managed-package listing can be created.

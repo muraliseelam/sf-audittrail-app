@@ -3,10 +3,12 @@
 A Salesforce app that gives admins and auditors a fast, filterable UI over the
 **Setup Audit Trail** — with **zero storage footprint**.
 
-> **Package status: unlocked beta.** This is currently distributed as an
-> unlocked package, not a managed package, and has not been submitted for or
-> passed AppExchange Security Review. It has no AppExchange listing. See
-> [Packaging status](#packaging-status) below for the exact remaining steps.
+> **Package status: managed beta.** This is distributed as an unreleased
+> **managed** 2GP beta under the `atexplorer` namespace. It has not been
+> submitted for or passed AppExchange Security Review, and has no AppExchange
+> listing. Beta versions install only in Developer Edition orgs, sandboxes,
+> and trial/scratch orgs. See [Packaging status](#packaging-status) below for
+> the exact remaining steps.
 
 ## What it does
 
@@ -64,12 +66,12 @@ that don't need it never pay for storage.
 
 ## Install (development/test orgs only — unreleased beta)
 
-**This specific package version (`1.0.0.2`, `04tbm000000gaALAAY`) is an
-unreleased (beta) unlocked package version, not a managed package, and has
-not passed AppExchange Security Review.** Salesforce restricts installation
-of unreleased/beta package versions to **Developer Edition orgs, sandboxes,
-and trial/scratch orgs — not production orgs**. Use it only to evaluate the
-app in a development or test environment.
+**This specific package version (`1.0.0.2`, `04thm000002OtQPAA0`) is an
+unreleased (beta) managed package version and has not passed AppExchange
+Security Review.** Salesforce restricts installation of unreleased/beta
+package versions to **Developer Edition orgs, sandboxes, and trial/scratch
+orgs — not production orgs**. Use it only to evaluate the app in a
+development or test environment.
 
 Because this version is unreleased, it does not carry the upgrade guarantees
 of a released package: a later officially released version (once one exists)
@@ -77,19 +79,20 @@ may require a fresh install rather than an in-place upgrade over this beta
 version, and this beta version should not be treated as equivalent to, or a
 preview guaranteed to upgrade cleanly into, that future release.
 
-> `1.0.0.1` (`04tbm000000aeOjAAI`) is a superseded historical build, retained
-> in [`sfdx-project.json`](sfdx-project.json)'s package aliases for
-> traceability only. Install `1.0.0.2` below, not `1.0.0.1`.
+> The earlier unlocked builds (`04tbm000000aeOjAAI`, `04tbm000000gaALAAY`)
+> are superseded and belong to a different, non-namespaced package lineage.
+> They are retained in [`sfdx-project.json`](sfdx-project.json)'s package
+> aliases for traceability only. Install `04thm000002OtQPAA0` below.
 
 ```
-https://login.salesforce.com/packaging/installPackage.apexp?p0=04tbm000000gaALAAY
+https://login.salesforce.com/packaging/installPackage.apexp?p0=04thm000002OtQPAA0
 ```
 
 For a sandbox, swap `login.salesforce.com` for `test.salesforce.com`. Or use the CLI:
 
 ```bash
-sf package install --package 04tbm000000gaALAAY --target-org my-org --wait 20
-sf org assign permset --name Audit_Trail_Viewer --target-org my-org
+sf package install --package 04thm000002OtQPAA0 --target-org my-org --wait 20
+sf org assign permset --name atexplorer__Audit_Trail_Viewer --target-org my-org
 ```
 
 After installing, assign the **Audit Trail Viewer** permission set and open
@@ -100,6 +103,16 @@ dependency), which Salesforce requires to read the audit trail. It grants
 nothing else - no object CRUD/FLS, no additional system permission. This is
 the minimum access the app needs; see
 [`docs/PRIVACY.md`](docs/PRIVACY.md) for the full data-handling statement.
+
+> **Managed-package installs need one extra step.** Salesforce does not let an
+> installed **managed** package grant system permissions such as "View Setup
+> and Configuration" - the platform strips them from the package's permission
+> set on install, as an anti-privilege-escalation measure. The shipped
+> permission set still grants the app, tab and Apex class access, but an
+> administrator must additionally grant "View Setup and Configuration" through
+> the user's profile or through a permission set created in the subscriber org.
+> This does not apply to source deploys or the unlocked package, where the
+> shipped permission set is sufficient on its own.
 
 > Professional Edition is not supported, because it cannot run custom Apex.
 
@@ -145,31 +158,34 @@ sf project deploy start --source-dir force-app --test-level RunLocalTests
 
 ## Packaging status
 
-This repository currently ships an **unlocked beta package with no namespace**
-(`sfdx-project.json` → `"namespace": ""`, alias `Audit Trail Explorer` /
-current version `1.0.0.2` / `04tbm000000gaALAAY`; the prior `1.0.0.1` /
-`04tbm000000aeOjAAI` build is superseded and retained only for
-traceability). An unlocked package **cannot be converted in place**
-into a namespaced managed (2GP) package suitable for an AppExchange managed
-listing - that requires linking a namespace to the Dev Hub used to create a
-new managed package from this same source, then creating and promoting a new
-package version. That is an org/Dev Hub configuration step, not a code
-change, and is tracked separately from this repository.
+This repository now builds a **managed 2GP package** under the `atexplorer`
+namespace (`sfdx-project.json` → `"namespace": "atexplorer"`, package
+`0Hohm0000000NHZCA2`). The current managed build is **beta `1.0.0.2`**
+(`04thm000002OtQPAA0`).
 
-**Verified in a live org:** package version `1.0.0.2` (`04tbm000000gaALAAY`),
-built from this exact source commit, installs cleanly into a clean active QA
-scratch org with no packages installed beforehand, and `Audit_Trail_Viewer`
-assigns successfully. `RunLocalTests` passed **28/28** with **97% org-wide
-coverage** (`HasPassedCodeCoverageCheck=true`, validation not skipped). The
-namespace (`atexplorer`) is registered but **not yet linked** to the
-packaging Dev Hub. Linkage is currently blocked by a **platform-level defect
-in the SalesforceDX Namespace Registry's OAuth/PKCE flow** - not a
-configuration error in this repository or org - so a new managed (2GP)
-package cannot yet be created. See
-[`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the full
-evidence and remaining checklist. **This package has not undergone
-AppExchange security review and is not yet a managed package** - nothing in
-this repository should be read as claiming otherwise.
+Betas are installable only in Developer Edition orgs, sandboxes, and
+trial/scratch orgs. A managed beta is **not** a promoted release and carries
+no upgrade guarantee.
+
+**Verified in a live org:** managed beta `1.0.0.2`, built from this source,
+installs cleanly into a clean scratch org with no packages installed
+beforehand; the namespaced `atexplorer__Audit_Trail_Viewer` permission set
+assigns successfully; and `RunAllTestsInOrg` passes **29/29**. The package
+build reported **97% coverage** with `HasPassedCodeCoverageCheck=true` across
+43 metadata files. A source deploy of the same commit passes `RunLocalTests`
+**29/29**. See [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)
+for the full evidence and remaining checklist.
+
+> The earlier **unlocked** package lineage (`0Hobm0000005681CAA`, versions
+> `04tbm000000aeOjAAI` and `04tbm000000gaALAAY`) is superseded. An unlocked
+> package cannot be converted in place into a namespaced managed package, so
+> the managed lineage above was created fresh from the same source. The
+> unlocked aliases are retained in `sfdx-project.json` for traceability only
+> and should not be installed.
+
+**This package has not undergone AppExchange security review, has not been
+submitted for it, and has no AppExchange listing.** Nothing in this
+repository should be read as claiming otherwise.
 
 ## More documentation
 

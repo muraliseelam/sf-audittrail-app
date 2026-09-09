@@ -11,6 +11,18 @@ Salesforce packages are versioned.
 
 ### Added
 
+- **Managed 2GP package lineage.** Namespace `atexplorer` is now linked to
+  the packaging Dev Hub, and a managed package
+  (`0Hohm0000000NHZCA2`) has been created from this source. Managed beta
+  `1.0.0.2` (`04thm000002OtQPAA0`) builds at **97% coverage** with
+  `HasPassedCodeCoverageCheck=true` and 43 metadata files. This supersedes
+  the earlier unlocked lineage, which cannot be converted in place; the
+  unlocked package aliases are retained in `sfdx-project.json` for
+  traceability only.
+- `AuditPermissionServiceTest.packagedPermissionSetGrantsApexAccessRegardlessOfPackaging`,
+  pinning that the shipped permission set still grants access to the app's
+  Apex classes under managed packaging, where system permissions are
+  stripped but class access is not.
 - `LICENSE` (Apache-2.0), `SECURITY.md`, `CONTRIBUTING.md`, and this
   `CHANGELOG.md` for AppExchange/public-repository release readiness.
 - `docs/PRIVACY.md` describing the app's zero-storage, zero-callout data
@@ -25,37 +37,49 @@ Salesforce packages are versioned.
   outside CI (package install, `RunLocalTests` results, and the current
   namespace-linkage blocker for a managed 2GP package).
 
+### Changed
+
+- **Managed-package installs require the subscriber's administrator to grant
+  "View Setup and Configuration" separately.** Salesforce strips system
+  permissions from a managed package's permission set on install, as an
+  anti-privilege-escalation measure, so the shipped `Audit_Trail_Viewer`
+  permission set cannot grant `ViewSetup` to subscribers even though it
+  declares it. The permission set still grants the app, its tab and its Apex
+  classes, and remains sufficient on its own for source deploys and the
+  unlocked package. The runtime error message, the in-app empty state, the
+  permission set description, and the `README.md` install steps now state
+  this explicitly rather than telling subscribers the shipped permission set
+  alone is enough.
+- `AuditPermissionServiceTest.packagedPermissionSetAloneGrantsAccess` is
+  replaced by
+  `packagedPermissionSetOpensTheAppWhenItCanGrantViewSetup`, which asserts
+  the access gate opens exactly when the assigned permission set genuinely
+  carries `ViewSetup`. The previous test asserted an outcome the managed
+  platform forbids, and failed on first install of the managed beta.
+
 ### Verified in a live org (not run in CI)
 
-- **Current: package version `1.0.0.2` (`04tbm000000gaALAAY`)**, built from
-  this exact source commit (package-version request `08cbm000000JDHhAAO`,
-  43 metadata files), installs successfully into a **clean active QA scratch
-  org** (alias `qa`, org ID `00DO500000q61ptMAA`, no packages installed
-  beforehand; install request `0HfO50000041ge1KAA`), and the
-  `Audit_Trail_Viewer` permission set assigns without error.
-  `RunLocalTests` passed **28/28** with **0 failures** (test run
-  `707O500002wjQxU`), **97% org-wide coverage**,
-  `HasPassedCodeCoverageCheck=true`, and validation **not skipped**. Tooling
-  API confirmed the installed LWC bundle includes the full-width-formula-
-  trigger fix in `csv.js` and the accumulated-row `computeFacets` fix in
-  `auditExplorer.js`.
-- Superseded: package version `1.0.0.1` (`04tbm000000aeOjAAI`) installed
-  successfully in a separate dev org and the `Audit_Trail_Viewer` permission
-  set assigned without error. `RunLocalTests` passed 22/22 (test run
-  `707bm00001DpAzr`) with 97% test-run coverage;
-  `HasPassedCodeCoverageCheck=true`. (This build predates the four fixes
-  above; the 22 vs. 28 test count reflects that earlier source, not a
-  discrepancy in the current one.)
-- Namespace `atexplorer` is registered, but is **not yet linked** to the Dev
-  Hub used for packaging (`pbo2` has zero `NamespaceRegistry` records).
-  Linkage is currently blocked by a platform-level defect in the
-  SalesforceDX Namespace Registry's OAuth/PKCE flow (not a configuration
-  error in this org or repository), which remains the blocker for creating a
-  new managed (2GP) package. See
-  [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the full
-  checklist. **This package is currently an unlocked beta package - it is
-  not yet a managed package and has not undergone AppExchange security
-  review.**
+- **Managed beta `1.0.0.2` (`04thm000002OtQPAA0`)** installs successfully
+  into a **clean scratch org** with no packages installed beforehand, the
+  namespaced `atexplorer__Audit_Trail_Viewer` permission set assigns without
+  error, and `RunAllTestsInOrg` passes **29/29 with 0 failures**. Package
+  build reported 97% coverage with the coverage check passed. (Org-wide
+  coverage reads 0% in the subscriber org because Salesforce does not expose
+  managed package code coverage to subscribers; the build-time figure is the
+  meaningful one.)
+- **Source deploy of the same commit** to a clean scratch org passes
+  `RunLocalTests` **29/29 with 0 failures**, confirming the shipped
+  permission set alone is still sufficient outside managed packaging.
+- Managed beta `1.0.0.1` (`04thm000002OtOnAAK`) is superseded: it installed
+  cleanly but failed 1 of 28 Apex tests, which is what surfaced the managed
+  permission-stripping behavior described under **Changed**.
+- Superseded unlocked builds: package version `1.0.0.2`
+  (`04tbm000000gaALAAY`) installed into a clean QA scratch org with
+  `RunLocalTests` 28/28 and 97% org-wide coverage; `1.0.0.1`
+  (`04tbm000000aeOjAAI`) passed 22/22 against earlier source.
+- **This package has not undergone AppExchange security review and has no
+  AppExchange listing.** The managed versions above are betas, not promoted
+  releases.
 
 ### Fixed
 

@@ -10,12 +10,15 @@
         }
     ],
     "name": "sf-audittrail-app",
-    "namespace": "",
+    "namespace": "atexplorer",
     "sfdcLoginUrl": "https://login.salesforce.com",
     "sourceApiVersion": "64.0",
     "packageAliases": {
-        "Audit Trail Explorer": "0Hobm0000005681CAA",
-        "Audit Trail Explorer@1.0.0-1": "04tbm000000aeOjAAI",
-        "Audit Trail Explorer@1.0.0-2": "04tbm000000gaALAAY"
+        "Audit Trail Explorer (Unlocked Beta)": "0Hobm0000005681CAA",
+        "Audit Trail Explorer (Unlocked Beta)@1.0.0-1": "04tbm000000aeOjAAI",
+        "Audit Trail Explorer (Unlocked Beta)@1.0.0-2": "04tbm000000gaALAAY",
+        "Audit Trail Explorer": "0Hohm0000000NHZCA2",
+        "Audit Trail Explorer@1.0.0-1": "04thm000002OtOnAAK",
+        "Audit Trail Explorer@1.0.0-2": "04thm000002OtQPAA0"
     }
 }

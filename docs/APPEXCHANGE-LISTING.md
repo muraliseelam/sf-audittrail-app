@@ -5,13 +5,13 @@ makes no claims of AppExchange certification, security review approval,
 customer adoption, or install counts — those are added by Salesforce/AppExchange
 processes, not by this repository.
 
-> **Not ready to publish as-is.** The package described here is currently an
-> **unlocked beta package**, not a managed package, and has not been
-> submitted for AppExchange Security Review. Do not publish this listing (or
-> any variant of it) until the package described in
-> [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) is a reviewed,
-> managed package. Update the install link and package-type references below
-> at that time.
+> **Not ready to publish as-is.** The package described here is an
+> **unreleased managed beta** and has not been submitted for AppExchange
+> Security Review. Do not publish this listing (or any variant of it) until
+> the package described in
+> [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) is a promoted,
+> security-reviewed release. Update the install link and version references
+> below at that time.
 
 ## Listing name
 
@@ -54,17 +54,21 @@ storage to your org.
   third-party service of any kind.
 - Bypass Salesforce's permission model. The runtime enforces the same "View
   Setup and Configuration" permission Salesforce requires to view the audit
-  trail natively; assigning the packaged permission set is what grants a
-  user `ViewSetup` (and its `ViewRoles` prerequisite) to use the app - it
-  does not grant any access beyond that.
+  trail natively. The app cannot grant a user any access they don't already
+  have - see the requirements below.
 
 **Requirements**
 
 - Enterprise, Unlimited, Performance, or Developer Edition (custom Apex is
   required; Professional Edition is not supported).
 - Lightning Experience.
-- The packaged `Audit_Trail_Viewer` permission set (or equivalent access to
-  "View Setup and Configuration").
+- The packaged `Audit_Trail_Viewer` permission set, which grants the app, its
+  tab, and its Apex classes.
+- **"View Setup and Configuration", granted separately by your
+  administrator.** Salesforce strips system permissions from a managed
+  package's permission sets on install, so the packaged permission set cannot
+  grant this on your behalf. Grant it through your own profile or permission
+  set, alongside `Audit_Trail_Viewer`.
 
 ## Categories
 

@@ -3,7 +3,7 @@
 Prepared ahead of an eventual AppExchange/AgentExchange security review
 submission. **This package has not yet been submitted for, or passed, that
 review** — see [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for
-its current unreleased-beta, unlocked-package status.
+its current unreleased managed-beta status.
 
 ## 1. What the solution does
 
@@ -71,10 +71,20 @@ Every `@AuraEnabled` method calls this gate before doing any work:
 | `searchUsers` | Yes                  | Type-ahead over the User object for the "changed by" filter                                                                                                                                                                              |
 | `getContext`  | Not gated, by design | Returns only compile-time constants, `Datetime.now()`, and the calling user's own access boolean. It discloses nothing the caller does not already know about themselves, and the UI needs it to render the "you lack permission" state. |
 
-The shipped permission set `Audit_Trail_Viewer` grants `ViewSetup` and its
+The shipped permission set `Audit_Trail_Viewer` declares `ViewSetup` and its
 `ViewRoles` prerequisite (Salesforce requires `ViewRoles` to enable
 `ViewSetup`), plus the app, the tab, and Apex class access - no object
 CRUD/FLS grant and no other system permission.
+
+**Under managed packaging, the app grants no system permission at all.**
+Salesforce strips system permissions from a managed package's permission sets
+on install, so in a subscriber org `Audit_Trail_Viewer` carries
+`PermissionsViewSetup = false` and grants only the app, its tab, and its Apex
+classes. Subscriber administrators must grant "View Setup and Configuration"
+themselves. This is verified empirically in
+[`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) and means the managed
+package cannot escalate any subscriber's privileges: every user who can see
+audit data through this app could already see it natively in Setup.
 
 ## 5. CRUD/FLS and sharing enforcement
 
@@ -128,12 +138,14 @@ or personal data is logged.
 
 ## 8. Testing
 
-- 28 Apex tests; org-wide coverage **97%**, with no class below 95% (the managed-package
-  requirement is 75%).
+- 29 Apex tests; coverage **97%** at package build time, with no class below
+  95% (the managed-package requirement is 75%). The managed beta passes 29/29
+  in a clean subscriber org, and the same source passes 29/29 on a direct
+  source deploy.
 - `SetupAuditTrail` cannot be inserted in a test, so the service takes an injectable
   provider interface. `SetupAuditTrailProviderTest` nonetheless executes the real
   production query, so the SOQL is genuinely exercised rather than mocked away.
-- 5 Jest tests covering the component, including the CSV escaping.
+- 7 Jest tests covering the component, including the CSV escaping.
 - Paging correctness was validated against real data: 122 records over 18 pages,
   **0 duplicates and 0 skipped rows**.
 

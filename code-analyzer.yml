@@ -3,16 +3,22 @@
 # Committed so the AppExchange security-review scan is reproducible: running
 #
 #   sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
-#     --rule-selector Recommended --rule-selector AppExchange
+#     --rule-selector Recommended --rule-selector Security --rule-selector AppExchange
 #
 # from a clean checkout must produce the same report that was submitted.
 #
-# `Recommended` and `AppExchange` are passed as two selectors, not as
-# `Recommended:AppExchange`. A colon-separated selector is an INTERSECTION, and
-# no rule carries both tags, so `Recommended:AppExchange` resolves to 0 rules
-# and reports a vacuous "0 violations". Repeating the flag unions the two sets
-# (266 + 29 = 295 rules for this workspace). Always confirm the rule count with
-# `sf code-analyzer rules` before trusting a clean result.
+# THIS SELECTOR MUST RESOLVE TO 310 RULES (202 eslint, 94 pmd, 6 regex,
+# 4 retire-js, 2 cpd, 2 sfge). Check with `sf code-analyzer rules` and the same
+# flags before trusting any result. If the count is 0, the scan proves nothing
+# no matter how clean it looks.
+#
+# The three tags are passed as three separate flags because a colon-separated
+# selector is an INTERSECTION. No rule carries both Recommended and AppExchange,
+# so the old `Recommended:AppExchange` resolved to 0 rules and reported a vacuous
+# "0 violations". `Security` is included specifically to reach
+# sfge:ApexFlsViolation and sfge:DatabaseOperationsMustUseWithSharing, which are
+# tagged DevPreview and so are selected by neither of the other two tags -- yet
+# they are the two rules most relevant to an AppExchange security review.
 engines:
     # Without auto_discover_eslint_config the ESLint engine reports
     # "eslint.config.js was found but not applied" and silently falls back to its
@@ -27,12 +33,24 @@ engines:
     pmd:
         file_extensions:
             apex: ['.cls', '.trigger']
-    # The Graph Engine's stock 30s per-path budget is not enough for
-    # AuditQueryController.search: path evaluation times out, and the engine
-    # then reports "0 violations" alongside an easily missed "Internal execution
-    # error" — another vacuous all-clear. With these values the scan completes
-    # honestly, covering 14,503 paths across all 3 entry points in ~7 minutes.
-    # Do not lower them without re-checking that no entry point times out.
+    # AuditQueryController.search has a large path space (14,503 paths), and the
+    # Graph Engine's stock 30s per-path budget is nowhere near enough for it.
+    # When it times out the engine still reports "0 violations", with the
+    # abandoned entry point surfacing only as an easily missed "Internal
+    # execution error" -- another vacuous all-clear.
+    #
+    # java_max_heap_size is deliberately 2g, NOT larger. Asking for more heap
+    # than the machine can spare makes the JVM thrash and the analysis times out
+    # anyway: on an 8 GB host a 4g request produced "3 paths from 2 entry
+    # points" and an error, while 2g with 4 threads completed all 14,503 paths
+    # across 3/3 entry points in ~7 minutes. More heap is not better here.
+    #
+    # Verify completion by the counts, never by a bare "0 violations":
+    #   sf code-analyzer run --config-file code-analyzer.yml     #     --workspace force-app --rule-selector sfge
+    # must report "14503 path(s) from 3/3 entry point(s)" with no error. Run it
+    # on an otherwise idle machine -- under a concurrent 6-engine scan the same
+    # analysis can lose the memory race and time out.
     sfge:
         java_thread_timeout: 600000
-        java_max_heap_size: 4g
+        java_max_heap_size: 2g
+        java_thread_count: 4

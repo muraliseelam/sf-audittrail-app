@@ -13,14 +13,22 @@ sf code-analyzer run \
   --config-file code-analyzer.yml \
   --workspace force-app \
   --rule-selector Recommended \
+  --rule-selector Security \
   --rule-selector AppExchange \
   --output-file CodeAnalyzerReport.html
 ```
 
-`Recommended` and `AppExchange` are both selected deliberately. The `AppExchange` selector
-alone resolves to 29 PMD rules and does **not** engage the Salesforce Graph Engine, ESLint,
-RetireJS or the secrets-regex engine. Scanning with it alone would have produced a
-misleadingly clean report.
+All three tags are selected deliberately, as three separate flags — a colon-separated
+selector is an _intersection_, and the old `Recommended:AppExchange` matched no rule at all.
+`AppExchange` alone resolves to 29 PMD rules and does **not** engage the Graph Engine,
+ESLint, RetireJS or the secrets-regex engine. `Security` is what reaches
+`sfge:ApexFlsViolation` and `sfge:DatabaseOperationsMustUseWithSharing`, which are tagged
+`DevPreview` and so are selected by neither of the other two tags — yet they are the two
+rules most relevant to this review.
+
+**The selector resolves to 310 rules** (202 eslint, 94 pmd, 6 regex, 4 retire-js, 2 cpd,
+2 sfge). Confirm that with `sf code-analyzer rules` and the same flags before trusting a
+clean result.
 
 ## Result
 
@@ -32,11 +40,12 @@ misleadingly clean report.
 | Low       | 74     |
 | **Total** | **85** |
 
-RetireJS and the regex secrets engine execute as part of the command above and report
-**0 violations**.
+All six engines execute as part of the single command above. **RetireJS, the regex secrets
+engine and the Salesforce Graph Engine each report 0 violations.**
 
-The Salesforce Graph Engine has no rule tagged `Recommended` or `AppExchange`, so it is
-**not** engaged by that command and must be run separately:
+The Graph Engine result is the one that needs its evidence stated, because a bare
+"0 violations" from it can mean the analysis never finished. Verify it with its own run on
+an otherwise idle machine:
 
 ```
 sf code-analyzer run \
@@ -45,12 +54,15 @@ sf code-analyzer run \
   --rule-selector sfge
 ```
 
-This reports **0 violations**, having analysed **14,503 paths across all 3 of 3 entry
-points**. The path and entry-point counts are the evidence that matters — see the
-environment note below for why a bare `0 violations` from this engine is not sufficient on
-its own.
+which must report **`14503 path(s) from 3/3 entry point(s)`** and no `Internal execution
+error` (~7 minutes). Anything less means the analysis was abandoned part-way and the
+"0 violations" proves nothing — see the environment note below. The two Graph Engine rules reached are `ApexFlsViolation` and
+`DatabaseOperationsMustUseWithSharing`, i.e. the CRUD/FLS and sharing enforcement described
+in section 5 of the solution document is confirmed by path-sensitive analysis, not only by
+inspection.
 
-No finding of any severity relates to security. Every remaining item is a code-quality or
+**No violation of any severity carries the `Security`, `AppExchange` or `ErrorProne` tag.**
+All 29 PMD AppExchange security rules are clean. Every remaining item is a code-quality or
 style rule, dispositioned below.
 
 ## Environment note
@@ -68,12 +80,18 @@ Two further ways this scan can report a false all-clear, both guarded against in
   selects **0 rules** and reports `0 violations` while proving nothing. The two tags must
   be passed as two separate `--rule-selector` flags, which unions them (295 rules here).
   Always confirm the count with `sf code-analyzer rules` before trusting a clean result.
-- **Graph Engine path timeouts.** At the stock 30s per-path budget, path evaluation of
-  `AuditQueryController.search` times out. The engine then still prints `0 violations`,
-  with the abandoned entry point reported only as an `Internal execution error` in the
-  surrounding output. `code-analyzer.yml` raises `java_thread_timeout` and
-  `java_max_heap_size` so the analysis actually finishes; the run takes ~7 minutes.
-  Treat any Graph Engine result that does not name the entry-point count as unproven.
+- **Graph Engine path timeouts.** `AuditQueryController.search` has a 14,503-path space,
+  far beyond the stock 30s per-path budget. On timeout the engine still prints
+  `0 violations`, with the abandoned entry point reported only as an `Internal execution
+error` in the surrounding output. `code-analyzer.yml` raises `java_thread_timeout` to
+  600s so the analysis can finish.
+- **Graph Engine memory.** `java_max_heap_size` is set to `2g` deliberately, not higher.
+  Requesting more heap than the host can spare makes the JVM thrash and the analysis times
+  out regardless: on an 8 GB machine a 4g request yielded `3 path(s) from 2 entry
+point(s)` plus an error, while 2g with 4 threads completed all 14,503 paths. Running the
+  Graph Engine concurrently with the other five engines can lose the same memory race, so
+  verify it with its own run. Treat any Graph Engine result that does not name the
+  path and entry-point counts as unproven.
 
 ---
 

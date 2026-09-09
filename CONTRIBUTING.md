@@ -48,7 +48,7 @@ If you have the Salesforce Code Analyzer plugin, also run:
 
 ```bash
 sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
-  --rule-selector Recommended --rule-selector AppExchange
+  --rule-selector Recommended --rule-selector Security --rule-selector AppExchange
 ```
 
 ## Code style

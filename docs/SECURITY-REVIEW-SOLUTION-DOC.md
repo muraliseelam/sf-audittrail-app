@@ -154,7 +154,102 @@ or personal data is logged.
 **None.** The package contains no third-party JavaScript library, no static resource, and
 no npm dependency shipped to the runtime. RetireJS reports zero findings.
 
-## 10. Editions and compatibility
+## 10. Static analysis
+
+Salesforce Code Analyzer v5 (`@salesforce/plugin-code-analyzer` 5.15.0), run from a clean
+checkout as:
+
+```
+sf code-analyzer run \
+  --config-file code-analyzer.yml \
+  --workspace force-app \
+  --rule-selector Recommended \
+  --rule-selector Security \
+  --rule-selector AppExchange
+```
+
+**This selector resolves to 310 rules across all six engines** (202 eslint, 94 pmd, 6
+regex, 4 retire-js, 2 cpd, 2 sfge). Verify that count with `sf code-analyzer rules` using
+the same flags before trusting any result: a selector that silently resolves to zero rules
+reports "0 violations" while proving nothing, which is exactly the failure this repository
+hit previously with the intersection selector `Recommended:AppExchange`.
+
+The three tags are passed as three separate `--rule-selector` flags because a
+colon-separated selector is an _intersection_. `Security` is included specifically to reach
+`sfge:ApexFlsViolation` and `sfge:DatabaseOperationsMustUseWithSharing`, which are tagged
+`DevPreview` and are therefore selected by neither `Recommended` nor `AppExchange` — yet
+they are the two rules most directly relevant to this review.
+
+### Result
+
+| Severity | Count |
+| -------- | ----- |
+| Critical | **0** |
+| High     | **0** |
+| Moderate | 11    |
+| Low      | 74    |
+
+**No violation of any severity carries the `Security`, `AppExchange` or `ErrorProne` tag.**
+Specifically clean: all 29 PMD AppExchange security rules, both Graph Engine security
+rules, the regex secrets engine, and RetireJS.
+
+### Items not fixed, and why
+
+Every remaining violation is a code-quality or style rule. None is suppressed by
+configuration; all 85 are reported on every run and dispositioned individually in
+[`SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](SECURITY-REVIEW-FINDINGS-DISPOSITION.md). In
+summary:
+
+| Rule                                   | Count | File(s)                                                                   | Why not fixed                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------- | ----- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pmd:ApexDoc`                          | 29    | all 10 Apex classes                                                       | Every class and non-trivial method carries an explanatory comment; the rule requires ApexDoc `@description`/`@param` tag syntax, which this project does not use. No functional or security impact.                                                                                                                                                                                                                                                  |
+| `pmd:ApexUnitTestClassShouldHaveRunAs` | 26    | 4 test classes                                                            | `System.runAs` is used where it is meaningful — `AuditPermissionServiceTest` runs as real users on real profiles to prove the access gate. The rest exercise pure logic (cursor arithmetic, filter compilation, CSV escaping) where the running user is irrelevant.                                                                                                                                                                                  |
+| `slds:no-hardcoded-values-slds2`       | 18    | `auditExplorer.css`                                                       | SLDS 2 design-token advisories. Cosmetic; no security or functional impact.                                                                                                                                                                                                                                                                                                                                                                          |
+| `pmd:ExcessiveParameterList`           | 4     | `AuditTrailProvider`, `SetupAuditTrailProvider`, `MockAuditTrailProvider` | This is the testability seam. `SetupAuditTrail` rows cannot be inserted in an Apex test, so the query sits behind an injectable interface. The parameters are the query's bind values, passed explicitly so each is visibly bound at the point a reviewer most wants to see it.                                                                                                                                                                      |
+| `pmd:CognitiveComplexity`              | 3     | `AuditQueryService`, `MockAuditTrailProvider`                             | Inherent to the algorithm — see below.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `pmd:CyclomaticComplexity`             | 2     | `AuditQueryService`, `MockAuditTrailProvider`                             | As above.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `pmd:NcssCount`                        | 1     | `AuditQueryService.search`                                                | As above.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `lwc:no-inline-disable`                | 1     | `auditExplorer.js:216`                                                    | One `eslint-disable-next-line no-await-in-loop` on the progressive-search loop. Each call needs the paging cursor returned by the previous one, so the awaits are sequential by necessity. Scoped to a single line and justified inline. Disabling the rule file-wide instead would silence it far more broadly and leave no marker at the call site.                                                                                                |
+| `pmd:AvoidDebugStatements`             | 1     | `AuditQueryController.genericFailure`                                     | The single `System.debug(LoggingLevel.ERROR, ...)` is the server-side half of the generic error handling: unexpected exceptions are logged for the administrator and replaced with a non-specific client message, so platform exception text cannot leak query internals to the browser. It logs exception type and message only — no credential, session or personal data. Removing it would satisfy the linter by discarding the diagnostic trail. |
+
+On the complexity findings: `SetupAuditTrail` cannot be filtered on `Section` or `Display`
+in SOQL and supports no aggregate functions, so `AuditQueryService.search` must scan
+backwards through time in bounded windows, post-filter in Apex, and maintain an exact
+cursor across window boundaries while staying inside governor limits. Decomposing that
+single stateful loop would spread it across several methods that could not be understood
+or tested independently. The behaviour is pinned by tests, including a paging check over
+122 real records and 18 pages showing 0 duplicates and 0 skipped rows.
+
+### Engines that need a runtime
+
+PMD, CPD and the Graph Engine require a local JDK; the Flow engine requires Python. If one
+is missing the engine **fails to load and is silently skipped**, and the scan reports a
+false all-clear. This scan ran with OpenJDK 21 and Python 3.12 present.
+
+The Graph Engine needs particular care. `AuditQueryController.search` has a
+**14,503-path** space, far beyond the stock 30s per-path budget; on timeout the engine
+still prints "0 violations" and reports the abandoned entry point only as an easily missed
+`Internal execution error`. `code-analyzer.yml` therefore sets `java_thread_timeout` to
+600s.
+
+Heap size is set to `2g` **deliberately, not higher**. Requesting more than the host can
+spare makes the JVM thrash and the analysis times out anyway: on an 8 GB machine a 4g
+request produced `3 path(s) from 2 entry point(s)` plus an error, whereas 2g with 4 threads
+completed the full space. Running the Graph Engine alongside the other five engines can
+lose the same memory race, so verify it with its own run on an otherwise idle machine:
+
+```
+sf code-analyzer run \
+  --config-file code-analyzer.yml \
+  --workspace force-app \
+  --rule-selector sfge
+```
+
+This must report **`14503 path(s) from 3/3 entry point(s)`**, 0 violations, and no
+`Internal execution error` (~7 minutes). Treat any Graph Engine result that does not name
+the path and entry-point counts as unproven.
+
+## 11. Editions and compatibility
 
 Lightning Experience only (the app is Lightning Web Components). Professional Edition is
 not supported, because it cannot run custom Apex.

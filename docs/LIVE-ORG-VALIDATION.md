@@ -11,9 +11,65 @@ review approval, certification, or managed-package release — see
 
 ## Package install validation
 
-### Current: managed 2GP beta `1.0.0.2` (`04thm000002OtQPAA0`)
+### Current: RELEASED managed 2GP `1.0.0.2` (`04thm000002OtQPAA0`) — 2026-09-09
 
-Built from this exact source commit, under the `atexplorer` namespace.
+Version `1.0.0.2` was promoted to a released version on **2026-09-09**
+(`sf package version promote`, Dev Hub `partner-pbo` / `00Dhm000004MOXjEAO`).
+`IsReleased` is now `true`. Promotion is irreversible and consumes the version
+number permanently.
+
+**Released is a Salesforce packaging state, not an AppExchange listing.** This
+package has not been submitted for or passed AppExchange Security Review and
+has no listing. What changed is that it now installs into any org type,
+including production, and carries normal managed upgrade guarantees.
+
+Validated end to end in a **fresh scratch org created for this purpose**, with
+no packages installed beforehand:
+
+| Item                         | Result                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Package (2GP, managed)       | `Audit Trail Explorer` — `0Hohm0000000NHZCA2`                                                          |
+| Package version              | `1.0.0.2` (`04thm000002OtQPAA0`)                                                                       |
+| Namespace                    | `atexplorer`                                                                                           |
+| `IsReleased`                 | **`true`** (promoted 2026-09-09)                                                                       |
+| Metadata files               | 43                                                                                                     |
+| Package coverage             | 97% (authoritative figure, measured at package build time)                                             |
+| `HasPassedCodeCoverageCheck` | `true`                                                                                                 |
+| Target org                   | Clean scratch org, alias `rel-qa`, org ID `00DRK00000aOfV72AK`, created 2026-09-09, expires 2026-09-16 |
+| Install command              | `sf package install --security-type AdminsOnly --no-prompt`                                            |
+| Installed package record     | `0A3RK000007krZy0AI`                                                                                   |
+| Install result               | `SUCCESS`                                                                                              |
+| Permission set assigned      | `atexplorer__Audit_Trail_Viewer` — assigned successfully (namespaced, confirming the managed install)  |
+| Apex tests                   | **29 / 29 passed**, 100% pass rate, run ID `707RK0000BPQrG1`                                           |
+
+The Apex tests ran as namespaced `atexplorer.*` classes, i.e. the managed
+package's own tests executing inside the subscriber org. Code coverage is not
+meaningfully reported for managed code in a subscriber org; the authoritative
+97% figure comes from package build time and is recorded above.
+
+#### The system-permission strip still applies to the released version
+
+Re-verified against the released version rather than assumed from the beta:
+
+| Field                  | Value on the installed permission set in `rel-qa` |
+| ---------------------- | ------------------------------------------------- |
+| `Name`                 | `Audit_Trail_Viewer`                              |
+| `NamespacePrefix`      | `atexplorer`                                      |
+| `PermissionsViewSetup` | **`false`**                                       |
+| `PermissionsViewRoles` | **`false`**                                       |
+
+Both permissions are declared `true` in this repository's source. Promotion to
+a released version does **not** change the behaviour: managed packaging strips
+system permissions on install either way, so a subscriber administrator must
+still grant **"View Setup and Configuration"** separately, through a profile or
+a permission set created in their own org. This is now stated in the install
+section of `README.md`.
+
+### Earlier: the same version `1.0.0.2` while still a beta, in `mgd-qa2`
+
+The same version id, validated in a different clean org before it was
+promoted. Retained because it is the record that first established the
+system-permission strip. Built from this exact source commit.
 
 | Item                         | Result                                                                                                |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -50,7 +106,18 @@ Retained for historical traceability only; do not install these.
 
 ## Apex test runs
 
-### Current: managed beta `1.0.0.2` in the subscriber org
+### Current: RELEASED managed `1.0.0.2` in the subscriber org — 2026-09-09
+
+| Item              | Result                                                      |
+| ----------------- | ----------------------------------------------------------- |
+| Org               | `rel-qa` (`00DRK00000aOfV72AK`), released package installed |
+| Test level        | `RunLocalTests`                                             |
+| Tests passed      | **29 / 29 (0 failures)**, 100% pass rate                    |
+| Test run ID       | `707RK0000BPQrG1`                                           |
+| Test classes      | Ran as namespaced `atexplorer.*` classes                    |
+| Org-wide coverage | Not meaningfully reported for managed code — see note below |
+
+### Earlier: managed beta `1.0.0.2` in the subscriber org
 
 | Item              | Result                                                      |
 | ----------------- | ----------------------------------------------------------- |
@@ -64,13 +131,14 @@ Retained for historical traceability only; do not install these.
 > regression. The authoritative figure is the **97%** measured at package
 > build time, with `HasPassedCodeCoverageCheck=true`.
 
-### Current: source deploy of the same commit
+### Current: source deploy of the same commit — 2026-09-09
 
-| Item         | Result                            |
-| ------------ | --------------------------------- |
-| Org          | Clean scratch org, alias `src-qa` |
-| Test level   | `RunLocalTests`                   |
-| Tests passed | **29 / 29 (0 failures)**          |
+| Item         | Result                                             |
+| ------------ | -------------------------------------------------- |
+| Org          | Scratch org, alias `src-qa` (`00DRu00000Xnmy8MAB`) |
+| Test level   | `RunLocalTests`                                    |
+| Tests passed | **29 / 29 (0 failures)**, 100% pass rate           |
+| Test run ID  | `707Ru00002A7gs1`                                  |
 
 This confirms the shipped permission set remains sufficient on its own
 outside managed packaging, so the constraint below is specific to managed

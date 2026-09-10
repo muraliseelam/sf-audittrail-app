@@ -7,14 +7,29 @@ and this project uses the packaging version number (`versionNumber` in
 `sfdx-project.json`) rather than strict SemVer, consistent with how
 Salesforce packages are versioned.
 
-## [Unreleased]
+## [1.0.0] - 2026-09-09
+
+Released managed 2GP version `1.0.0.2` (`04thm000002OtQPAA0`), promoted from
+beta on 2026-09-09. A released managed version installs into any org type,
+including production, and carries normal managed-package upgrade guarantees.
+
+**Not an AppExchange release.** This package has not been submitted for or
+passed AppExchange Security Review and has no AppExchange listing. "Released"
+here is the Salesforce packaging state only. Installation is by direct URL:
+<https://login.salesforce.com/packaging/installPackage.apexp?p0=04thm000002OtQPAA0>
+
+**Both grants are required.** Managed packaging strips system permissions on
+install, so after assigning `atexplorer__Audit_Trail_Viewer` an administrator
+must separately grant "View Setup and Configuration". Re-verified against the
+released version: `PermissionsViewSetup` is `false` on the installed
+permission set.
 
 ### Added
 
 - **Managed 2GP package lineage.** Namespace `atexplorer` is now linked to
   the packaging Dev Hub, and a managed package
-  (`0Hohm0000000NHZCA2`) has been created from this source. Managed beta
-  `1.0.0.2` (`04thm000002OtQPAA0`) builds at **97% coverage** with
+  (`0Hohm0000000NHZCA2`) has been created from this source. Released managed
+  version `1.0.0.2` (`04thm000002OtQPAA0`) builds at **97% coverage** with
   `HasPassedCodeCoverageCheck=true` and 43 metadata files. This supersedes
   the earlier unlocked lineage, which cannot be converted in place; the
   unlocked package aliases are retained in `sfdx-project.json` for
@@ -156,9 +171,13 @@ Salesforce packages are versioned.
   `ViewRoles`).
 - 28 Apex tests (~97% org-wide coverage) and 5 Jest tests, including paging
   correctness against real data and CSV formula-injection escaping.
-- Salesforce Code Analyzer scan (`Recommended` + `AppExchange` rule
-  selectors, PMD, Graph Engine, ESLint, RetireJS, secrets-regex) with 0
-  Critical/High findings; see `docs/SECURITY-REVIEW-*` for the full
-  disposition of remaining Moderate/Low findings.
+- Salesforce Code Analyzer scan across all six engines (PMD, Graph Engine,
+  ESLint, CPD, RetireJS, secrets-regex) using the `Recommended` + `Security` +
+  `AppExchange` rule selectors, which resolve to **310 rules**. Result: **0
+  Critical, 0 High**, 11 Moderate, 74 Low, and no finding carrying the
+  `Security`, `AppExchange` or `ErrorProne` tag. The Graph Engine analysed
+  14,503 paths across 3/3 entry points with 0 violations. See
+  `docs/SECURITY-REVIEW-*` for the per-rule disposition of the Moderate/Low
+  items.
 
-[Unreleased]: https://github.com/muraliseelam/sf-audittrail-app/compare/main...HEAD
+[1.0.0]: https://github.com/muraliseelam/sf-audittrail-app/releases/tag/v1.0.0

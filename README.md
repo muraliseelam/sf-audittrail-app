@@ -3,12 +3,13 @@
 A Salesforce app that gives admins and auditors a fast, filterable UI over the
 **Setup Audit Trail** — with **zero storage footprint**.
 
-> **Package status: managed beta.** This is distributed as an unreleased
-> **managed** 2GP beta under the `atexplorer` namespace. It has not been
-> submitted for or passed AppExchange Security Review, and has no AppExchange
-> listing. Beta versions install only in Developer Edition orgs, sandboxes,
-> and trial/scratch orgs. See [Packaging status](#packaging-status) below for
-> the exact remaining steps.
+> **Package status: released managed version `1.0.0`.** This is distributed as
+> a **released** managed 2GP version under the `atexplorer` namespace, so it
+> installs into any org including production. It has **not** been submitted for
+> or passed AppExchange Security Review, and has **no AppExchange listing** —
+> "released" here is the Salesforce packaging state, not a marketplace
+> listing. Installation is by direct URL only. See
+> [Packaging status](#packaging-status) below.
 
 ## What it does
 
@@ -64,20 +65,17 @@ The app clamps every request to that floor and states the limit in the UI. Reten
 beyond 180 days requires archiving, which is planned as an **opt-in** add-on so orgs
 that don't need it never pay for storage.
 
-## Install (development/test orgs only — unreleased beta)
+## Install
 
-**This specific package version (`1.0.0.2`, `04thm000002OtQPAA0`) is an
-unreleased (beta) managed package version and has not passed AppExchange
-Security Review.** Salesforce restricts installation of unreleased/beta
-package versions to **Developer Edition orgs, sandboxes, and trial/scratch
-orgs — not production orgs**. Use it only to evaluate the app in a
-development or test environment.
+Released managed version **`1.0.0.2`** (`04thm000002OtQPAA0`). Being a
+released version, it installs into any org type, including production, and
+carries the normal managed-package upgrade guarantees.
 
-Because this version is unreleased, it does not carry the upgrade guarantees
-of a released package: a later officially released version (once one exists)
-may require a fresh install rather than an in-place upgrade over this beta
-version, and this beta version should not be treated as equivalent to, or a
-preview guaranteed to upgrade cleanly into, that future release.
+It has **not** passed AppExchange Security Review and is not listed on
+AppExchange. Satisfy yourself that it meets your own org's review bar before
+installing it into production — the source is in this repository, and
+[`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)
+documents the security design and static-analysis results in full.
 
 > The earlier unlocked builds (`04tbm000000aeOjAAI`, `04tbm000000gaALAAY`)
 > are superseded and belong to a different, non-namespaced package lineage.
@@ -95,8 +93,25 @@ sf package install --package 04thm000002OtQPAA0 --target-org my-org --wait 20
 sf org assign permset --name atexplorer__Audit_Trail_Viewer --target-org my-org
 ```
 
-After installing, assign the **Audit Trail Viewer** permission set and open
-**Audit Trail Explorer** from the App Launcher.
+### Two grants are required — the app does not work with only one
+
+Installing is not enough. An administrator must do **both** of the following:
+
+1. Assign the packaged permission set **`atexplorer__Audit_Trail_Viewer`**.
+2. Separately grant **"View Setup and Configuration"** to the same user,
+   through their profile or through a permission set created in your own org.
+
+Step 2 is not optional and cannot be done by the package. Salesforce **strips
+system permissions from a managed package's permission sets on install**, as
+an anti-privilege-escalation measure, so the `ViewSetup` permission declared
+in this package's source is `false` once installed. This is verified
+empirically — see
+[`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md).
+
+Without step 2 the app installs cleanly, the tab appears, and every search
+returns an access error. With both grants it works.
+
+Then open **Audit Trail Explorer** from the App Launcher.
 
 That permission set grants "View Setup and Configuration" (and its `ViewRoles`
 dependency), which Salesforce requires to read the audit trail. It grants
@@ -158,23 +173,29 @@ sf project deploy start --source-dir force-app --test-level RunLocalTests
 
 ## Packaging status
 
-This repository now builds a **managed 2GP package** under the `atexplorer`
+This repository builds a **managed 2GP package** under the `atexplorer`
 namespace (`sfdx-project.json` → `"namespace": "atexplorer"`, package
-`0Hohm0000000NHZCA2`). The current managed build is **beta `1.0.0.2`**
-(`04thm000002OtQPAA0`).
+`0Hohm0000000NHZCA2`). The current build is **released version `1.0.0.2`**
+(`04thm000002OtQPAA0`), promoted on 2026-09-09.
 
-Betas are installable only in Developer Edition orgs, sandboxes, and
-trial/scratch orgs. A managed beta is **not** a promoted release and carries
-no upgrade guarantee.
+A released managed version installs into any org type, including production,
+and carries normal managed-package upgrade guarantees. "Released" is the
+Salesforce **packaging** state — it says nothing about AppExchange review or
+listing (see below).
 
-**Verified in a live org:** managed beta `1.0.0.2`, built from this source,
-installs cleanly into a clean scratch org with no packages installed
+**Verified in a live org:** the released version installs cleanly into a fresh
+scratch org (`rel-qa`, `00DRK00000aOfV72AK`) with no packages installed
 beforehand; the namespaced `atexplorer__Audit_Trail_Viewer` permission set
-assigns successfully; and `RunAllTestsInOrg` passes **29/29**. The package
-build reported **97% coverage** with `HasPassedCodeCoverageCheck=true` across
-43 metadata files. A source deploy of the same commit passes `RunLocalTests`
-**29/29**. See [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)
-for the full evidence and remaining checklist.
+assigns successfully; and `RunLocalTests` passes **29/29** (run
+`707RK0000BPQrG1`) as namespaced `atexplorer.*` classes. The package build
+reported **97% coverage** with `HasPassedCodeCoverageCheck=true` across 43
+metadata files. A source deploy of the same commit passes `RunLocalTests`
+**29/29** (run `707Ru00002A7gs1`).
+
+The install-time strip of `ViewSetup`/`ViewRoles` was re-confirmed against the
+released version, not carried over from the beta — see
+[`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the full
+evidence and remaining checklist.
 
 > The earlier **unlocked** package lineage (`0Hobm0000005681CAA`, versions
 > `04tbm000000aeOjAAI` and `04tbm000000gaALAAY`) is superseded. An unlocked

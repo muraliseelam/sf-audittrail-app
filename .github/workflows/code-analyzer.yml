@@ -1,0 +1,137 @@
+name: Code Analyzer
+
+# Salesforce Code Analyzer scan, kept OUT of the per-PR gate on purpose.
+#
+# The Graph Engine (sfge) walks a 14,503-path space for
+# AuditQueryController.search. It needs several minutes and an otherwise idle
+# machine; starved of memory it abandons the analysis and still prints
+# "0 violations", with the abandoned entry point surfacing only as an easily
+# missed "Internal execution error". Running it on every PR would make that
+# false all-clear routine. It runs weekly and on demand instead.
+#
+# Every step below verifies the scan by its COUNTS, never by a bare
+# "0 violations" - see code-analyzer.yml at the repository root.
+on:
+    workflow_dispatch:
+    schedule:
+        # Mondays 06:00 UTC.
+        - cron: '0 6 * * 1'
+
+concurrency:
+    group: code-analyzer-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    scan:
+        name: Static analysis
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: npm
+
+            # PMD, CPD and the Graph Engine all require a local JDK. Without one
+            # they fail to load and are skipped SILENTLY, and the scan reports a
+            # false all-clear.
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: '21'
+
+            - name: Install dependencies
+              run: npm ci --no-audit --no-fund
+
+            - name: Install Salesforce CLI and Code Analyzer
+              run: |
+                  npm install --global --no-audit --no-fund @salesforce/cli
+                  sf plugins install code-analyzer
+                  sf version
+                  java -version
+
+            # A selector that resolves to 0 rules reports "0 violations" while
+            # proving nothing. A colon-separated selector is an INTERSECTION, and
+            # no rule carries both Recommended and AppExchange - so the three
+            # tags must stay three separate flags. Fail here rather than later.
+            - name: Verify the rule selector resolves to 310 rules
+              run: |
+                  set -euo pipefail
+                  sf code-analyzer rules \
+                    --config-file code-analyzer.yml \
+                    --workspace force-app \
+                    --rule-selector Recommended \
+                    --rule-selector Security \
+                    --rule-selector AppExchange \
+                    --view detail > rules.txt 2>&1
+                  echo "--- selector summary ---"
+                  sed -n '/=== Summary/,$p' rules.txt
+                  if ! grep -q "Found 310 rule(s) from 6 engine(s)" rules.txt; then
+                    echo "::error::Rule selector did not resolve to 310 rules from 6 engines."
+                    echo "::error::A clean scan from this selector would prove nothing. Failing."
+                    exit 1
+                  fi
+
+            - name: Scan (all six engines)
+              run: |
+                  set -euo pipefail
+                  sf code-analyzer run \
+                    --config-file code-analyzer.yml \
+                    --workspace force-app \
+                    --rule-selector Recommended \
+                    --rule-selector Security \
+                    --rule-selector AppExchange \
+                    --output-file CodeAnalyzerReport.html \
+                    --output-file ca-report.json \
+                    --severity-threshold 2
+              # --severity-threshold 2 fails the job on any Critical or High
+              # finding. Moderate and Low are dispositioned in
+              # docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md and do not fail CI.
+
+            # Authoritative sfge run: on its own, so it does not lose the memory
+            # race against the other five engines.
+            - name: Graph Engine alone, verified by path and entry-point counts
+              run: |
+                  set -euo pipefail
+                  sf code-analyzer run \
+                    --config-file code-analyzer.yml \
+                    --workspace force-app \
+                    --rule-selector sfge \
+                    --output-file ca-sfge.json 2>&1 | tee sfge.log
+                  if grep -q "Internal execution error" sfge.log; then
+                    echo "::error::Graph Engine hit an internal execution error; its result proves nothing."
+                    exit 1
+                  fi
+                  # The full path count is the discriminator. An abandoned run
+                  # reports "3 path(s) from 2 entry point(s)" and still prints
+                  # "0 violations". Match the count rather than the surrounding
+                  # wording: the "3/3 entry point(s)" phrasing comes from the
+                  # progress spinner, which a non-TTY CI log may not render.
+                  if ! grep -qF "14503 path(s)" sfge.log; then
+                    echo "::error::Graph Engine did not report the full 14503-path analysis."
+                    echo "::error::The analysis was abandoned part-way; a '0 violations' result is vacuous. Failing."
+                    grep -iE "path\(s\)|entry point" sfge.log || true
+                    exit 1
+                  fi
+                  if ! grep -qE "3/3 entry point\(s\)|from 3 entry point\(s\)" sfge.log; then
+                    echo "::error::Graph Engine did not cover all 3 entry points."
+                    exit 1
+                  fi
+
+            - name: Upload scan reports
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: code-analyzer-reports
+                  path: |
+                      CodeAnalyzerReport.html
+                      ca-report.json
+                      ca-sfge.json
+                      sfge.log
+                      rules.txt
+                  retention-days: 30

@@ -1,10 +1,14 @@
 # Audit Trail Explorer — Code Analyzer Findings Disposition
 
-Companion to `CodeAnalyzerReport.html`, prepared ahead of an eventual
+Companion to `CodeAnalyzerReport.html`. That report is a build artifact and is
+deliberately not committed (see `.gitignore`); the dated result of each scan
+is recorded in
+[`docs/CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md) so the
+disposition below can be checked against a real run. Prepared ahead of an
 AppExchange security review submission. **This package has not yet been
 submitted for, or passed, AppExchange Security Review** — see
 [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for its current
-unreleased-beta, unlocked-package status.
+status: released managed 2GP version `1.0.0.2`, no review, no listing.
 
 Scan command (reproducible from a clean checkout):
 

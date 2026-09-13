@@ -5,8 +5,10 @@ and therefore cannot be run from this repository's CI. It is updated by
 whoever performs each step, with the concrete evidence (org, test run id,
 report values) rather than a bare pass/fail, so the record stays auditable.
 
-**Status:** in progress. Nothing below constitutes an AppExchange security
-review approval, certification, or managed-package release — see
+**Status:** managed 2GP version `1.0.0.2` is a **released** package version,
+promoted 2026-09-09. Nothing below constitutes an AppExchange security review
+approval, certification, or listing — "released" is the Salesforce packaging
+state only. See
 [`docs/APPEXCHANGE-LISTING.md`](APPEXCHANGE-LISTING.md) for the claims policy.
 
 ## Package install validation
@@ -204,6 +206,98 @@ The namespace linkage that previously blocked managed packaging is
 **resolved**. Note that the managed package lineage is permanently bound to
 the Dev Hub above and cannot be moved to another Dev Hub later.
 
+## Pre-submission re-verification — 2026-09-10
+
+Everything below was re-run against the **released** version on 2026-09-10, at
+source commit `934f200`, ahead of an AppExchange Security Review submission.
+Three independent directions were used deliberately, because each can pass
+while another fails: static analysis never executes the code, source-level
+tests never exercise managed packaging, and subscriber-side tests never see
+the source.
+
+### Direction 1 — static analysis (code as written)
+
+Salesforce Code Analyzer, 310 rules across 6 engines. **0 Critical, 0 High,
+11 Moderate, 74 Low (85 total)**, no finding tagged `Security`, `AppExchange`
+or `ErrorProne`. The Graph Engine completed **14,503 paths across 3/3 entry
+points with 0 violations**, so `ApexFlsViolation` and
+`DatabaseOperationsMustUseWithSharing` genuinely executed.
+
+Full run records, including a first attempt whose Graph Engine result was
+invalid and discarded, are in
+[`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
+
+### Direction 2 — source-level behaviour (unpackaged)
+
+| Item              | Result                                             |
+| ----------------- | -------------------------------------------------- |
+| Org               | Scratch org, alias `src-qa` (`00DRu00000Xnmy8MAB`) |
+| Deploy            | `force-app` deployed from commit `934f200`         |
+| Test level        | `RunLocalTests`, with `--code-coverage`            |
+| Tests passed      | **29 / 29 (0 failures)**, 100% pass rate           |
+| Test run ID       | `707Ru00002ALud2`                                  |
+| Org-wide coverage | **97%**                                            |
+| Lowest class      | 95% (`AuditCursor`, `AuditQueryService`)           |
+
+This independently confirms the "97%, no class below 95%" figure previously
+known only from package build time.
+
+### Direction 3 — packaged subscriber behaviour (managed install)
+
+| Item                   | Result                                                        |
+| ---------------------- | ------------------------------------------------------------- |
+| Org                    | `rel-qa` (`00DRK00000aOfV72AK`)                               |
+| Installed version      | `04thm000002OtQPAA0` — confirmed by query, the released one   |
+| Test classes run       | The four `atexplorer.*` managed test classes                  |
+| Tests passed           | **29 / 29 (0 failures)**, 100% pass rate                      |
+| Test run ID            | `707RK0000BPbjPq`                                             |
+| `PermissionsViewSetup` | **`false`** on the installed `atexplorer__Audit_Trail_Viewer` |
+| `PermissionsViewRoles` | **`false`** on the same permission set                        |
+
+The install-time system-permission strip is therefore re-confirmed against the
+released version on this date, not inferred from the beta.
+
+### Packaging state, read back from the Dev Hub
+
+`sf package version report` against Dev Hub `partner-pbo`:
+
+| Field                | Value                |
+| -------------------- | -------------------- |
+| Version              | `1.0.0.2`            |
+| Subscriber version   | `04thm000002OtQPAA0` |
+| `Released`           | **`true`**           |
+| `Code Coverage`      | **97.00%**           |
+| `Code Coverage Met`  | `true`               |
+| `Validation Skipped` | `false`              |
+
+### Deterministic gate (what CI runs)
+
+`npm run lint` clean, `npm run prettier:verify` clean, `npm run test:unit`
+**7 / 7 Jest tests passing**.
+
+**LWC coverage, fixed 2026-09-12.** `npm run test:unit:coverage` previously
+instrumented nothing: it emitted an empty `coverage-final.json` (`{}`) and
+reported 0% for every file while still exiting 0, so the CI coverage step was
+green and measuring nothing. Cause: the `sfdx-lwc-jest` preset's default
+`collectCoverageFrom` globs every file under `lwc/` and negates only `.html`
+and `.css`, leaving `.js-meta.xml` in the set; Istanbul cannot instrument
+those and the whole run collapses to an empty report. `jest.config.js` now
+restricts the glob to `.js` and excludes `__tests__`.
+
+Measured result:
+
+| File               | % Stmts   | % Branch | % Funcs | % Lines |
+| ------------------ | --------- | -------- | ------- | ------- |
+| `auditExplorer.js` | 70.64     | 64.78    | 55.73   | 71.50   |
+| `csv.js`           | **100**   | **100**  | **100** | **100** |
+| **All files**      | **72.16** | 68.75    | 57.81   | 73.09   |
+
+`csv.js` — the CSV formula-injection control — is fully covered. The component
+itself is not: **72.16% statements is below this project's >85% target**, and
+the uncovered ranges in `auditExplorer.js` (notably 301-332 and 342-381) are
+untested UI paths. This is now a measured, visible number rather than a silent
+zero; raising it is outstanding work, not something this change addressed.
+
 ## Remaining manual/live checklist
 
 - [x] ~~Link the `atexplorer` namespace to the packaging Dev Hub~~ — done
@@ -219,15 +313,22 @@ the Dev Hub above and cannot be moved to another Dev Hub later.
       `00DRL00000Vkme62AB`, see below.
 - [ ] Live UI smoke test of the managed install by a human, for
       screenshots and listing assets.
-- [ ] Promote a managed package version from beta to released.
+- [x] ~~Promote a managed package version from beta to released~~ — done
+      2026-09-09: `1.0.0.2` (`04thm000002OtQPAA0`), Dev Hub `partner-pbo`.
+      Irreversible; the version number is permanently consumed.
 - [ ] Submit the released managed package version for AppExchange Security
       Review.
 - [ ] Only after security review approval: update `README.md`,
       `docs/APPEXCHANGE-LISTING.md`, and this file to reference the released
       managed package's install URL.
 
-**Current state: this is an unreleased managed beta.** It has not been
-promoted to a released version, has not been submitted for AppExchange
-Security Review, and has no AppExchange listing. Do not describe it as
-"released", "AppExchange-approved", or "AppExchange-ready" in any listing,
-documentation, or marketing copy until the steps above are complete.
+**Current state: released managed 2GP version `1.0.0.2`. Not submitted for
+AppExchange Security Review. No AppExchange listing.**
+
+"Released" is the Salesforce packaging state and nothing more: the version
+installs into any org type including production and carries normal managed
+upgrade guarantees. It is not a review outcome and confers no Salesforce
+endorsement. Do not describe this package as "certified", "approved",
+"security reviewed", or "on AppExchange" in any listing, documentation, or
+marketing copy — none of those are true today, and only the AppExchange
+review process can make them true.

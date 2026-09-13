@@ -103,9 +103,13 @@ validated against real data (122 records over 18 pages, 0 duplicates/skips).
 
 ## Packaging
 
-This package is distributed as an **unreleased managed (2GP) beta** under the
+This package is distributed as a **released managed (2GP) version** under the
 `atexplorer` namespace (`sfdx-project.json` → `"namespace": "atexplorer"`,
-package `0Hohm0000000NHZCA2`, current version `04thm000002OtQPAA0`).
+package `0Hohm0000000NHZCA2`, current version `1.0.0.2` /
+`04thm000002OtQPAA0`, promoted 2026-09-09). "Released" is the Salesforce
+packaging state — the version installs into any org type including
+production. The package has not been submitted for or passed AppExchange
+Security Review and has no AppExchange listing.
 
 The earlier **unlocked** lineage (`0Hobm0000005681CAA`) is superseded. An
 unlocked package cannot be converted in place into a namespaced managed

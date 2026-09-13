@@ -3,7 +3,7 @@
 A Salesforce app that gives admins and auditors a fast, filterable UI over the
 **Setup Audit Trail** — with **zero storage footprint**.
 
-> **Package status: released managed version `1.0.0`.** This is distributed as
+> **Package status: released managed version `1.0.0.2`.** This is distributed as
 > a **released** managed 2GP version under the `atexplorer` namespace, so it
 > installs into any org including production. It has **not** been submitted for
 > or passed AppExchange Security Review, and has **no AppExchange listing** —
@@ -217,6 +217,7 @@ repository should be read as claiming otherwise.
 | [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)                                   | Live-org install/test/namespace validation evidence and checklist     |
 | [`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)                 | Full security architecture review (CRUD/FLS, injection, auth)         |
 | [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Code Analyzer findings and their disposition                          |
+| [`docs/CODE-ANALYZER-SCAN-RECORD.md`](docs/CODE-ANALYZER-SCAN-RECORD.md)                       | Dated Code Analyzer run records: rule counts, results, validity       |
 | [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                        |
 | [`SECURITY.md`](SECURITY.md)                                                                   | How to report a vulnerability                                         |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                           | Development setup and PR checklist                                    |

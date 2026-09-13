@@ -5,13 +5,15 @@ makes no claims of AppExchange certification, security review approval,
 customer adoption, or install counts — those are added by Salesforce/AppExchange
 processes, not by this repository.
 
-> **Not ready to publish as-is.** The package described here is an
-> **unreleased managed beta** and has not been submitted for AppExchange
-> Security Review. Do not publish this listing (or any variant of it) until
-> the package described in
-> [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) is a promoted,
-> security-reviewed release. Update the install link and version references
-> below at that time.
+> **Not ready to publish as-is.** The package described here is a **released
+> managed 2GP version** (`1.0.0.2`, `04thm000002OtQPAA0`, promoted
+> 2026-09-09) that has **not** been submitted for, or passed, AppExchange
+> Security Review, and has **no** AppExchange listing. Promotion satisfied
+> the packaging precondition for submission; the review itself is still
+> outstanding. Do not publish this listing, or any variant of it, until
+> [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) records that the
+> review has actually been passed. Update the install link and version
+> references below at that time.
 
 ## Listing name
 
@@ -62,13 +64,13 @@ storage to your org.
 - Enterprise, Unlimited, Performance, or Developer Edition (custom Apex is
   required; Professional Edition is not supported).
 - Lightning Experience.
-- The packaged `Audit_Trail_Viewer` permission set, which grants the app, its
-  tab, and its Apex classes.
+- The packaged `atexplorer__Audit_Trail_Viewer` permission set, which grants
+  the app, its tab, and its Apex classes.
 - **"View Setup and Configuration", granted separately by your
   administrator.** Salesforce strips system permissions from a managed
   package's permission sets on install, so the packaged permission set cannot
   grant this on your behalf. Grant it through your own profile or permission
-  set, alongside `Audit_Trail_Viewer`.
+  set, alongside `atexplorer__Audit_Trail_Viewer`.
 
 ## Categories
 

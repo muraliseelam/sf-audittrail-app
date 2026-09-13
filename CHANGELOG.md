@@ -98,8 +98,9 @@ permission set.
   `RunLocalTests` 28/28 and 97% org-wide coverage; `1.0.0.1`
   (`04tbm000000aeOjAAI`) passed 22/22 against earlier source.
 - **This package has not undergone AppExchange security review and has no
-  AppExchange listing.** The managed versions above are betas, not promoted
-  releases.
+  AppExchange listing.** Managed version `1.0.0.2` was promoted to a released
+  packaging state on 2026-09-09; that is a packaging state, not a review
+  outcome.
 
 ### Fixed
 

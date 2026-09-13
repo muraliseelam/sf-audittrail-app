@@ -1,9 +1,9 @@
 # Audit Trail Explorer — Solution Documentation
 
-Prepared ahead of an eventual AppExchange/AgentExchange security review
-submission. **This package has not yet been submitted for, or passed, that
-review** — see [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for
-its current unreleased managed-beta status.
+Prepared ahead of an AppExchange/AgentExchange security review submission.
+**This package has not yet been submitted for, or passed, that review** — see
+[`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for its current
+status: released managed 2GP version `1.0.0.2`, no review, no listing.
 
 ## 1. What the solution does
 
@@ -138,14 +138,19 @@ or personal data is logged.
 
 ## 8. Testing
 
-- 29 Apex tests; coverage **97%** at package build time, with no class below
-  95% (the managed-package requirement is 75%). The managed beta passes 29/29
-  in a clean subscriber org, and the same source passes 29/29 on a direct
-  source deploy.
+- 29 Apex tests; coverage **97%** at package build time
+  (`HasPassedCodeCoverageCheck = true`), with no class below 95% (the
+  managed-package requirement is 75%). Re-verified 2026-09-10: the **released
+  managed version** passes 29/29 as namespaced `atexplorer.*` classes in a
+  clean subscriber org, and the same source passes 29/29 at 97% org-wide
+  coverage on a direct source deploy. Run ids are recorded in
+  [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md).
 - `SetupAuditTrail` cannot be inserted in a test, so the service takes an injectable
   provider interface. `SetupAuditTrailProviderTest` nonetheless executes the real
   production query, so the SOQL is genuinely exercised rather than mocked away.
-- 7 Jest tests covering the component, including the CSV escaping.
+- 7 Jest tests covering the component, including the CSV escaping. Measured
+  2026-09-12: **72.16% statements** overall, with `csv.js` — the
+  formula-injection control — at **100%** and `auditExplorer.js` at 70.64%.
 - Paging correctness was validated against real data: 122 records over 18 pages,
   **0 duplicates and 0 skipped rows**.
 

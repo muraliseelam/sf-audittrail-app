@@ -10,22 +10,31 @@ eventual AppExchange security review, and
 [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md)
 for the Salesforce Code Analyzer findings and their disposition.
 
-> **Package status:** the current package version (`1.0.0.2`,
-> `04tbm000000gaALAAY`) is an **unreleased (beta) unlocked package version**,
-> not a managed package. It has not been submitted for, or passed,
-> AppExchange Security Review, and has no AppExchange listing. See
+> **Package status:** the current package version is **released managed 2GP
+> `1.0.0.2`** (`04thm000002OtQPAA0`, namespace `atexplorer`), promoted
+> 2026-09-09. "Released" is the Salesforce packaging state: it installs into
+> any org type including production. The package has **not** been submitted
+> for, or passed, AppExchange Security Review, and has **no** AppExchange
+> listing. See
 > [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the exact
 > current status.
 
 ## Supported versions
 
-There are currently two package versions, both unreleased betas: `1.0.0.2`
-(`04tbm000000gaALAAY`, current) and `1.0.0.1` (`04tbm000000aeOjAAI`,
-superseded). There is no separately "released" version to compare either
-against, so report issues against whichever version you installed. Once a
-managed package version exists and is released, this section will be
-updated to describe an ongoing support policy (typically: only the most
-recent released version).
+Security fixes are issued against the current released managed version only.
+
+| Version   | Package version id   | Lineage                       | Supported            |
+| --------- | -------------------- | ----------------------------- | -------------------- |
+| `1.0.0.2` | `04thm000002OtQPAA0` | Managed (`atexplorer`)        | **Yes** — current    |
+| `1.0.0.1` | `04thm000002OtOnAAK` | Managed (`atexplorer`)        | No — superseded beta |
+| `1.0.0.2` | `04tbm000000gaALAAY` | Unlocked (superseded lineage) | No                   |
+| `1.0.0.1` | `04tbm000000aeOjAAI` | Unlocked (superseded lineage) | No                   |
+
+The unlocked lineage is a separate, non-namespaced package that could not be
+converted in place into the managed one; it is retained in `sfdx-project.json`
+for traceability only. If you found an issue on any version above, please
+still report it — just say which package version id you tested, because the
+two lineages differ.
 
 ## Reporting a vulnerability
 

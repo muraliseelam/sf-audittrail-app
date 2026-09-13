@@ -61,8 +61,9 @@ storage to your org.
 
 **Requirements**
 
-- Enterprise, Unlimited, Performance, or Developer Edition (custom Apex is
-  required; Professional Edition is not supported).
+- Enterprise, Unlimited, Performance, or Developer Edition. Custom Apex is
+  required, so editions without it are not supported — this includes
+  Professional Edition and Base Edition.
 - Lightning Experience.
 - The packaged `atexplorer__Audit_Trail_Viewer` permission set, which grants
   the app, its tab, and its Apex classes.

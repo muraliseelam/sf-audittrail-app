@@ -298,6 +298,90 @@ the uncovered ranges in `auditExplorer.js` (notably 301-332 and 342-381) are
 untested UI paths. This is now a measured, visible number rather than a silent
 zero; raising it is outstanding work, not something this change addressed.
 
+## Install into a persistent Developer Edition org — 2026-09-13
+
+Every managed install recorded above was into a **scratch** org, which expires
+in days. This one is a persistent Developer Edition org, which is the shape of
+org a security reviewer is given.
+
+| Item                   | Result                                                         |
+| ---------------------- | -------------------------------------------------------------- |
+| Target org             | Developer Edition, `00Dbm00000u2XaoEAE` (not a sandbox)        |
+| Installed version      | `04thm000002OtQPAA0` (subscriber package `033hm0000004c8LAAQ`) |
+| Install result         | Succeeded                                                      |
+| Namespaced classes     | 14 `atexplorer` Apex classes present                           |
+| App / tab              | `atexplorer__Audit_Trail_Explorer` available                   |
+| Permission set         | `atexplorer__Audit_Trail_Viewer` assigned successfully         |
+| `PermissionsViewSetup` | **`false`**                                                    |
+| `PermissionsViewRoles` | **`false`**                                                    |
+| Apex tests             | **29 / 29 passed**, 100% pass rate, run ID `707bm00001FTsEQ`   |
+
+This is the **third independent confirmation** of the install-time system
+permission strip (after `00DRL00000Vkme62AB` and `00DRK00000aOfV72AK`), and
+the first in a non-scratch org — so the behaviour is a property of managed
+packaging, not of scratch orgs.
+
+The org's System Administrator profile carries `PermissionsViewSetup = true`,
+so that user satisfies both required grants: the packaged permission set for
+app/tab/Apex access, and the profile for "View Setup and Configuration".
+
+### Editions without custom Apex cannot install this package
+
+Attempted install of the same version into a **Base Edition** org
+(`00Dao00001QqmInEAJ`) failed:
+
+```
+Error (PackageInstallError): Encountered errors installing the package!
+1) Apex Classes(classes/AuditPermissionService.cls) Missing feature,
+   Details: Installing this package requires the following feature and its
+   associated permissions: Apex Classes
+```
+
+This is an edition limitation, not a package defect — the same root cause that
+rules out Professional Edition. `README.md`, `docs/ARCHITECTURE.md` and the
+listing draft now name Base Edition explicitly.
+
+## Functional UI verification of the managed install — 2026-09-13
+
+Driven through the browser against the **installed managed package** in
+`00DRK00000aOfV72AK` (not source, not a mock). To exercise paging honestly,
+65 permission sets were inserted in a single Apex transaction, producing 65
+audit rows sharing one identical timestamp, so the 50-row page boundary fell
+**inside** that block — the case date-only paging would duplicate or skip.
+
+| Check                       | Result                                                               |
+| --------------------------- | -------------------------------------------------------------------- |
+| App loads from App Launcher | `atexplorer__Audit_Trail_Explorer` renders                           |
+| Default search              | 50 events, streaming progress message                                |
+| Section filter              | 53 examined → 6 events; all 6 rows genuinely `Manage Users`          |
+| Free-text search            | "transaction security" → 2 events                                    |
+| User filter (type-ahead)    | → 15 events, matching the org's true count for that user             |
+| Facets                      | Top sections / top users correct, recomputed per search              |
+| Row detail                  | Date, User, Section, Action, Description, Delegate user, Namespace   |
+| Paging to completion        | 50 → 100 → **118**, "Search complete"                                |
+| CSV export                  | **118 data rows, 0 duplicate rows**, CRLF, every cell quoted         |
+| Escaping                    | `"quoted"` → `""quoted""`; comma and unicode labels preserved        |
+| Empty state                 | "No audit events matched your filters in this range."                |
+| Retention notice            | "Salesforce retains Setup Audit Trail for 180 days…" shown in the UI |
+
+118 exported rows against 118 rows in the org, with zero duplicates, is a live
+confirmation of the cursor's seen-ids design on a harder dataset than the
+122-record check recorded elsewhere.
+
+Two observations, neither a defect:
+
+- The section facet lists **8** entries while the org had 10 distinct sections
+  (102 non-blank rows). That is `auditExplorer.js`'s deliberate
+  `.slice(0, 8)` cap plus `computeFacets` skipping blank keys, not a miscount.
+- The CSV formula-injection guard never fires on real audit text: trigger
+  characters appear mid-string ("Created permission set … =1+1 …"), and the
+  guard matches position 0 only. It is defence-in-depth for values such as a
+  display name beginning with `=`, and is covered by Jest at 100% of `csv.js`.
+
+> The audit trail of `00DRK00000aOfV72AK` permanently contains the ~65 seeded
+> "ATE Bulk" entries; Setup Audit Trail is append-only. Do not use that org for
+> listing screenshots.
+
 ## Remaining manual/live checklist
 
 - [x] ~~Link the `atexplorer` namespace to the packaging Dev Hub~~ — done

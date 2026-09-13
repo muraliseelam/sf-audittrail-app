@@ -85,8 +85,9 @@ validated against real data (122 records over 18 pages, 0 duplicates/skips).
   package deliberately does not use.
 - **Lightning Experience only.** The UI is a Lightning web component; there is
   no Aura/Visualforce/Classic equivalent.
-- **Professional Edition is not supported**, because it cannot run custom
-  Apex, which this package requires.
+- **Editions without custom Apex are not supported**, because this package
+  requires it. That covers **Professional Edition** and **Base Edition**; a
+  Base Edition install fails at `Missing feature: Apex Classes`.
 - **No counts/aggregates from the platform.** "Top sections"/"Top users" are
   computed in Apex over the rows scanned so far in the current search, not
   over the org's entire audit history — a search that has only scanned back

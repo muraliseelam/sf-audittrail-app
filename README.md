@@ -129,7 +129,12 @@ the minimum access the app needs; see
 > This does not apply to source deploys or the unlocked package, where the
 > shipped permission set is sufficient on its own.
 
-> Professional Edition is not supported, because it cannot run custom Apex.
+> Editions that cannot run custom Apex are not supported, because this package
+> requires it. That rules out **Professional Edition** and **Base Edition** —
+> installing into a Base Edition org fails with
+> `Missing feature: Apex Classes` (verified 2026-09-13, see
+> [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)). Enterprise,
+> Unlimited, Performance and Developer Edition all work.
 
 ### Deploying from source instead
 

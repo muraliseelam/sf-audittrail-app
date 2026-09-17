@@ -33,7 +33,10 @@ jobs:
             - name: Set up Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '20'
+                  # The Salesforce CLI requires Node >= 22 (its `engines` field). On 20 the
+                  # scheduled run of 2026-09-14 crashed at CLI startup, inside undici, with
+                  # "markAsUncloneable is not a function" - before any rule was loaded.
+                  node-version: '22'
                   cache: npm
 
             # PMD, CPD and the Graph Engine all require a local JDK. Without one

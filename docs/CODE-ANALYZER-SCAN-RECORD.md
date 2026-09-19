@@ -136,3 +136,122 @@ concurrency, and that alone decided whether the analysis completed (14,503
 paths) or was abandoned after 3. Treat any Graph Engine result that does not
 name its path and entry-point counts as unproven, and re-run it on its own
 before recording it.
+
+## 2026-09-19 — source commit `5c70c8c`
+
+Produced by the `Code Analyzer` workflow rather than by hand:
+[run 35450675758](https://github.com/muraliseelam/sf-audittrail-app/actions/runs/35450675758),
+dispatched on branch `wt/audittrail`, every step green in 17m33s.
+
+### Why this run exists
+
+Code Analyzer 5.16.0 no longer executes an ESLint configuration file that it
+discovered automatically, because such a file's top-level JavaScript would run
+during analysis. `auto_discover_eslint_config: true` therefore stopped applying
+`eslint.config.js`, the ESLint engine fell back to its bundled defaults, and the
+selector silently lost `jest/no-deprecated-functions` — **309 rules, 201
+eslint**. That was
+[run 35449263094](https://github.com/muraliseelam/sf-audittrail-app/actions/runs/35449263094),
+which failed the rule-count check in `.github/workflows/code-analyzer.yml`
+rather than publishing a scan that no longer reflected the lint rules this
+project enforces. Catching exactly this is why the count is checked.
+
+Commit `5c70c8c` adds the explicit `eslint_config_file` the plugin now requires.
+The fix was first measured locally on 5.16.0 — rule selection only — and the run
+below is its first full verification.
+
+### Environment
+
+| Item                 | Value                                             |
+| -------------------- | ------------------------------------------------- |
+| Code Analyzer plugin | `5.16.0`, installed as `code-analyzer@latest`     |
+| Salesforce CLI       | `@salesforce/cli/2.150.6` linux-x64, node 22.23.2 |
+| JDK                  | OpenJDK 21.0.12.1 (Temurin, LTS)                  |
+| Runner               | `ubuntu-latest`, GitHub Actions                   |
+| Workspace scanned    | `force-app`                                       |
+
+Unlike the 2026-09-10 entry this is not a developer workstation. The CLI, the
+plugin and the JDK are installed fresh on every run, which is why a plugin
+release reaches CI before it reaches any local machine.
+
+### Rule selection
+
+| Engine      | Rules   |
+| ----------- | ------- |
+| `eslint`    | 202     |
+| `pmd`       | 94      |
+| `regex`     | 6       |
+| `retire-js` | 4       |
+| `cpd`       | 2       |
+| `sfge`      | 2       |
+| **Total**   | **310** |
+
+Identical to 2026-09-10 rule for rule, not merely in total: comparing the full
+rule-name lists from the 5.15.0 run and this one gives no additions and no
+removals. The count pinned in [`code-analyzer.yml`](../code-analyzer.yml) still
+describes the same rule set.
+
+With the explicit setting the engine warns that the configured file contains
+executable JavaScript that will run during analysis. That is an advisory about a
+file committed to this repository, not the silent fallback it replaced.
+
+### Run 1 — all six engines
+
+```
+sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
+  --rule-selector Recommended --rule-selector Security --rule-selector AppExchange \
+  --output-file CodeAnalyzerReport.html --output-file ca-report.json \
+  --severity-threshold 2
+```
+
+**85 violations across 16 files.** Zero Critical, zero High.
+
+| Rule                                            | Engine | Count |
+| ----------------------------------------------- | ------ | ----- |
+| `ApexDoc`                                       | pmd    | 29    |
+| `ApexUnitTestClassShouldHaveRunAs`              | pmd    | 26    |
+| `@salesforce-ux/slds/no-hardcoded-values-slds2` | eslint | 18    |
+| `ExcessiveParameterList`                        | pmd    | 4     |
+| `CognitiveComplexity`                           | pmd    | 3     |
+| `CyclomaticComplexity`                          | pmd    | 2     |
+| `AvoidDebugStatements`                          | pmd    | 1     |
+| `NcssCount`                                     | pmd    | 1     |
+| `@lwc/lwc-platform/no-inline-disable`           | eslint | 1     |
+
+Every rule and every count reproduces the 2026-09-10 table exactly, on a
+different operating system and a newer plugin. `retire-js` and the `regex`
+secrets engine again reported **0 violations**.
+
+### Run 2 — Graph Engine alone (authoritative for `sfge`)
+
+```
+sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
+  --rule-selector sfge --output-file ca-sfge.json
+```
+
+```
+sfge: Detected 0 violation(s) from 14503 path(s) on 3/3 entry point(s).
+Found 0 violations.
+```
+
+This meets the validity bar — **14,503 paths, 3/3 entry points, no
+`Internal execution error`** — so both Graph Engine rules executed to
+completion. The workflow gives this step its own `sf code-analyzer run`, after
+the six-engine scan, for the memory reason recorded in the 2026-09-10
+operational note.
+
+### Combined result
+
+| Severity  | Count  |
+| --------- | ------ |
+| Critical  | **0**  |
+| High      | **0**  |
+| Moderate  | 11     |
+| Low       | 74     |
+| **Total** | **85** |
+
+Unchanged from 2026-09-10, so the dispositions in
+[`SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](SECURITY-REVIEW-FINDINGS-DISPOSITION.md)
+still describe this scan. The generated reports are attached to the run as the
+`code-analyzer-reports` artifact and expire after 30 days; this file is the
+durable record.

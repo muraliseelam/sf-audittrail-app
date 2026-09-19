@@ -20,12 +20,29 @@
 # tagged DevPreview and so are selected by neither of the other two tags -- yet
 # they are the two rules most relevant to an AppExchange security review.
 engines:
-    # Without auto_discover_eslint_config the ESLint engine reports
-    # "eslint.config.js was found but not applied" and silently falls back to its
-    # own bundled defaults, so the scan would not reflect the rules this project
-    # actually enforces.
+    # ESLint must be pointed at this project's own config file. Otherwise the
+    # engine falls back to its bundled defaults and the scan stops reflecting
+    # the rules this project actually enforces -- silently, apart from one
+    # "found but not applied" line in the output. Both settings are kept:
+    #
+    #   auto_discover_eslint_config was enough through plugin 5.15.0, which
+    #   produced the 310-rule selection recorded in
+    #   docs/CODE-ANALYZER-SCAN-RECORD.md.
+    #
+    #   eslint_config_file is required from plugin 5.16.0 on. That release
+    #   stopped executing config files it merely DISCOVERED, because their
+    #   top-level JavaScript runs during analysis. Discovery alone dropped
+    #   jest/no-deprecated-functions, the selector resolved to 309, and the
+    #   count check in .github/workflows/code-analyzer.yml failed on
+    #   2026-09-19.
+    #
+    # On 5.16.0 the explicit setting alone measures 310 rules (202 eslint),
+    # identical rule for rule to the 5.15.0 baseline. It also makes the engine
+    # warn that the configured file executes JavaScript -- an advisory about a
+    # file committed to this repository, not the silent fallback above.
     eslint:
         auto_discover_eslint_config: true
+        eslint_config_file: 'eslint.config.js'
     # PMD's ecmascript ruleset does not understand LWC modules and reports every
     # `window`/`document` reference as a GlobalVariable violation. ESLint, with
     # the official @salesforce/eslint-config-lwc config, is the correct linter for

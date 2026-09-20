@@ -255,3 +255,48 @@ Unchanged from 2026-09-10, so the dispositions in
 still describe this scan. The generated reports are attached to the run as the
 `code-analyzer-reports` artifact and expire after 30 days; this file is the
 durable record.
+
+## 2026-09-20 — rule-selector comparison against the documented command
+
+Rule selection only; no scan was run. This entry exists because the selector
+used by this repository differs from the one Salesforce's ISV documentation
+gives, and a reviewer is entitled to know why.
+
+### Environment
+
+| Item                 | Value                                            |
+| -------------------- | ------------------------------------------------ |
+| Code Analyzer plugin | `5.16.0`                                         |
+| Salesforce CLI       | `@salesforce/cli/2.98.6` win32-x64, node 24.19.0 |
+| JDK                  | OpenJDK 21.0.12 (Microsoft build, LTS)           |
+| Config file          | `code-analyzer.yml` (applied to both selectors)  |
+| Workspace            | `force-app`                                      |
+
+### Measured counts
+
+Both commands were run as `sf code-analyzer rules --config-file code-analyzer.yml
+--workspace force-app --view detail`, differing only in their `--rule-selector`
+flags.
+
+| Selector                                            | Rules   | Engines | Breakdown                                               |
+| --------------------------------------------------- | ------- | ------- | ------------------------------------------------------- |
+| `AppExchange` + `Recommended:Security` (documented) | 48      | 4       | 40 pmd, 4 retire-js, 3 eslint, 1 regex                  |
+| `Recommended` + `Security` + `AppExchange` (used)   | **310** | **6**   | 202 eslint, 94 pmd, 6 regex, 4 retire-js, 2 cpd, 2 sfge |
+
+The 310-rule count reproduces the 2026-09-10 and 2026-09-19 entries above on a
+third machine and a third CLI version.
+
+### Why this matters
+
+The documented selector resolves to **zero `sfge` rules**. `Recommended:Security`
+is an intersection, and `ApexFlsViolation` and
+`DatabaseOperationsMustUseWithSharing` are tagged `DevPreview`, so they survive
+neither term of it. Running the documented command exactly as written therefore
+produces a report with **no CRUD/FLS path analysis and no CPD**, which is the
+analysis an AppExchange reviewer is most interested in.
+
+The selector used here is a strict superset of the documented one — `AppExchange`
+is one of its three tags, and `Recommended:Security` is contained within
+`Security` — so nothing the documented command would have found is lost. The
+submitted report is generated with the broader selector for that reason, not by
+oversight.

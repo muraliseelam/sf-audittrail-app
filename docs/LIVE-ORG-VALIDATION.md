@@ -382,7 +382,16 @@ Two observations, neither a defect:
 > "ATE Bulk" entries; Setup Audit Trail is append-only. Do not use that org for
 > listing screenshots.
 
-## Remaining manual/live checklist
+## Remaining work before an AppExchange Security Review submission
+
+This checklist previously tracked only steps needing a live org or Dev Hub, and
+so read as though submission were the single remaining step. It is not. The
+AppExchange submission has a second half — Partner Console prerequisites and
+submission materials — that no live-org evidence can satisfy, and that half is
+tracked below alongside the first. Requirements are taken from the ISVforce
+Guide, "Prepare for the AgentExchange Security Review", read 2026-09-20.
+
+### Live-org validation — complete
 
 - [x] ~~Link the `atexplorer` namespace to the packaging Dev Hub~~ — done
       (`1NRhm0000000dcTGAQ`).
@@ -394,14 +403,82 @@ Two observations, neither a defect:
       org~~ — done: 29/29.
 - [x] ~~Live verification that the documented administrator workaround
       actually works~~ — done in the managed subscriber org
-      `00DRL00000Vkme62AB`, see below.
-- [ ] Live UI smoke test of the managed install by a human, for
-      screenshots and listing assets.
+      `00DRL00000Vkme62AB`.
 - [x] ~~Promote a managed package version from beta to released~~ — done
       2026-09-09: `1.0.0.2` (`04thm000002OtQPAA0`), Dev Hub `partner-pbo`.
       Irreversible; the version number is permanently consumed.
+- [x] ~~Live UI smoke test of the managed install by a human~~ — done
+      2026-09-13 against the managed install in `00DRK00000aOfV72AK`; see
+      [Functional UI verification](#functional-ui-verification-of-the-managed-install--2026-09-13).
+      Screenshots were **not** produced and remain outstanding below.
+
+### Partner Console prerequisites — status unverified
+
+None of these can be read from this repository; they live in the Partner
+Console and the Partner Community. Each is marked unverified rather than
+assumed. Check them at Partner Console → Technologies / Company Info; accessing
+the console at all requires the **Manage Listings** permission.
+
+- [ ] **unverified** — ISV Partner Program enrolment and a Partner Business Org.
+      The packaging Dev Hub alias `partner-pbo` (`00Dhm000004MOXjEAO`) implies
+      this exists, but that is an inference, not evidence.
+- [ ] **unverified** — Lightning Ready certification. Mandatory for all new
+      submissions.
+- [ ] **unverified** — packaging org connected to the Partner Console.
+- [ ] **unverified** — company / provider profile created.
+- [ ] **unverified** — security leadership contacts designated in Partner
+      Console → Company Info. Re-confirmed every six months.
+- [ ] **unverified** — package version shows `Ready to List` or
+      `Security Review Required` under Technologies → Solutions.
+
+### Submission materials — incomplete
+
+Required for this architecture ("Salesforce Native Solution with Lightning
+Components").
+
+- [x] ~~Managed—Released package version~~ — `1.0.0.2`
+      (`04thm000002OtQPAA0`). Beta and unmanaged packages are not accepted.
+- [x] ~~Salesforce Code Analyzer report~~ — see
+      [`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
+- [x] ~~Solution documentation~~ —
+      [`SECURITY-REVIEW-SOLUTION-DOC.md`](SECURITY-REVIEW-SOLUTION-DOC.md).
+- [ ] **Checkmarx (Source Code Scanner) report.** Required _in addition to_ the
+      Code Analyzer scan, and run from the Partner Security Portal rather than
+      locally. Not started. Note that the three runs provisioned per package
+      version are described as coming "with the security review fee", and no fee
+      is payable for a free solution — confirm entitlement at Partner Security
+      Portal office hours before planning around it.
+- [ ] **False-positives document** in Salesforce's sense, i.e. scanner findings
+      claimed to be non-issues. `SECURITY-REVIEW-FINDINGS-DISPOSITION.md`
+      disposes of code-quality findings and is not a substitute; the document
+      Salesforce asks for principally covers Checkmarx output, which does not
+      exist yet.
+- [ ] **Developer Edition org prepared as the reviewer's test environment.**
+      `00Dbm00000u2XaoEAE` has the released package installed, but that is
+      recorded here as validation evidence, not provisioned for handover. It
+      needs a non-admin test user carrying **both** required grants, seeded
+      audit data so searches return rows, and a submission note stating the
+      two-grant requirement up front — without which a reviewer sees an app
+      that errors on every search.
+- [ ] **Company security-program documentation.** Salesforce requires a security
+      program before listing: SDLC methodology, vulnerability management,
+      remediation SLAs, security-awareness training, breach response.
+      [`SECURITY.md`](../SECURITY.md) covers vulnerability reporting only.
+      Company size and maturity are explicitly taken into account.
+
+### Submission and after
+
 - [ ] Submit the released managed package version for AppExchange Security
-      Review.
+      Review, via the security review wizard in the Partner Console. No fee is
+      payable for a free solution. Expect 1–2 weeks to verify the submission
+      and 3–4 weeks for first testing.
+- [ ] Listing screenshots and demo assets. These need a **fresh** org:
+      `00DRK00000aOfV72AK` permanently contains the ~65 seeded "ATE Bulk"
+      entries, as noted above.
+- [ ] Only after security review approval: create the AppExchange listing, get
+      it approved against brand and program policy, sign the Partner
+      Application Distribution Agreement, and register the package with the
+      License Management App.
 - [ ] Only after security review approval: update `README.md`,
       `docs/APPEXCHANGE-LISTING.md`, and this file to reference the released
       managed package's install URL.

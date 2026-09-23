@@ -224,6 +224,8 @@ repository should be read as claiming otherwise.
 | [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Code Analyzer findings and their disposition                          |
 | [`docs/CODE-ANALYZER-SCAN-RECORD.md`](docs/CODE-ANALYZER-SCAN-RECORD.md)                       | Dated Code Analyzer run records: rule counts, results, validity       |
 | [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                        |
+| [`docs/SUBMISSION-RUNBOOK.md`](docs/SUBMISSION-RUNBOOK.md)                                     | Ordered steps from here to a submitted security review                |
+| [`docs/SECURITY-PROGRAM.md`](docs/SECURITY-PROGRAM.md)                                         | Security program required of AppExchange partners, and its gaps       |
 | [`SECURITY.md`](SECURITY.md)                                                                   | How to report a vulnerability                                         |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                           | Development setup and PR checklist                                    |
 | [`CHANGELOG.md`](CHANGELOG.md)                                                                 | Notable changes by version                                            |

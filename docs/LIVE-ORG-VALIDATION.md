@@ -301,8 +301,13 @@ zero; raising it is outstanding work, not something this change addressed.
 ## Install into a persistent Developer Edition org — 2026-09-13
 
 Every managed install recorded above was into a **scratch** org, which expires
-in days. This one is a persistent Developer Edition org, which is the shape of
-org a security reviewer is given.
+in days. This one is a persistent Developer Edition org, so it demonstrates the
+install on the _class_ of org a security reviewer is given.
+
+> **This org is not the submission org, and cannot be.** Inspected on
+> 2026-09-20 it proved unsuitable for handover on four counts — see
+> [Why this org cannot be handed to a reviewer](#why-this-org-cannot-be-handed-to-a-reviewer--2026-09-20)
+> below. What follows is install evidence only.
 
 | Item                   | Result                                                         |
 | ---------------------- | -------------------------------------------------------------- |
@@ -324,6 +329,49 @@ packaging, not of scratch orgs.
 The org's System Administrator profile carries `PermissionsViewSetup = true`,
 so that user satisfies both required grants: the packaged permission set for
 app/tab/Apex access, and the profile for "View Setup and Configuration".
+
+### Why this org cannot be handed to a reviewer — 2026-09-20
+
+Read-only inspection of `00Dbm00000u2XaoEAE`, made while assembling the
+submission materials. The install evidence above stands; what fails is the
+org's fitness as the Developer Edition org submitted _with_ the review.
+
+| Check                  | Finding                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| Other packages present | **`devedapp` 0.9.0.2** (`04tfn000001PPYvAAO`) is also installed — an unrelated managed package     |
+| Org registration       | Provisioned through orgfarm; the org user and administrator are **not** this project's author      |
+| Test user              | **None.** Two System Administrators plus the standard platform users; no user on a minimal profile |
+| Audit data             | Newest row 2026-09-16, and the history is essentially the package install itself                   |
+
+Each is disqualifying on its own:
+
+- Salesforce pen-tests the submitted org and determines scope by following the
+  data. A second, unrelated managed package in that org is at best a
+  distraction and at worst pulls foreign code into the review's scope.
+- The org is not registered to the submitting party, so it is not this
+  project's to hand over.
+- With no minimally-privileged test user, a reviewer cannot exercise the
+  two-grant requirement that is this app's central access-control behaviour —
+  and the administrator users mask it, because their profile already carries
+  `ViewSetup`.
+- With almost no audit history, every search returns nothing. A reviewer would
+  see an app that appears not to work.
+
+The submission therefore needs a **purpose-built Developer Edition org**,
+registered to the author, containing this package and nothing else, with a
+non-administrator test user carrying both required grants and enough seeded
+audit history for searches to return results. Tracked in the checklist below.
+
+Two claims elsewhere in this repository were re-verified live during the same
+inspection, against the released package in this org:
+
+- `atexplorer__Audit_Trail_Viewer` still reports `PermissionsViewSetup = false`
+  and `PermissionsViewRoles = false` — the install-time strip, confirmed on
+  2026-09-20 rather than carried forward from September 13.
+- `SELECT COUNT(Id) FROM SetupAuditTrail` is rejected by the platform with
+  `field Id does not support aggregate operator COUNT`, confirming the
+  no-aggregates constraint that the progressive-scan design exists to work
+  around.
 
 ### Editions without custom Apex cannot install this package
 
@@ -414,6 +462,9 @@ Guide, "Prepare for the AgentExchange Security Review", read 2026-09-20.
 
 ### Partner Console prerequisites — status unverified
 
+Ordered steps for these, and for everything else outstanding, are in
+[`SUBMISSION-RUNBOOK.md`](SUBMISSION-RUNBOOK.md).
+
 None of these can be read from this repository; they live in the Partner
 Console and the Partner Community. Each is marked unverified rather than
 assumed. Check them at Partner Console → Technologies / Company Info; accessing
@@ -454,17 +505,22 @@ Components").
       Salesforce asks for principally covers Checkmarx output, which does not
       exist yet.
 - [ ] **Developer Edition org prepared as the reviewer's test environment.**
-      `00Dbm00000u2XaoEAE` has the released package installed, but that is
-      recorded here as validation evidence, not provisioned for handover. It
-      needs a non-admin test user carrying **both** required grants, seeded
-      audit data so searches return rows, and a submission note stating the
-      two-grant requirement up front — without which a reviewer sees an app
-      that errors on every search.
-- [ ] **Company security-program documentation.** Salesforce requires a security
-      program before listing: SDLC methodology, vulnerability management,
-      remediation SLAs, security-awareness training, breach response.
-      [`SECURITY.md`](../SECURITY.md) covers vulnerability reporting only.
-      Company size and maturity are explicitly taken into account.
+      Must be a **new** org: `00Dbm00000u2XaoEAE` was inspected on 2026-09-20
+      and disqualified on four counts — a second unrelated managed package, no
+      registration to the author, no test user, and almost no audit history.
+      See [Why this org cannot be handed to a reviewer](#why-this-org-cannot-be-handed-to-a-reviewer--2026-09-20).
+      The replacement needs this package and nothing else, a non-administrator
+      test user carrying **both** required grants, seeded audit history so
+      searches return rows, and a handover note stating the two-grant
+      requirement up front. Steps in
+      [`SUBMISSION-RUNBOOK.md`](SUBMISSION-RUNBOOK.md).
+- [x] ~~Company security-program documentation~~ — done:
+      [`SECURITY-PROGRAM.md`](SECURITY-PROGRAM.md), covering SDLC, vulnerability
+      management and remediation targets, supplier and dependency security,
+      breach response, sensitive-data handling and security contacts. Written to
+      the scale of a single-maintainer open-source project, with the controls a
+      larger organisation would hold stated as explicit gaps rather than
+      omitted.
 
 ### Submission and after
 

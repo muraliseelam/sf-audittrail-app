@@ -205,6 +205,16 @@ Do not create new package versions while a submission is in flight. Listing
 readiness is inherited from a **passed** ancestor, so a version built before the
 ancestor passes does not inherit anything and would need its own review.
 
+> **`1.0.0.2` has no ancestor set.** Confirmed by `sf package version report`
+> against `partner-pbo` on 2026-09-23: the `Ancestor` and `Ancestor Version`
+> fields are empty. That is harmless for this submission — the version being
+> reviewed does not need one — but it matters immediately afterwards. For a
+> later version to inherit listing readiness rather than need its own review,
+> it must name the **passed** version as its ancestor via `ancestorId` or
+> `ancestorVersion` in `sfdx-project.json` before `sf package version create`.
+> Building the next version without that silently forfeits the inheritance and
+> a second review fee's worth of waiting.
+
 ---
 
 ## Phase 5 — After approval

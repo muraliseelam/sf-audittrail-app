@@ -301,8 +301,13 @@ zero; raising it is outstanding work, not something this change addressed.
 ## Install into a persistent Developer Edition org — 2026-09-13
 
 Every managed install recorded above was into a **scratch** org, which expires
-in days. This one is a persistent Developer Edition org, which is the shape of
-org a security reviewer is given.
+in days. This one is a persistent Developer Edition org, so it demonstrates the
+install on the _class_ of org a security reviewer is given.
+
+> **This org is not the submission org, and cannot be.** Inspected on
+> 2026-09-20 it proved unsuitable for handover on four counts — see
+> [Why this org cannot be handed to a reviewer](#why-this-org-cannot-be-handed-to-a-reviewer--2026-09-20)
+> below. What follows is install evidence only.
 
 | Item                   | Result                                                         |
 | ---------------------- | -------------------------------------------------------------- |
@@ -324,6 +329,49 @@ packaging, not of scratch orgs.
 The org's System Administrator profile carries `PermissionsViewSetup = true`,
 so that user satisfies both required grants: the packaged permission set for
 app/tab/Apex access, and the profile for "View Setup and Configuration".
+
+### Why this org cannot be handed to a reviewer — 2026-09-20
+
+Read-only inspection of `00Dbm00000u2XaoEAE`, made while assembling the
+submission materials. The install evidence above stands; what fails is the
+org's fitness as the Developer Edition org submitted _with_ the review.
+
+| Check                  | Finding                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| Other packages present | **`devedapp` 0.9.0.2** (`04tfn000001PPYvAAO`) is also installed — an unrelated managed package     |
+| Org registration       | Provisioned through orgfarm; the org user and administrator are **not** this project's author      |
+| Test user              | **None.** Two System Administrators plus the standard platform users; no user on a minimal profile |
+| Audit data             | Newest row 2026-09-16, and the history is essentially the package install itself                   |
+
+Each is disqualifying on its own:
+
+- Salesforce pen-tests the submitted org and determines scope by following the
+  data. A second, unrelated managed package in that org is at best a
+  distraction and at worst pulls foreign code into the review's scope.
+- The org is not registered to the submitting party, so it is not this
+  project's to hand over.
+- With no minimally-privileged test user, a reviewer cannot exercise the
+  two-grant requirement that is this app's central access-control behaviour —
+  and the administrator users mask it, because their profile already carries
+  `ViewSetup`.
+- With almost no audit history, every search returns nothing. A reviewer would
+  see an app that appears not to work.
+
+The submission therefore needs a **purpose-built Developer Edition org**,
+registered to the author, containing this package and nothing else, with a
+non-administrator test user carrying both required grants and enough seeded
+audit history for searches to return results. Tracked in the checklist below.
+
+Two claims elsewhere in this repository were re-verified live during the same
+inspection, against the released package in this org:
+
+- `atexplorer__Audit_Trail_Viewer` still reports `PermissionsViewSetup = false`
+  and `PermissionsViewRoles = false` — the install-time strip, confirmed on
+  2026-09-20 rather than carried forward from September 13.
+- `SELECT COUNT(Id) FROM SetupAuditTrail` is rejected by the platform with
+  `field Id does not support aggregate operator COUNT`, confirming the
+  no-aggregates constraint that the progressive-scan design exists to work
+  around.
 
 ### Editions without custom Apex cannot install this package
 
@@ -382,7 +430,16 @@ Two observations, neither a defect:
 > "ATE Bulk" entries; Setup Audit Trail is append-only. Do not use that org for
 > listing screenshots.
 
-## Remaining manual/live checklist
+## Remaining work before an AppExchange Security Review submission
+
+This checklist previously tracked only steps needing a live org or Dev Hub, and
+so read as though submission were the single remaining step. It is not. The
+AppExchange submission has a second half — Partner Console prerequisites and
+submission materials — that no live-org evidence can satisfy, and that half is
+tracked below alongside the first. Requirements are taken from the ISVforce
+Guide, "Prepare for the AgentExchange Security Review", read 2026-09-20.
+
+### Live-org validation — complete
 
 - [x] ~~Link the `atexplorer` namespace to the packaging Dev Hub~~ — done
       (`1NRhm0000000dcTGAQ`).
@@ -394,14 +451,90 @@ Two observations, neither a defect:
       org~~ — done: 29/29.
 - [x] ~~Live verification that the documented administrator workaround
       actually works~~ — done in the managed subscriber org
-      `00DRL00000Vkme62AB`, see below.
-- [ ] Live UI smoke test of the managed install by a human, for
-      screenshots and listing assets.
+      `00DRL00000Vkme62AB`.
 - [x] ~~Promote a managed package version from beta to released~~ — done
       2026-09-09: `1.0.0.2` (`04thm000002OtQPAA0`), Dev Hub `partner-pbo`.
       Irreversible; the version number is permanently consumed.
+- [x] ~~Live UI smoke test of the managed install by a human~~ — done
+      2026-09-13 against the managed install in `00DRK00000aOfV72AK`; see
+      [Functional UI verification](#functional-ui-verification-of-the-managed-install--2026-09-13).
+      Screenshots were **not** produced and remain outstanding below.
+
+### Partner Console prerequisites — status unverified
+
+Ordered steps for these, and for everything else outstanding, are in
+[`SUBMISSION-RUNBOOK.md`](SUBMISSION-RUNBOOK.md).
+
+None of these can be read from this repository; they live in the Partner
+Console and the Partner Community. Each is marked unverified rather than
+assumed. Check them at Partner Console → Technologies / Company Info; accessing
+the console at all requires the **Manage Listings** permission.
+
+- [ ] **unverified** — ISV Partner Program enrolment and a Partner Business Org.
+      The packaging Dev Hub alias `partner-pbo` (`00Dhm000004MOXjEAO`) implies
+      this exists, but that is an inference, not evidence.
+- [ ] **unverified** — Lightning Ready certification. Mandatory for all new
+      submissions.
+- [ ] **unverified** — packaging org connected to the Partner Console.
+- [ ] **unverified** — company / provider profile created.
+- [ ] **unverified** — security leadership contacts designated in Partner
+      Console → Company Info. Re-confirmed every six months.
+- [ ] **unverified** — package version shows `Ready to List` or
+      `Security Review Required` under Technologies → Solutions.
+
+### Submission materials — incomplete
+
+Required for this architecture ("Salesforce Native Solution with Lightning
+Components").
+
+- [x] ~~Managed—Released package version~~ — `1.0.0.2`
+      (`04thm000002OtQPAA0`). Beta and unmanaged packages are not accepted.
+- [x] ~~Salesforce Code Analyzer report~~ — see
+      [`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
+- [x] ~~Solution documentation~~ —
+      [`SECURITY-REVIEW-SOLUTION-DOC.md`](SECURITY-REVIEW-SOLUTION-DOC.md).
+- [ ] **Checkmarx (Source Code Scanner) report.** Required _in addition to_ the
+      Code Analyzer scan, and run from the Partner Security Portal rather than
+      locally. Not started. Note that the three runs provisioned per package
+      version are described as coming "with the security review fee", and no fee
+      is payable for a free solution — confirm entitlement at Partner Security
+      Portal office hours before planning around it.
+- [ ] **False-positives document** in Salesforce's sense, i.e. scanner findings
+      claimed to be non-issues. `SECURITY-REVIEW-FINDINGS-DISPOSITION.md`
+      disposes of code-quality findings and is not a substitute; the document
+      Salesforce asks for principally covers Checkmarx output, which does not
+      exist yet.
+- [ ] **Developer Edition org prepared as the reviewer's test environment.**
+      Must be a **new** org: `00Dbm00000u2XaoEAE` was inspected on 2026-09-20
+      and disqualified on four counts — a second unrelated managed package, no
+      registration to the author, no test user, and almost no audit history.
+      See [Why this org cannot be handed to a reviewer](#why-this-org-cannot-be-handed-to-a-reviewer--2026-09-20).
+      The replacement needs this package and nothing else, a non-administrator
+      test user carrying **both** required grants, seeded audit history so
+      searches return rows, and a handover note stating the two-grant
+      requirement up front. Steps in
+      [`SUBMISSION-RUNBOOK.md`](SUBMISSION-RUNBOOK.md).
+- [x] ~~Company security-program documentation~~ — done:
+      [`SECURITY-PROGRAM.md`](SECURITY-PROGRAM.md), covering SDLC, vulnerability
+      management and remediation targets, supplier and dependency security,
+      breach response, sensitive-data handling and security contacts. Written to
+      the scale of a single-maintainer open-source project, with the controls a
+      larger organisation would hold stated as explicit gaps rather than
+      omitted.
+
+### Submission and after
+
 - [ ] Submit the released managed package version for AppExchange Security
-      Review.
+      Review, via the security review wizard in the Partner Console. No fee is
+      payable for a free solution. Expect 1–2 weeks to verify the submission
+      and 3–4 weeks for first testing.
+- [ ] Listing screenshots and demo assets. These need a **fresh** org:
+      `00DRK00000aOfV72AK` permanently contains the ~65 seeded "ATE Bulk"
+      entries, as noted above.
+- [ ] Only after security review approval: create the AppExchange listing, get
+      it approved against brand and program policy, sign the Partner
+      Application Distribution Agreement, and register the package with the
+      License Management App.
 - [ ] Only after security review approval: update `README.md`,
       `docs/APPEXCHANGE-LISTING.md`, and this file to reference the released
       managed package's install URL.

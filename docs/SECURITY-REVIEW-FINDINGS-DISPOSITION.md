@@ -82,7 +82,8 @@ Two further ways this scan can report a false all-clear, both guarded against in
 - **Selector syntax.** A colon-separated rule selector is an _intersection_. No rule
   carries both the `Recommended` and `AppExchange` tags, so `Recommended:AppExchange`
   selects **0 rules** and reports `0 violations` while proving nothing. The two tags must
-  be passed as two separate `--rule-selector` flags, which unions them (295 rules here).
+  be passed as two separate `--rule-selector` flags, which unions them. With `Security`
+  as a third flag that union is **310 rules**, the count pinned in `code-analyzer.yml`.
   Always confirm the count with `sf code-analyzer rules` before trusting a clean result.
 - **Graph Engine path timeouts.** `AuditQueryController.search` has a 14,503-path space,
   far beyond the stock 30s per-path budget. On timeout the engine still prints

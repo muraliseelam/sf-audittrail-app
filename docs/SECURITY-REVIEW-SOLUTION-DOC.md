@@ -161,7 +161,7 @@ no npm dependency shipped to the runtime. RetireJS reports zero findings.
 
 ## 10. Static analysis
 
-Salesforce Code Analyzer v5 (`@salesforce/plugin-code-analyzer` 5.15.0), run from a clean
+Salesforce Code Analyzer v5 (`@salesforce/plugin-code-analyzer` 5.16.0), run from a clean
 checkout as:
 
 ```
@@ -184,6 +184,26 @@ colon-separated selector is an _intersection_. `Security` is included specifical
 `sfge:ApexFlsViolation` and `sfge:DatabaseOperationsMustUseWithSharing`, which are tagged
 `DevPreview` and are therefore selected by neither `Recommended` nor `AppExchange` — yet
 they are the two rules most directly relevant to this review.
+
+### Relationship to the selector Salesforce documents
+
+Salesforce's ISV documentation gives the scan command as
+`--rule-selector AppExchange --rule-selector Recommended:Security`. The selector used here
+is deliberately broader, and is a strict superset of it: `AppExchange` is one of its three
+tags, and `Recommended:Security` is an intersection contained within `Security`.
+
+The difference is not cosmetic. Measured on 2026-09-20 with plugin 5.16.0 and this
+repository's `code-analyzer.yml`:
+
+| Selector                                            | Rules   | Engines | Graph Engine rules |
+| --------------------------------------------------- | ------- | ------- | ------------------ |
+| `AppExchange` + `Recommended:Security` (documented) | 48      | 4       | **0**              |
+| `Recommended` + `Security` + `AppExchange` (used)   | **310** | **6**   | **2**              |
+
+The documented selector engages neither the Graph Engine nor CPD, so running it exactly as
+written would produce a report containing **no CRUD/FLS path analysis at all** — the
+analysis most directly relevant to this review. That is why the broader selector is used
+and submitted. Reproduce both counts with `sf code-analyzer rules` and the same flags.
 
 ### Result
 
@@ -256,5 +276,9 @@ the path and entry-point counts as unproven.
 
 ## 11. Editions and compatibility
 
-Lightning Experience only (the app is Lightning Web Components). Professional Edition is
-not supported, because it cannot run custom Apex.
+Lightning Experience only (the app is Lightning Web Components). Editions that cannot run
+custom Apex are not supported, because this package requires it. That rules out
+**Professional Edition** and **Base Edition**; a Base Edition install fails at
+`Missing feature: Apex Classes`, verified 2026-09-13 against org `00Dao00001QqmInEAJ` and
+recorded in [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md). Enterprise, Unlimited,
+Performance and Developer Edition all work.

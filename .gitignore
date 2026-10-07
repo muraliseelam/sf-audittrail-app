@@ -61,3 +61,6 @@ CodeAnalyzerReport.csv
 openspec/
 .github/skills/
 .github/prompts/
+
+# Reviewer-org setup output (org ids, test results); never committed
+scripts/review-org/out/

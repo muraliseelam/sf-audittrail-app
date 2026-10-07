@@ -58,7 +58,7 @@ The complete solution is one managed package. There is nothing else.
 | Artifact                | Detail                                                    |
 | ----------------------- | --------------------------------------------------------- |
 | Managed 2GP package     | `0Hohm0000000NHZCA2`, namespace `atexplorer`, v `1.0.0.2` |
-| Apex classes            | 10 production, 4 test                                     |
+| Apex classes            | 9 production, 4 test, 1 `@isTest` mock provider           |
 | Lightning web component | `auditExplorer`                                           |
 | Custom app, tab         | `Audit_Trail_Explorer`                                    |
 | Permission set          | `Audit_Trail_Viewer`                                      |
@@ -119,9 +119,11 @@ same thing and are not presented as such:
 
 ### Software development lifecycle
 
-Trunk-based, with `main` protected by automated checks. Every change arrives by
-pull request; CI runs ESLint, a Prettier format check and the Jest suite on each
-pull request and on each push to `main`. A Husky pre-commit hook runs
+Trunk-based. Most changes are committed directly to `main` by the maintainer;
+pull requests are used for larger changes, not required. CI runs ESLint, a
+Prettier format check and the Jest suite on each pull request and on each push
+to `main`, so every change to `main` is checked, but after the push rather than
+before it. A Husky pre-commit hook runs
 `lint-staged`, so formatting and lint failures surface before a commit exists.
 
 Design precedes implementation for substantive changes, and interfaces and tests
@@ -263,6 +265,7 @@ mistaken for omissions:
 | No SOC 2 / ISO 27001 / PCI / HIPAA certification   | Single-maintainer open-source project                  |
 | No independent third-party security audit          | Not commissioned; source is public and scanned instead |
 | No separate security reviewer                      | One maintainer; compensated by public source and CI    |
+| No required pull-request review on `main`          | One maintainer; CI checks every push after the fact    |
 | No formal security-awareness training program      | Not meaningful at this scale                           |
 | Dependency updates reviewed manually               | No automated alerting configured                       |
 | GitHub private vulnerability reporting not enabled | Private email channel used instead                     |

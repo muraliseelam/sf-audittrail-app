@@ -83,22 +83,34 @@ sf org login web --alias review-de
 
 The browser handles authentication; no credential passes through tooling.
 
-### 1.3 Everything after this point is automatable
+### 1.3 Everything after this point is scripted
 
-Once `review-de` is authorised:
+```bash
+scripts/review-org/setup.sh review-de <your-email>
+```
 
-- install `04thm000002OtQPAA0`
-- assign `atexplorer__Audit_Trail_Viewer`
-- create a permission set in the subscriber org granting **View Setup and
-  Configuration**, since the packaged one cannot — this is the documented
-  administrator workaround, and the reviewer must see it configured
-- create a non-administrator test user on **Minimum Access - Salesforce**,
-  carrying both grants
-- seed audit history across several sections, deep enough that paging, faceting
-  and CSV export all return meaningful results
-- run the packaged Apex tests and re-confirm the permission strip
-- record the org id, test-user credentials location, and evidence in
-  `LIVE-ORG-VALIDATION.md`
+[`scripts/review-org/setup.sh`](../scripts/review-org/setup.sh) does all of the
+following, failing loudly at the first check that does not hold:
+
+- refuses any org that is not a Developer Edition org, is a sandbox, or has a
+  package other than `atexplorer` installed
+- installs `04thm000002OtQPAA0` and confirms the install-time strip
+  (`PermissionsViewSetup = false` on the packaged permission set)
+- assigns `atexplorer__Audit_Trail_Viewer` to the administrator
+- creates `ATE_Reviewer_View_Setup`, a subscriber-side permission set granting
+  **View Setup and Configuration** - the documented administrator workaround,
+  configured so the reviewer sees it
+- creates a reviewer user on **Minimum Access - Salesforce** carrying both
+  grants, and verifies them by query
+- seeds audit history (60 permission sets created, relabelled and deleted) and
+  counts the rows that landed
+- runs the four packaged `atexplorer.*` test classes and requires them to pass
+- emails the reviewer user a set-password link; no password passes through the
+  script
+
+It writes an evidence summary to `scripts/review-org/out/` (git-ignored). Then,
+by hand: set the reviewer's password, log in as that user, and confirm a search
+returns rows; record the org id and evidence in `LIVE-ORG-VALIDATION.md`.
 
 ### 1.4 Why the test user matters more here than for most apps
 
@@ -129,6 +141,15 @@ rule and path counts rather than by a bare "0 violations".
 
 Submit `CodeAnalyzerReport.html` from a run against the **exact source** of
 `1.0.0.2`.
+
+The most recent qualifying run is the scheduled run of 2026-10-05,
+[`37318748013`](https://github.com/muraliseelam/sf-audittrail-app/actions/runs/37318748013),
+at `main` commit `f27a009`. `force-app/` is unchanged between the `1.0.0.2`
+build commit `934f200` and `f27a009`, so it scanned the released source. Its
+log reports 85 violations (0 Critical, 0 High, 11 Moderate, 74 Low) and
+`0 violation(s) from 14503 path(s) on 3/3 entry point(s)` from the Graph
+Engine. Its `code-analyzer-reports` artifact **expires 2026-11-04**; download it
+before then, or trigger the workflow again for a fresh one.
 
 > The scan command used here is broader than the one Salesforce documents, for
 > a measured reason: the documented selector engages no Graph Engine rules at
@@ -175,6 +196,7 @@ For a "Salesforce Native Solution with Lightning Components":
 | False-positives document               | Phase 2.2, plus [`SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Partial     |
 | Solution documentation                 | [`SECURITY-REVIEW-SOLUTION-DOC.md`](SECURITY-REVIEW-SOLUTION-DOC.md)                                 | Ready       |
 | Company security-program documentation | [`SECURITY-PROGRAM.md`](SECURITY-PROGRAM.md)                                                         | Ready       |
+| Reviewer handover notes                | [`REVIEWER-NOTES.md`](REVIEWER-NOTES.md)                                                             | Ready       |
 
 On the false-positives document: Salesforce means scanner findings claimed to be
 non-issues, principally from Checkmarx.

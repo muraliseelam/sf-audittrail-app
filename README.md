@@ -226,6 +226,7 @@ repository should be read as claiming otherwise.
 | [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                        |
 | [`docs/SUBMISSION-RUNBOOK.md`](docs/SUBMISSION-RUNBOOK.md)                                     | Ordered steps from here to a submitted security review                |
 | [`docs/SECURITY-PROGRAM.md`](docs/SECURITY-PROGRAM.md)                                         | Security program required of AppExchange partners, and its gaps       |
+| [`docs/REVIEWER-NOTES.md`](docs/REVIEWER-NOTES.md)                                             | Handover notes for the security reviewer, for the submission wizard   |
 | [`SECURITY.md`](SECURITY.md)                                                                   | How to report a vulnerability                                         |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                           | Development setup and PR checklist                                    |
 | [`CHANGELOG.md`](CHANGELOG.md)                                                                 | Notable changes by version                                            |

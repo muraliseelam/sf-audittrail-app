@@ -513,7 +513,10 @@ Components").
       test user carrying **both** required grants, seeded audit history so
       searches return rows, and a handover note stating the two-grant
       requirement up front. Steps in
-      [`SUBMISSION-RUNBOOK.md`](SUBMISSION-RUNBOOK.md).
+      [`SUBMISSION-RUNBOOK.md`](SUBMISSION-RUNBOOK.md). Everything after
+      signing up and authorising the org is scripted in
+      [`scripts/review-org/setup.sh`](../scripts/review-org/setup.sh); the
+      handover note is [`REVIEWER-NOTES.md`](REVIEWER-NOTES.md).
 - [x] ~~Company security-program documentation~~ — done:
       [`SECURITY-PROGRAM.md`](SECURITY-PROGRAM.md), covering SDLC, vulnerability
       management and remediation targets, supplier and dependency security,

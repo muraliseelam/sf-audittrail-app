@@ -36,9 +36,13 @@ Work through these at <https://partners.salesforce.com>, then record the outcome
 in the Partner Console prerequisites checklist in
 [`LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md), replacing each `unverified`.
 
-1. **ISV Partner Program enrolment and a Partner Business Org.** The packaging
-   Dev Hub `partner-pbo` (`00Dhm000004MOXjEAO`) implies this exists. Confirm it
-   rather than inferring it.
+1. **ISV Partner Program enrolment, a Partner Business Org, and a
+   distribution agreement.** The packaging Dev Hub `partner-pbo`
+   (`00Dhm000004MOXjEAO`) implies the first two exist. Confirm all three rather
+   than inferring them. Salesforce's "Submit Your Solution for AgentExchange
+   Security Review" page lists, as a step _before_ submitting: "Have a partner
+   recruitment representative confirm that you're enrolled in the ISV Partner
+   Program and that you have a distribution agreement."
 2. **Lightning Ready certification.** Mandatory for all new submissions. This
    app is Lightning Web Components only, with no Aura, Visualforce or Classic
    surface, so it should certify without code changes.
@@ -250,7 +254,7 @@ Only once the review has actually passed:
    entries.
 2. Submit the listing for approval against brand and program policy. This is a
    separate review from the security review.
-3. Sign the Partner Application Distribution Agreement.
+3. Confirm the distribution agreement from Phase 0 is still in force.
 4. Register the package with the License Management App so installs produce
    license records.
 5. Update `README.md`, `APPEXCHANGE-LISTING.md` and `LIVE-ORG-VALIDATION.md` to

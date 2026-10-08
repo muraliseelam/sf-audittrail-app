@@ -470,6 +470,8 @@ Console and the Partner Community. Each is marked unverified rather than
 assumed. Check them at Partner Console → Technologies / Company Info; accessing
 the console at all requires the **Manage Listings** permission.
 
+- [ ] **unverified** — distribution agreement in place. Required _before_
+      submission, confirmed by a partner recruitment representative.
 - [ ] **unverified** — ISV Partner Program enrolment and a Partner Business Org.
       The packaging Dev Hub alias `partner-pbo` (`00Dhm000004MOXjEAO`) implies
       this exists, but that is an inference, not evidence.
@@ -535,9 +537,8 @@ Components").
       `00DRK00000aOfV72AK` permanently contains the ~65 seeded "ATE Bulk"
       entries, as noted above.
 - [ ] Only after security review approval: create the AppExchange listing, get
-      it approved against brand and program policy, sign the Partner
-      Application Distribution Agreement, and register the package with the
-      License Management App.
+      it approved against brand and program policy, and register the package
+      with the License Management App.
 - [ ] Only after security review approval: update `README.md`,
       `docs/APPEXCHANGE-LISTING.md`, and this file to reference the released
       managed package's install URL.

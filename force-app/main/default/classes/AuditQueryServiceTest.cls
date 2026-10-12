@@ -47,8 +47,8 @@ private class AuditQueryServiceTest {
 
     /** Shrinks the scan so a few hundred rows exercise the multi-batch paths. */
     private static void useSmallBatches() {
-        AuditQueryService.SCAN_BATCH = 100;
-        AuditQueryService.MAX_BATCHES_PER_CALL = 3;
+        AuditQueryService.scanBatch = 100;
+        AuditQueryService.maxBatchesPerCall = 3;
     }
 
     /**
@@ -577,6 +577,7 @@ private class AuditQueryServiceTest {
         AuditSearchResult result = AuditQueryService.search(filter, null, 10);
         Test.stopTest();
 
+        Assert.areEqual(3, result.rows.size(), 'The explicit window holds all three rows.');
         assertExplicitRangeWasPinned(filter, result);
     }
 
@@ -589,6 +590,7 @@ private class AuditQueryServiceTest {
         AuditSearchResult result = AuditQueryService.search(filter, null, 10);
         Test.stopTest();
 
+        Assert.areEqual(3, result.rows.size(), 'The explicit window holds all three rows.');
         assertExplicitRangeWasPinned(filter, result);
     }
 

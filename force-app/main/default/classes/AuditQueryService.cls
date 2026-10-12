@@ -28,18 +28,19 @@ public with sharing class AuditQueryService {
     /**
      * Scan tuning. Non-final and @TestVisible so tests can shrink them and
      * exercise the multi-batch and scan-ceiling paths with a few hundred rows
-     * instead of tens of thousands; nothing outside tests assigns them.
+     * instead of tens of thousands; nothing outside tests assigns them. Named
+     * as variables rather than constants for the same reason.
      */
     @TestVisible
-    private static Integer SCAN_BATCH = 1000;
+    private static Integer scanBatch = 1000;
     @TestVisible
-    private static Integer MAX_BATCHES_PER_CALL = 10;
+    private static Integer maxBatchesPerCall = 10;
     public static final Integer DEFAULT_PAGE_SIZE = 50;
     private static final Integer MAX_PAGE_SIZE = 200;
 
     /**
      * Bounds on the free-text filter. The haystack test runs once per scanned
-     * row, so with up to SCAN_BATCH * MAX_BATCHES_PER_CALL (10,000) rows per
+     * row, so with up to scanBatch * maxBatchesPerCall (10,000) rows per
      * call the per-row cost must be bounded: at most this many characters of
      * search text and this many whitespace-separated terms are honoured.
      */
@@ -53,8 +54,11 @@ public with sharing class AuditQueryService {
         AuditFilter effective = filter == null ? new AuditFilter() : filter;
         Integer targetPage = clampPageSize(pageSize);
 
-        Boolean continuing = cursor != null && cursor.lastDateMillis != null;
-        AuditCursor working = continuing ? cursor : new AuditCursor();
+        // A cursor without a position is treated as absent. The null check is
+        // kept inline in the ternary so static analysis can see that `working`
+        // is never null.
+        AuditCursor working = (cursor == null || cursor.lastDateMillis == null) ? new AuditCursor() : cursor;
+        Boolean continuing = working.lastDateMillis != null;
 
         // The range is resolved on the first call and pinned in the cursor so
         // the lower bound cannot drift between pages, whatever the client sends
@@ -102,14 +106,14 @@ public with sharing class AuditQueryService {
         Boolean exhausted = false;
         Integer batches = 0;
 
-        while (!pageFull && batches < MAX_BATCHES_PER_CALL) {
+        while (!pageFull && batches < maxBatchesPerCall) {
             List<AuditEventRow> batch = provider.fetch(
                 upperBound,
                 lowerBound,
                 effective.actions,
                 effective.userIds,
                 lastId,
-                SCAN_BATCH
+                scanBatch
             );
             batches++;
 
@@ -146,7 +150,7 @@ public with sharing class AuditQueryService {
             if (pageFull) {
                 break;
             }
-            if (batch.size() < SCAN_BATCH) {
+            if (batch.size() < scanBatch) {
                 // A short batch means the range below has no more rows.
                 exhausted = true;
                 break;
@@ -264,10 +268,8 @@ public with sharing class AuditQueryService {
         }
 
         private Boolean matches(AuditEventRow row) {
-            if (!sections.isEmpty()) {
-                if (String.isBlank(row.section) || !sections.contains(row.section.toLowerCase())) {
-                    return false;
-                }
+            if (!sections.isEmpty() && (String.isBlank(row.section) || !sections.contains(row.section.toLowerCase()))) {
+                return false;
             }
             if (terms.isEmpty()) {
                 return true;

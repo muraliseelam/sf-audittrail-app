@@ -2,7 +2,7 @@
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <label>Audit Trail Viewer</label>
     <description
-    >Grants the Audit Trail Explorer app, tab, Apex classes, and read-only View Setup and Configuration (plus its View Roles prerequisite) needed to read SetupAuditTrail. Managed-package subscribers must also be granted View Setup separately.</description>
+    >Grants the Audit Trail Explorer app, tab and Apex classes. View Setup and Configuration (and View Roles) take effect for source deploys only; a managed-package install strips them, so an administrator must grant View Setup and Configuration separately.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <classAccesses>
         <apexClass>AuditQueryController</apexClass>

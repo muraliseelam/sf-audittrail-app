@@ -16,15 +16,35 @@
  * a page - handing back a cursor so the client can resume. Each call is its own
  * transaction with a hard scan ceiling, so governor limits never bind regardless
  * of how much audit history the org has.
+ *
+ * The date range is resolved once, on the first call of a search, and pinned in
+ * the cursor; every continuation pages over exactly that window. Paging itself
+ * is keyset-based on (CreatedDate, Id) - see AuditCursor.
  */
 public with sharing class AuditQueryService {
     /** Salesforce retains Setup Audit Trail for 180 days; older data cannot exist. */
     public static final Integer RETENTION_DAYS = 180;
 
-    private static final Integer SCAN_BATCH = 1000;
-    private static final Integer MAX_BATCHES_PER_CALL = 10;
+    /**
+     * Scan tuning. Non-final and @TestVisible so tests can shrink them and
+     * exercise the multi-batch and scan-ceiling paths with a few hundred rows
+     * instead of tens of thousands; nothing outside tests assigns them.
+     */
+    @TestVisible
+    private static Integer SCAN_BATCH = 1000;
+    @TestVisible
+    private static Integer MAX_BATCHES_PER_CALL = 10;
     public static final Integer DEFAULT_PAGE_SIZE = 50;
     private static final Integer MAX_PAGE_SIZE = 200;
+
+    /**
+     * Bounds on the free-text filter. The haystack test runs once per scanned
+     * row, so with up to SCAN_BATCH * MAX_BATCHES_PER_CALL (10,000) rows per
+     * call the per-row cost must be bounded: at most this many characters of
+     * search text and this many whitespace-separated terms are honoured.
+     */
+    private static final Integer MAX_SEARCH_TEXT_LENGTH = 200;
+    private static final Integer MAX_SEARCH_TERMS = 10;
 
     @TestVisible
     private static AuditTrailProvider provider = new SetupAuditTrailProvider();
@@ -33,17 +53,33 @@ public with sharing class AuditQueryService {
         AuditFilter effective = filter == null ? new AuditFilter() : filter;
         Integer targetPage = clampPageSize(pageSize);
 
+        Boolean continuing = cursor != null && cursor.lastDateMillis != null;
+        AuditCursor working = continuing ? cursor : new AuditCursor();
+
+        // The range is resolved on the first call and pinned in the cursor so
+        // the lower bound cannot drift between pages, whatever the client sends
+        // on later calls. A continuation cursor missing either bound (older
+        // client, hand-built payload) falls back to recomputing from the filter.
+        if (!continuing || working.rangeStartMillis == null || working.rangeEndMillis == null) {
+            pinRange(effective, working);
+        }
+        // The cursor is client-supplied, so its pinned bounds are re-clamped
+        // here rather than trusted: nothing below the retention floor can
+        // exist, and no position may sit above the range end.
         Datetime retentionFloor = Datetime.now().addDays(-RETENTION_DAYS);
-        Datetime lowerBound = effective.startDate();
-        if (lowerBound == null || lowerBound < retentionFloor) {
-            // Nothing can exist below the retention floor, so don't scan for it.
+        Datetime lowerBound = Datetime.newInstance(working.rangeStartMillis);
+        if (lowerBound < retentionFloor) {
             lowerBound = retentionFloor;
         }
+        Datetime rangeEnd = Datetime.newInstance(working.rangeEndMillis);
 
-        AuditCursor working = (cursor == null || cursor.lastDateMillis == null) ? new AuditCursor() : cursor;
-        Datetime upperBound = working.lastDateMillis == null
-            ? (effective.endDate() == null ? Datetime.now() : effective.endDate())
-            : working.lastDate();
+        // Validate the continuation position before anything else: a cursor
+        // that claims a position without a well-formed id is rejected outright.
+        Id lastId = working.lastIdValue();
+        Datetime upperBound = continuing ? working.lastDate() : rangeEnd;
+        if (upperBound > rangeEnd) {
+            upperBound = rangeEnd;
+        }
 
         AuditSearchResult result = new AuditSearchResult();
         result.cursor = working;
@@ -72,7 +108,7 @@ public with sharing class AuditQueryService {
                 lowerBound,
                 effective.actions,
                 effective.userIds,
-                working.seenIdSet(),
+                lastId,
                 SCAN_BATCH
             );
             batches++;
@@ -115,10 +151,15 @@ public with sharing class AuditQueryService {
                 exhausted = true;
                 break;
             }
+            // Keyset advance: resume strictly after the last consumed row.
             upperBound = working.lastDate();
+            lastId = working.lastIdValue();
         }
 
-        if (result.scannedThroughMillis == null) {
+        if (exhausted || result.scannedThroughMillis == null) {
+            // Once the range is exhausted the whole window down to the lower
+            // bound has been covered, so "searched back to" reports the range
+            // boundary rather than the oldest row that happened to exist.
             result.scannedThroughMillis = lowerBound.getTime();
         }
         result.done = exhausted;
@@ -129,6 +170,34 @@ public with sharing class AuditQueryService {
         result.actionFacets = toFacets(actionCounts);
         result.userFacets = toFacets(userCounts);
         return result;
+    }
+
+    /**
+     * Resolves the search window from the filter using the server clock and
+     * writes it into the cursor.
+     *
+     * A positive lastDays wins over explicit dates: end = now, start = now minus
+     * min(lastDays, RETENTION_DAYS). Otherwise the explicit dates apply, with a
+     * null end meaning now and the start clamped to the retention floor -
+     * nothing can exist below it, so there is no point scanning for it.
+     */
+    private static void pinRange(AuditFilter filter, AuditCursor cursor) {
+        Datetime now = Datetime.now();
+        Datetime retentionFloor = now.addDays(-RETENTION_DAYS);
+        Datetime rangeStart;
+        Datetime rangeEnd;
+        if (filter.lastDays != null && filter.lastDays > 0) {
+            rangeEnd = now;
+            rangeStart = now.addDays(-Math.min(filter.lastDays, RETENTION_DAYS));
+        } else {
+            rangeEnd = filter.endDate() == null ? now : filter.endDate();
+            rangeStart = filter.startDate();
+            if (rangeStart == null || rangeStart < retentionFloor) {
+                rangeStart = retentionFloor;
+            }
+        }
+        cursor.rangeStartMillis = rangeStart.getTime();
+        cursor.rangeEndMillis = rangeEnd.getTime();
     }
 
     private static Integer clampPageSize(Integer requested) {
@@ -179,9 +248,16 @@ public with sharing class AuditQueryService {
             }
             terms = new List<String>();
             if (String.isNotBlank(filter.searchText)) {
-                for (String term : filter.searchText.toLowerCase().split('\\s+')) {
+                // Bounded on purpose: the term loop runs once per scanned row,
+                // up to 10,000 rows per call, so neither the text length nor
+                // the term count may be left to the client.
+                String bounded = filter.searchText.left(MAX_SEARCH_TEXT_LENGTH).toLowerCase();
+                for (String term : bounded.split('\\s+')) {
                     if (String.isNotBlank(term)) {
                         terms.add(term);
+                        if (terms.size() >= MAX_SEARCH_TERMS) {
+                            break;
+                        }
                     }
                 }
             }
@@ -196,13 +272,16 @@ public with sharing class AuditQueryService {
             if (terms.isEmpty()) {
                 return true;
             }
-            String haystack = (String.valueOf(row.display) +
+            // Blank fields coalesce to '' - String.valueOf(null) would yield
+            // the literal word "null", making the term "null" match every row
+            // with an empty field.
+            String haystack = (blankToEmpty(row.display) +
                 ' ' +
-                String.valueOf(row.section) +
+                blankToEmpty(row.section) +
                 ' ' +
-                String.valueOf(row.action) +
+                blankToEmpty(row.action) +
                 ' ' +
-                String.valueOf(row.userName))
+                blankToEmpty(row.userName))
                 .toLowerCase();
             // All terms must be present, so multi-word searches narrow results.
             for (String term : terms) {
@@ -211,6 +290,10 @@ public with sharing class AuditQueryService {
                 }
             }
             return true;
+        }
+
+        private String blankToEmpty(String value) {
+            return String.isBlank(value) ? '' : value;
         }
     }
 }

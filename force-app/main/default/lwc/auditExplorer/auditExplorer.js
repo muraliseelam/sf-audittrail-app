@@ -27,8 +27,10 @@ const COLUMNS = [
 
 const ROW_ACTIONS = [{ label: 'View details', name: 'details' }];
 
+// Preset values are the number of days the SERVER subtracts from its own
+// clock (AuditFilter.lastDays); the client never computes the upper bound.
 const DATE_PRESETS = [
-    { label: 'Today', value: '1' },
+    { label: 'Last 24 hours', value: '1' },
     { label: 'Last 7 days', value: '7' },
     { label: 'Last 30 days', value: '30' },
     { label: 'Last 90 days', value: '90' },
@@ -39,11 +41,17 @@ const DATE_PRESETS = [
 const PAGE_SIZE = 50;
 // Bounds one user-initiated search so a rare term can't spin forever.
 const MAX_CALLS_PER_ACTION = 25;
+const DAY_MILLIS = 86400000;
+// Excel on Windows only decodes a CSV as UTF-8 when it starts with the BOM.
+const UTF8_BOM = '\uFEFF';
+const FILTERS_DIRTY_HINT =
+    'Filters changed. Click Search to apply them; Search further back continues the current search.';
 
 export default class AuditExplorer extends LightningElement {
     columns = COLUMNS;
     rowActions = ROW_ACTIONS;
     datePresets = DATE_PRESETS;
+    filtersDirtyHint = FILTERS_DIRTY_HINT;
 
     @track rows = [];
     @track selectedUsers = [];
@@ -61,12 +69,18 @@ export default class AuditExplorer extends LightningElement {
     loading = false;
     stopRequested = false;
     hasSearched = false;
+    // The filter the current search was started with. Every "Search further
+    // back" call reuses it, so edits made since do not change the range or
+    // the terms of a search that is already in progress.
+    activeFilterJson;
+    filtersDirty = false;
 
     scannedTotal = 0;
     scannedThroughMillis;
     retentionDays = 180;
     retentionFloorMillis;
-    canViewSetup = true;
+    // Tri-state: undefined until getContext answers, then true/false.
+    canViewSetup;
     error;
 
     sectionFacets = [];
@@ -74,19 +88,47 @@ export default class AuditExplorer extends LightningElement {
     selectedRow;
     userSearchTerm = '';
 
+    // Object URL of the most recent CSV download. Revoking it synchronously
+    // after click() races the browser's download, so it is kept until the
+    // next export or until the component leaves the page.
+    lastExportUrl;
+
     connectedCallback() {
         getContext()
             .then((context) => {
                 this.retentionDays = context.retentionDays;
                 this.retentionFloorMillis = context.retentionFloorMillis;
-                this.canViewSetup = context.canViewSetup;
+                this.canViewSetup = context.canViewSetup === true;
                 if (this.canViewSetup) {
                     this.runSearch(true);
                 }
             })
             .catch((e) => {
+                // Access stays unresolved: no form, no search, only the error.
                 this.error = this.toMessage(e);
             });
+    }
+
+    disconnectedCallback() {
+        this.revokeLastExportUrl();
+    }
+
+    // ---------- access state ----------
+
+    get isAccessResolved() {
+        return this.canViewSetup !== undefined;
+    }
+
+    get showForm() {
+        return this.canViewSetup === true;
+    }
+
+    get showAccessDenied() {
+        return this.canViewSetup === false;
+    }
+
+    get showAccessSpinner() {
+        return !this.isAccessResolved && !this.error;
     }
 
     // ---------- filter state ----------
@@ -99,24 +141,35 @@ export default class AuditExplorer extends LightningElement {
         return [...COLUMNS, { type: 'action', typeAttributes: { rowActions: ROW_ACTIONS } }];
     }
 
+    markFiltersDirty() {
+        if (this.hasSearched) {
+            this.filtersDirty = true;
+        }
+    }
+
     handlePresetChange(event) {
         this.preset = event.detail.value;
+        this.markFiltersDirty();
     }
 
     handleCustomStart(event) {
         this.customStart = event.target.value;
+        this.markFiltersDirty();
     }
 
     handleCustomEnd(event) {
         this.customEnd = event.target.value;
+        this.markFiltersDirty();
     }
 
     handleSearchTextChange(event) {
         this.searchText = event.target.value;
+        this.markFiltersDirty();
     }
 
     handleSectionChange(event) {
         this.selectedSections = event.detail.value;
+        this.markFiltersDirty();
     }
 
     handleSearchKeyUp(event) {
@@ -125,30 +178,44 @@ export default class AuditExplorer extends LightningElement {
         }
     }
 
+    /** Parses a datetime input value; blank or unparseable values yield null. */
+    toMillis(value) {
+        if (!value) {
+            return null;
+        }
+        const millis = new Date(value).getTime();
+        return Number.isNaN(millis) ? null : millis;
+    }
+
     buildFilter() {
-        const now = Date.now();
-        let startMillis;
-        let endMillis = now;
-
-        if (this.preset === 'custom') {
-            startMillis = this.customStart ? new Date(this.customStart).getTime() : now - 7 * 86400000;
-            endMillis = this.customEnd ? new Date(this.customEnd).getTime() : now;
-        } else {
-            startMillis = now - parseInt(this.preset, 10) * 86400000;
-        }
-        // Never ask for data older than Salesforce keeps.
-        if (this.retentionFloorMillis && startMillis < this.retentionFloorMillis) {
-            startMillis = this.retentionFloorMillis;
-        }
-
-        return {
-            startDateMillis: startMillis,
-            endDateMillis: endMillis,
+        const filter = {
             sections: this.selectedSections,
             actions: [],
             userIds: this.selectedUsers.map((u) => u.id),
             searchText: this.searchText
         };
+
+        if (this.preset !== 'custom') {
+            // The server derives the range from its own clock and pins it in
+            // the cursor, so the client sends only the number of days.
+            filter.lastDays = parseInt(this.preset, 10);
+            return filter;
+        }
+
+        // Custom range: explicit bounds. A blank "To" means "up to now", which
+        // the server resolves (endDateMillis null), not the browser clock.
+        const endMillis = this.toMillis(this.customEnd);
+        let startMillis = this.toMillis(this.customStart);
+        if (startMillis === null) {
+            startMillis = Date.now() - 7 * DAY_MILLIS;
+        }
+        // Never ask for data older than Salesforce keeps.
+        if (this.retentionFloorMillis && startMillis < this.retentionFloorMillis) {
+            startMillis = this.retentionFloorMillis;
+        }
+        filter.startDateMillis = startMillis;
+        filter.endDateMillis = endMillis;
+        return filter;
     }
 
     // ---------- progressive search ----------
@@ -178,15 +245,18 @@ export default class AuditExplorer extends LightningElement {
     }
 
     async runSearch(isNewSearch) {
-        if (this.loading) {
+        if (this.loading || this.canViewSetup !== true) {
             return;
         }
+        // A continuation without a snapshot (should not happen) is a new search.
+        const startFresh = isNewSearch || !this.activeFilterJson;
+
         this.loading = true;
         this.stopRequested = false;
         this.error = undefined;
         this.hasSearched = true;
 
-        if (isNewSearch) {
+        if (startFresh) {
             this.rows = [];
             this.cursor = null;
             this.done = false;
@@ -195,9 +265,12 @@ export default class AuditExplorer extends LightningElement {
             this.selectedRow = undefined;
             this.sectionFacets = [];
             this.userFacets = [];
+            // Snapshot the filter once; continuation calls reuse it verbatim.
+            this.activeFilterJson = JSON.stringify(this.buildFilter());
+            this.filtersDirty = false;
         }
 
-        const filterJson = JSON.stringify(this.buildFilter());
+        const filterJson = this.activeFilterJson;
         const targetCount = this.rows.length + PAGE_SIZE;
         let calls = 0;
 
@@ -216,6 +289,7 @@ export default class AuditExplorer extends LightningElement {
                 // eslint-disable-next-line no-await-in-loop
                 const result = await search({
                     filterJson,
+                    // The cursor is opaque to the client: round-trip it as is.
                     cursorJson: this.cursor ? JSON.stringify(this.cursor) : null,
                     pageSize: PAGE_SIZE
                 });
@@ -298,18 +372,28 @@ export default class AuditExplorer extends LightningElement {
     // ---------- user filter ----------
 
     handleUserTermChange(event) {
-        this.userSearchTerm = event.target.value;
-        if (!this.userSearchTerm || this.userSearchTerm.length < 2) {
+        const term = event.target.value;
+        this.userSearchTerm = term;
+        if (!term || term.length < 2) {
             this.userResults = [];
             return;
         }
-        searchUsers({ term: this.userSearchTerm })
+        searchUsers({ term })
             .then((results) => {
+                // The user has typed on (or picked someone) since this call
+                // left: an older answer must not overwrite the newer list.
+                if (this.userSearchTerm !== term) {
+                    return;
+                }
                 const chosen = new Set(this.selectedUsers.map((u) => u.id));
-                this.userResults = results.filter((u) => !chosen.has(u.id));
+                this.userResults = (results || []).filter((u) => !chosen.has(u.id));
             })
-            .catch(() => {
+            .catch((e) => {
+                if (this.userSearchTerm !== term) {
+                    return;
+                }
                 this.userResults = [];
+                this.error = this.toMessage(e);
             });
     }
 
@@ -320,12 +404,21 @@ export default class AuditExplorer extends LightningElement {
             this.selectedUsers = [...this.selectedUsers, picked];
             this.userResults = this.userResults.filter((u) => u.id !== id);
             this.userSearchTerm = '';
+            this.markFiltersDirty();
         }
     }
 
     handleUserRemove(event) {
-        const id = event.detail.name;
+        // lightning-pill-container's itemremove carries { item, index }, not
+        // the pill's name directly.
+        const detail = event.detail || {};
+        const item = detail.item;
+        const id = (item && item.name) || (this.userPills[detail.index] || {}).name;
+        if (!id) {
+            return;
+        }
         this.selectedUsers = this.selectedUsers.filter((u) => u.id !== id);
+        this.markFiltersDirty();
     }
 
     get userPills() {
@@ -355,7 +448,7 @@ export default class AuditExplorer extends LightningElement {
     // ---------- export ----------
 
     handleExport() {
-        if (!this.rows.length) {
+        if (this.exportDisabled) {
             return;
         }
         const header = ['Date', 'User', 'Section', 'Action', 'Description', 'Delegate User', 'Namespace'];
@@ -373,12 +466,26 @@ export default class AuditExplorer extends LightningElement {
                 ])
             );
         });
-        const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        // The BOM only affects decoding; the first cell is still the quoted
+        // header "Date", so the formula guard in csv.js is unaffected.
+        const blob = new Blob([UTF8_BOM + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+
+        // Release the previous download's URL now that a new one replaces it.
+        this.revokeLastExportUrl();
+        const url = URL.createObjectURL(blob);
+        this.lastExportUrl = url;
+
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
+        link.href = url;
         link.download = `audit-trail-${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
-        URL.revokeObjectURL(link.href);
+    }
+
+    revokeLastExportUrl() {
+        if (this.lastExportUrl) {
+            URL.revokeObjectURL(this.lastExportUrl);
+            this.lastExportUrl = undefined;
+        }
     }
 
     // ---------- display helpers ----------
@@ -425,7 +532,7 @@ export default class AuditExplorer extends LightningElement {
     }
 
     get exportDisabled() {
-        return this.rows.length === 0;
+        return !(this.hasRows && this.canViewSetup === true);
     }
 
     toMessage(e) {

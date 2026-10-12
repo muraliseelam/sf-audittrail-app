@@ -13,10 +13,13 @@ private class SetupAuditTrailProviderTest {
         List<AuditEventRow> rows = provider.fetch(Datetime.now(), Datetime.now().addDays(-30), null, null, null, 10);
         Test.stopTest();
 
-        System.assertNotEquals(null, rows, 'Query must execute without error');
+        Assert.isNotNull(rows, 'Query must execute without error.');
     }
 
-    /** The optional predicates change the SOQL string, so each must be valid too. */
+    /**
+     * The optional predicates change the SOQL string, so each must be valid
+     * too - including the keyset continuation predicate on (CreatedDate, Id).
+     */
     @IsTest
     static void realQueryExecutesWithEveryOptionalFilter() {
         SetupAuditTrailProvider provider = new SetupAuditTrailProvider();
@@ -27,12 +30,12 @@ private class SetupAuditTrailProviderTest {
             Datetime.now().addDays(-30),
             new List<String>{ 'changedpassword' },
             new List<String>{ UserInfo.getUserId() },
-            new Set<Id>{ UserInfo.getUserId() },
+            MockAuditTrailProvider.fakeId(1),
             10
         );
         Test.stopTest();
 
-        System.assertNotEquals(null, rows, 'Filtered query must also be valid');
+        Assert.isNotNull(rows, 'Filtered query must also be valid.');
     }
 
     @IsTest
@@ -44,14 +47,14 @@ private class SetupAuditTrailProviderTest {
         AuditEventRow row = new AuditEventRow(record);
         Test.stopTest();
 
-        System.assertEquals('Manage Users', row.section);
-        System.assertEquals('PermSetAssign', row.action);
-        System.assertEquals('Assigned permission set', row.display);
-        System.assertEquals('Jane Admin', row.userName);
-        System.assertEquals('delegate@example.com', row.delegateUser);
-        System.assertEquals('acme', row.namespacePrefix);
-        System.assertNotEquals(null, row.eventDateMillis, 'Date must convert to epoch millis');
-        System.assertEquals(row.eventDateMillis, row.eventDate().getTime(), 'Round trip must be lossless');
+        Assert.areEqual('Manage Users', row.section);
+        Assert.areEqual('PermSetAssign', row.action);
+        Assert.areEqual('Assigned permission set', row.display);
+        Assert.areEqual('Jane Admin', row.userName);
+        Assert.areEqual('delegate@example.com', row.delegateUser);
+        Assert.areEqual('acme', row.namespacePrefix);
+        Assert.isNotNull(row.eventDateMillis, 'Date must convert to epoch millis.');
+        Assert.areEqual(row.eventDateMillis, row.eventDate().getTime(), 'Round trip must be lossless.');
     }
 
     @IsTest
@@ -62,7 +65,7 @@ private class SetupAuditTrailProviderTest {
         AuditEventRow row = new AuditEventRow(record);
         Test.stopTest();
 
-        System.assertEquals(null, row.userName, 'A missing CreatedBy must not throw');
+        Assert.isNull(row.userName, 'A missing CreatedBy must not throw.');
     }
 
     private static SetupAuditTrail buildRecord(String userName) {

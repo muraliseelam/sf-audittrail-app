@@ -4,29 +4,41 @@ public with sharing class MockAuditTrailProvider implements AuditTrailProvider {
     public Integer fetchCount = 0;
 
     public MockAuditTrailProvider(List<AuditEventRow> rows) {
-        this.allRows = rows;
+        // Sorted once, the way the real query orders rows: CreatedDate DESC,
+        // Id DESC. recordId values are 18-character Ids built from a
+        // zero-padded index (see fakeId), so String ordering matches Id order.
+        this.allRows = rows == null ? new List<AuditEventRow>() : new List<AuditEventRow>(rows);
+        this.allRows.sort(new DescendingKeyset());
     }
 
-    /** Mirrors the real provider's contract: descending, bounded, exclusions applied. */
+    /**
+     * Mirrors the real provider's contract: (CreatedDate DESC, Id DESC) order,
+     * inclusive date bounds, keyset exclusion at the upper bound, optional
+     * action/user predicates, row limit.
+     */
     public List<AuditEventRow> fetch(
         Datetime upperBound,
         Datetime lowerBound,
         List<String> actions,
         List<String> userIds,
-        Set<Id> excludeIds,
+        Id lastId,
         Integer rowLimit
     ) {
         fetchCount++;
+        Long upper = upperBound.getTime();
+        Long lower = lowerBound.getTime();
+        String lastIdText = lastId == null ? null : String.valueOf(lastId);
         Set<String> actionSet = actions == null ? new Set<String>() : new Set<String>(actions);
         Set<String> userSet = userIds == null ? new Set<String>() : new Set<String>(userIds);
 
         List<AuditEventRow> matched = new List<AuditEventRow>();
         for (AuditEventRow row : allRows) {
-            Datetime eventDate = row.eventDate();
-            if (eventDate > upperBound || eventDate < lowerBound) {
+            if (row.eventDateMillis > upper || row.eventDateMillis < lower) {
                 continue;
             }
-            if (excludeIds != null && !excludeIds.isEmpty() && excludeIds.contains((Id) row.recordId)) {
+            // Rows at exactly the upper bound with an id at or above the last
+            // consumed one were already returned on an earlier fetch.
+            if (lastIdText != null && row.eventDateMillis == upper && row.recordId.compareTo(lastIdText) >= 0) {
                 continue;
             }
             if (!actionSet.isEmpty() && !actionSet.contains(row.action)) {
@@ -43,7 +55,17 @@ public with sharing class MockAuditTrailProvider implements AuditTrailProvider {
         return matched;
     }
 
-    /** Builds a descending-by-date row, as the real provider always returns. */
+    /** Orders rows newest first, then by id descending, like the real query. */
+    private class DescendingKeyset implements Comparator<AuditEventRow> {
+        public Integer compare(AuditEventRow a, AuditEventRow b) {
+            if (a.eventDateMillis != b.eventDateMillis) {
+                return a.eventDateMillis > b.eventDateMillis ? -1 : 1;
+            }
+            return b.recordId.compareTo(a.recordId);
+        }
+    }
+
+    /** Builds a row for the in-memory provider; the constructor sorts them. */
     public static AuditEventRow row(Integer index, Datetime occurredAt, String section, String action, String display) {
         AuditEventRow r = new AuditEventRow();
         r.recordId = fakeId(index);

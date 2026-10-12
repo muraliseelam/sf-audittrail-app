@@ -1,6 +1,7 @@
 <template>
     <lightning-card title="Audit Trail Explorer" icon-name="standard:record_lookup">
         <div slot="actions">
+            <!-- Enabled only when there are rows AND access has been confirmed. -->
             <lightning-button
                 label="Export CSV"
                 icon-name="utility:download"
@@ -10,7 +11,7 @@
         </div>
 
         <div class="slds-var-p-horizontal_medium">
-            <template lwc:if={canViewSetup}>
+            <template lwc:if={showForm}>
                 <!-- Filters -->
                 <div class="slds-grid slds-wrap slds-gutters_x-small">
                     <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
@@ -122,6 +123,11 @@
                     </template>
                 </div>
 
+                <!-- Edits since the last Search do not affect "Search further back". -->
+                <template lwc:if={filtersDirty}>
+                    <p class="audit-hint slds-var-m-top_xx-small">{filtersDirtyHint}</p>
+                </template>
+
                 <!-- Retention notice: the data genuinely disappears, so say so. -->
                 <div class="slds-var-m-top_small">
                     <lightning-icon
@@ -146,7 +152,9 @@
                     <span class="audit-progress">{progressText}</span>
                 </div>
                 <template lwc:if={loading}>
-                    <lightning-progress-bar variant="circular" value="100" size="small"></lightning-progress-bar>
+                    <div class="audit-spinner slds-is-relative">
+                        <lightning-spinner size="small" alternative-text="Searching"></lightning-spinner>
+                    </div>
                 </template>
 
                 <!-- Insights -->
@@ -246,12 +254,28 @@
                 </template>
             </template>
 
-            <template lwc:else>
+            <!-- Access not yet known: show nothing that could be acted on. -->
+            <template lwc:elseif={showAccessSpinner}>
+                <div class="audit-spinner audit-spinner_tall slds-is-relative">
+                    <lightning-spinner size="medium" alternative-text="Loading"></lightning-spinner>
+                </div>
+            </template>
+
+            <template lwc:elseif={showAccessDenied}>
                 <div class="slds-var-m-vertical_large slds-align_absolute-center slds-text-color_weak">
                     You need the "View Setup and Configuration" permission to use the Audit Trail Explorer. Ask your
                     administrator to grant it to your user. Salesforce does not allow an installed package to grant this
                     permission, so it must be assigned in your own org, in addition to the Audit Trail Viewer permission
                     set.
+                </div>
+            </template>
+
+            <!-- getContext failed: treated as denied, with only the error shown. -->
+            <template lwc:else>
+                <div class="slds-var-m-vertical_medium">
+                    <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                        <span>{error}</span>
+                    </div>
                 </div>
             </template>
         </div>

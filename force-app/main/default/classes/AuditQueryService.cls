@@ -54,9 +54,12 @@ public with sharing class AuditQueryService {
         AuditFilter effective = filter == null ? new AuditFilter() : filter;
         Integer targetPage = clampPageSize(pageSize);
 
-        // A cursor without a position is treated as absent. The null check is
-        // kept inline in the ternary so static analysis can see that `working`
-        // is never null.
+        // Branching in this method is kept deliberately low: the Graph Engine
+        // enumerates every path through the search entry point, and each
+        // conditional here multiplies that count. Clamps therefore use
+        // Math.min/Math.max, and the null check that decides whether a cursor
+        // is a real position stays inline in one ternary so the analysis can
+        // also see that `working` is never null.
         AuditCursor working = (cursor == null || cursor.lastDateMillis == null) ? new AuditCursor() : cursor;
         Boolean continuing = working.lastDateMillis != null;
 
@@ -70,20 +73,16 @@ public with sharing class AuditQueryService {
         // The cursor is client-supplied, so its pinned bounds are re-clamped
         // here rather than trusted: nothing below the retention floor can
         // exist, and no position may sit above the range end.
-        Datetime retentionFloor = Datetime.now().addDays(-RETENTION_DAYS);
-        Datetime lowerBound = Datetime.newInstance(working.rangeStartMillis);
-        if (lowerBound < retentionFloor) {
-            lowerBound = retentionFloor;
-        }
+        Long floorMillis = Datetime.now().addDays(-RETENTION_DAYS).getTime();
+        Datetime lowerBound = Datetime.newInstance(Math.max(working.rangeStartMillis, floorMillis));
         Datetime rangeEnd = Datetime.newInstance(working.rangeEndMillis);
 
         // Validate the continuation position before anything else: a cursor
         // that claims a position without a well-formed id is rejected outright.
         Id lastId = working.lastIdValue();
-        Datetime upperBound = continuing ? working.lastDate() : rangeEnd;
-        if (upperBound > rangeEnd) {
-            upperBound = rangeEnd;
-        }
+        Datetime upperBound = continuing
+            ? Datetime.newInstance(Math.min(working.lastDateMillis, working.rangeEndMillis))
+            : rangeEnd;
 
         AuditSearchResult result = new AuditSearchResult();
         result.cursor = working;
@@ -155,9 +154,11 @@ public with sharing class AuditQueryService {
                 exhausted = true;
                 break;
             }
-            // Keyset advance: resume strictly after the last consumed row.
+            // Keyset advance: resume strictly after the last consumed row. The
+            // id was just written by consume() from a provider row, so it needs
+            // no validation here (and no extra branches for the path analysis).
             upperBound = working.lastDate();
-            lastId = working.lastIdValue();
+            lastId = (Id) working.lastId;
         }
 
         if (exhausted || result.scannedThroughMillis == null) {
@@ -187,21 +188,15 @@ public with sharing class AuditQueryService {
      */
     private static void pinRange(AuditFilter filter, AuditCursor cursor) {
         Datetime now = Datetime.now();
-        Datetime retentionFloor = now.addDays(-RETENTION_DAYS);
-        Datetime rangeStart;
-        Datetime rangeEnd;
+        Long floorMillis = now.addDays(-RETENTION_DAYS).getTime();
         if (filter.lastDays != null && filter.lastDays > 0) {
-            rangeEnd = now;
-            rangeStart = now.addDays(-Math.min(filter.lastDays, RETENTION_DAYS));
+            cursor.rangeEndMillis = now.getTime();
+            cursor.rangeStartMillis = now.addDays(-Math.min(filter.lastDays, RETENTION_DAYS)).getTime();
         } else {
-            rangeEnd = filter.endDate() == null ? now : filter.endDate();
-            rangeStart = filter.startDate();
-            if (rangeStart == null || rangeStart < retentionFloor) {
-                rangeStart = retentionFloor;
-            }
+            Long requestedStart = filter.startDateMillis == null ? floorMillis : filter.startDateMillis;
+            cursor.rangeEndMillis = filter.endDateMillis == null ? now.getTime() : filter.endDateMillis;
+            cursor.rangeStartMillis = Math.max(requestedStart, floorMillis);
         }
-        cursor.rangeStartMillis = rangeStart.getTime();
-        cursor.rangeEndMillis = rangeEnd.getTime();
     }
 
     private static Integer clampPageSize(Integer requested) {
@@ -274,17 +269,15 @@ public with sharing class AuditQueryService {
             if (terms.isEmpty()) {
                 return true;
             }
-            // Blank fields coalesce to '' - String.valueOf(null) would yield
-            // the literal word "null", making the term "null" match every row
-            // with an empty field.
-            String haystack = (blankToEmpty(row.display) +
-                ' ' +
-                blankToEmpty(row.section) +
-                ' ' +
-                blankToEmpty(row.action) +
-                ' ' +
-                blankToEmpty(row.userName))
-                .toLowerCase();
+            // Null fields must not reach the haystack: String.valueOf(null) or
+            // concatenation would yield the literal word "null", making the
+            // term "null" match every row with an empty field. They are dropped
+            // through a set rather than conditionals because this runs once per
+            // scanned row, and every conditional here multiplies the Graph
+            // Engine's path count for the whole search entry point.
+            Set<String> parts = new Set<String>{ row.display, row.section, row.action, row.userName };
+            parts.remove(null);
+            String haystack = String.join(new List<String>(parts), ' ').toLowerCase();
             // All terms must be present, so multi-word searches narrow results.
             for (String term : terms) {
                 if (!haystack.contains(term)) {
@@ -292,10 +285,6 @@ public with sharing class AuditQueryService {
                 }
             }
             return true;
-        }
-
-        private String blankToEmpty(String value) {
-            return String.isBlank(value) ? '' : value;
         }
     }
 }

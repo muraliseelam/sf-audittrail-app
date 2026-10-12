@@ -28,12 +28,4 @@ public with sharing class AuditFilter {
     public List<String> sections;
     @AuraEnabled
     public String searchText;
-
-    public Datetime startDate() {
-        return startDateMillis == null ? null : Datetime.newInstance(startDateMillis);
-    }
-
-    public Datetime endDate() {
-        return endDateMillis == null ? null : Datetime.newInstance(endDateMillis);
-    }
 }

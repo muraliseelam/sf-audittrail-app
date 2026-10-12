@@ -63,7 +63,8 @@ engines:
     # across 3/3 entry points in ~7 minutes. More heap is not better here.
     #
     # Verify completion by the counts, never by a bare "0 violations":
-    #   sf code-analyzer run --config-file code-analyzer.yml     #     --workspace force-app --rule-selector sfge
+    #   sf code-analyzer run --config-file code-analyzer.yml \
+    #     --workspace force-app --rule-selector sfge
     # must report "14503 path(s) from 3/3 entry point(s)" with no error. Run it
     # on an otherwise idle machine -- under a concurrent 6-engine scan the same
     # analysis can lose the memory race and time out.

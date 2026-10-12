@@ -8,7 +8,9 @@ module.exports = {
     // Istanbul cannot instrument those, and rather than failing, the whole
     // coverage run collapses to an empty report: coverage-final.json is `{}`,
     // every file reads 0%, and the command still exits 0. That makes the
-    // coverage gate in CI look green while measuring nothing.
+    // coverage step in CI (`npm run test:unit:coverage`; no coverageThreshold
+    // is configured, so it reports rather than gates) look green while
+    // measuring nothing.
     //
     // Restricting the glob to .js and excluding the test files themselves makes
     // coverage actually report.

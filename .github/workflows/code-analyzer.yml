@@ -1,5 +1,11 @@
 name: Code Analyzer
 
+# Least-privilege GITHUB_TOKEN: nothing in this workflow writes to the
+# repository, so the token only needs to read it. Artifact upload does not
+# need a broader grant.
+permissions:
+    contents: read
+
 # Salesforce Code Analyzer scan, kept OUT of the per-PR gate on purpose.
 #
 # The Graph Engine (sfge) walks a 14,503-path space for

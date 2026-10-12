@@ -11,6 +11,34 @@ change history visible (in a much less usable form) under
 usernames of users who made setup changes, and human-readable descriptions of
 those changes (for example, "Changed profile Sales User").
 
+**Fields the audit query selects.** The production query
+(`force-app/main/default/classes/SetupAuditTrailProvider.cls:18-19`) selects
+eleven fields. Every selected field is copied into the row object sent to the
+browser (`AuditEventRow.cls:37-49`); the table shows which of them the UI
+renders and which the CSV export writes.
+
+| Field selected               | What it holds (as recorded by Salesforce)                | Results table | Detail panel  | CSV export      |
+| ---------------------------- | -------------------------------------------------------- | ------------- | ------------- | --------------- |
+| `Id`                         | Record id of the audit row                               | Row key only  | No            | No              |
+| `CreatedDate`                | When the change was made                                 | Date          | Date          | Date (ISO 8601) |
+| `Section`                    | Setup area the change belongs to                         | Section       | Section       | Section         |
+| `Action`                     | Salesforce's action code for the change                  | Action        | Action        | Action          |
+| `Display`                    | Human-readable description of the change                 | Description   | Description   | Description     |
+| `CreatedById`                | Id of the user who made the change                       | No            | No            | No              |
+| `CreatedBy.Name`             | Display name of that user                                | User          | User          | User            |
+| `DelegateUser`               | Login-As user who acted on another user's behalf, if any | No            | Delegate user | Delegate User   |
+| `ResponsibleNamespacePrefix` | Namespace of the managed package responsible, if any     | No            | Namespace     | Namespace       |
+| `CreatedByContext`           | Context Salesforce recorded for the change, if any       | No            | No            | No              |
+| `CreatedByIssuer`            | Issuer Salesforce recorded for that context, if any      | No            | No            | No              |
+
+Three of the selected fields — `CreatedById`, `CreatedByContext` and
+`CreatedByIssuer` — are returned to the browser in every row but are never
+displayed or exported; nothing in the component reads them. `Id` is used only
+as the row key of the results table (`auditExplorer.html:182`). The rendered
+columns are defined at `auditExplorer.js:7-26`, the detail panel at
+`auditExplorer.html:204-246` and the export columns at
+`auditExplorer.js:361-373`.
+
 **User type-ahead.** The "Filter by user" field also queries the standard
 `User` object — `Id`, `Name`, and `Username` only, for **active users**
 matching what the caller typed (`AuditQueryController.searchUsers`, backed by
@@ -47,9 +75,20 @@ is downloaded.
 
 Exported cells are escaped to prevent spreadsheet formula/CSV injection when
 the file is opened in Excel, Google Sheets, or similar tools (see
-`force-app/main/default/lwc/auditExplorer/csv.js`), which is a security
-control, not a data-handling one — no data is altered or removed, only quoted
-so it cannot be interpreted as an executable formula.
+`force-app/main/default/lwc/auditExplorer/csv.js`). This is a security
+control, not a data-handling one, and it changes the exported text in exactly
+one way. Every cell is wrapped in double quotes with any embedded double quote
+doubled, which is standard CSV quoting and loses nothing. In addition, a cell
+whose first character is a formula trigger (`=`, `+`, `-`, `@`, or their
+full-width forms), a whitespace character, a C0 control character or a
+zero-width space gets a single apostrophe (`'`) prepended (`csv.js:25-47`).
+That apostrophe is the only modification. It is there because spreadsheets
+treat such a leading character as the start of a formula, and audit
+descriptions echo text an administrator controls (for example a renamed field
+label), so without the prefix an exported cell could execute on the auditor's
+machine when the file is opened. The prefix is visible in the exported file;
+no value is removed, truncated or reordered, and the data shown in the page
+is untouched.
 
 ## Access control
 

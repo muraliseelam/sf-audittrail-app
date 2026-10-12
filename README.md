@@ -62,8 +62,9 @@ timestamp — date-only paging would skip or duplicate them.
 
 Salesforce keeps Setup Audit Trail for **180 days**; older data is permanently gone.
 The app clamps every request to that floor and states the limit in the UI. Retention
-beyond 180 days requires archiving, which is planned as an **opt-in** add-on so orgs
-that don't need it never pay for storage.
+beyond 180 days would require archiving, which this package deliberately does not
+do; any such add-on, if ever built, would be **opt-in**, so orgs that don't need it
+never pay for storage.
 
 ## Install
 
@@ -101,33 +102,25 @@ Installing is not enough. An administrator must do **both** of the following:
 2. Separately grant **"View Setup and Configuration"** to the same user,
    through their profile or through a permission set created in your own org.
 
-Step 2 is not optional and cannot be done by the package. Salesforce **strips
+Step 2 is not optional and cannot be done by the package. Under a managed
+install the packaged permission set grants only the app, its tab and its Apex
+classes — no object CRUD/FLS and no system permission. Salesforce **strips
 system permissions from a managed package's permission sets on install**, as
-an anti-privilege-escalation measure, so the `ViewSetup` permission declared
-in this package's source is `false` once installed. This is verified
-empirically — see
-[`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md).
+an anti-privilege-escalation measure, so the `ViewSetup` and `ViewRoles`
+entries declared in this package's source
+([`Audit_Trail_Viewer.permissionset-meta.xml`](force-app/main/default/permissionsets/Audit_Trail_Viewer.permissionset-meta.xml))
+are `false` once installed. Those two entries take effect only for a source
+deploy or the superseded unlocked package, where the shipped permission set is
+sufficient on its own. The strip is verified empirically against the released
+version — see [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md).
 
 Without step 2 the app installs cleanly, the tab appears, and every search
-returns an access error. With both grants it works.
-
-Then open **Audit Trail Explorer** from the App Launcher.
-
-That permission set grants "View Setup and Configuration" (and its `ViewRoles`
-dependency), which Salesforce requires to read the audit trail. It grants
-nothing else - no object CRUD/FLS, no additional system permission. This is
-the minimum access the app needs; see
+returns an access error. With both grants it works. "View Setup and
+Configuration" (with its `ViewRoles` prerequisite) is what Salesforce requires
+to read the audit trail, and the app needs nothing beyond it; see
 [`docs/PRIVACY.md`](docs/PRIVACY.md) for the full data-handling statement.
 
-> **Managed-package installs need one extra step.** Salesforce does not let an
-> installed **managed** package grant system permissions such as "View Setup
-> and Configuration" - the platform strips them from the package's permission
-> set on install, as an anti-privilege-escalation measure. The shipped
-> permission set still grants the app, tab and Apex class access, but an
-> administrator must additionally grant "View Setup and Configuration" through
-> the user's profile or through a permission set created in the subscriber org.
-> This does not apply to source deploys or the unlocked package, where the
-> shipped permission set is sufficient on its own.
+Then open **Audit Trail Explorer** from the App Launcher.
 
 > Editions that cannot run custom Apex are not supported, because this package
 > requires it. That rules out **Professional Edition** and **Base Edition** —
@@ -149,11 +142,10 @@ The package stores no data, so uninstalling leaves no residue to clean up.
 
 - **Packaged install:** Setup → Installed Packages → Audit Trail Explorer →
   **Uninstall**. This removes the app, tab, Apex classes, and permission set.
-  Unassign the `Audit_Trail_Viewer` permission set first if you assigned it to
-  users (Salesforce will otherwise warn about the dependency during
-  uninstall).
-- **Source deploy:** `sf project delete source --source-dir force-app --target-org my-org`,
-  or delete the metadata listed under [Layout](#layout) via Setup.
+  Unassign the `atexplorer__Audit_Trail_Viewer` permission set first if you
+  assigned it to users (Salesforce will otherwise warn about the dependency
+  during uninstall).
+- **Source deploy:** `sf project delete source --source-dir force-app --target-org my-org`.
 
 No custom object, custom setting, or Big Object is created, so there is no
 data-retention step and nothing to archive before removal.
@@ -166,15 +158,21 @@ npm run test:unit                                   # LWC Jest tests
 sf project deploy start --source-dir force-app --test-level RunLocalTests
 ```
 
-### Layout
+### Key classes
 
-| Path                                 | Purpose                                                              |
-| ------------------------------------ | -------------------------------------------------------------------- |
-| `classes/AuditQueryService.cls`      | Progressive search engine                                            |
-| `classes/AuditQueryController.cls`   | `@AuraEnabled` facade                                                |
-| `classes/AuditTrailProvider.cls`     | Data-source seam (`SetupAuditTrail` rows can't be inserted in tests) |
-| `classes/AuditPermissionService.cls` | "View Setup and Configuration" check                                 |
-| `lwc/auditExplorer`                  | The UI                                                               |
+| Path                                  | Purpose                                                              |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| `classes/AuditQueryService.cls`       | Progressive search engine                                            |
+| `classes/AuditQueryController.cls`    | `@AuraEnabled` facade                                                |
+| `classes/AuditTrailProvider.cls`      | Data-source seam (`SetupAuditTrail` rows can't be inserted in tests) |
+| `classes/SetupAuditTrailProvider.cls` | Production provider: the SOQL against `SetupAuditTrail`              |
+| `classes/AuditPermissionService.cls`  | "View Setup and Configuration" check                                 |
+| `lwc/auditExplorer`                   | The UI (`csv.js` holds the CSV cell formatting and formula guard)    |
+
+The remaining classes under `force-app/main/default/classes` are the DTOs
+(`AuditCursor`, `AuditEventRow`, `AuditFilter`, `AuditSearchResult`) and test
+support (`MockAuditTrailProvider`, an in-memory `AuditTrailProvider`, plus the
+four `*Test` classes) — 14 classes in all.
 
 ## Packaging status
 
@@ -191,11 +189,11 @@ listing (see below).
 **Verified in a live org:** the released version installs cleanly into a fresh
 scratch org (`rel-qa`, `00DRK00000aOfV72AK`) with no packages installed
 beforehand; the namespaced `atexplorer__Audit_Trail_Viewer` permission set
-assigns successfully; and `RunLocalTests` passes **29/29** (run
-`707RK0000BPQrG1`) as namespaced `atexplorer.*` classes. The package build
-reported **97% coverage** with `HasPassedCodeCoverageCheck=true` across 43
-metadata files. A source deploy of the same commit passes `RunLocalTests`
-**29/29** (run `707Ru00002A7gs1`).
+assigns successfully; and the package's 29 Apex tests, running as namespaced
+`atexplorer.*` classes in that subscriber org, pass **29/29** (run
+`707RK0000BPQrG1`). The package build reported **97% coverage** with
+`HasPassedCodeCoverageCheck=true` across 43 metadata files. A source deploy of
+the same commit passes `RunLocalTests` **29/29** (run `707Ru00002A7gs1`).
 
 The install-time strip of `ViewSetup`/`ViewRoles` was re-confirmed against the
 released version, not carried over from the beta — see
@@ -218,10 +216,13 @@ repository should be read as claiming otherwise.
 | Document                                                                                       | Covers                                                                |
 | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                                                 | Component design, why progressive search is needed, known limitations |
+| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md)                                                     | Using the app; setting up a test user for reviewers                   |
 | [`docs/PRIVACY.md`](docs/PRIVACY.md)                                                           | What data the app reads, what it never stores/sends                   |
 | [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)                                   | Live-org install/test/namespace validation evidence and checklist     |
 | [`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)                 | Full security architecture review (CRUD/FLS, injection, auth)         |
 | [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Code Analyzer findings and their disposition                          |
+| [`docs/SECURITY-REVIEW-SUBMISSION.md`](docs/SECURITY-REVIEW-SUBMISSION.md)                     | Security Review submission status, findings and runbook               |
+| [`docs/SECURITY-PROGRAM-STATEMENT.md`](docs/SECURITY-PROGRAM-STATEMENT.md)                     | Publisher security program statement                                  |
 | [`docs/CODE-ANALYZER-SCAN-RECORD.md`](docs/CODE-ANALYZER-SCAN-RECORD.md)                       | Dated Code Analyzer run records: rule counts, results, validity       |
 | [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                        |
 | [`SECURITY.md`](SECURITY.md)                                                                   | How to report a vulnerability                                         |

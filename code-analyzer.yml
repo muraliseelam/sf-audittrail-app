@@ -50,25 +50,35 @@ engines:
     pmd:
         file_extensions:
             apex: ['.cls', '.trigger']
-    # AuditQueryController.search has a large path space (14,503 paths), and the
-    # Graph Engine's stock 30s per-path budget is nowhere near enough for it.
-    # When it times out the engine still reports "0 violations", with the
-    # abandoned entry point surfacing only as an easily missed "Internal
-    # execution error" -- another vacuous all-clear.
+    # AuditQueryController.search has a large path space, and the Graph
+    # Engine's stock 30s per-path budget is nowhere near enough for it. When it
+    # times out the engine still reports "0 violations", with the abandoned
+    # entry point surfacing only as an easily missed "Internal execution error"
+    # -- another vacuous all-clear.
+    #
+    # The path count is a property of the code, and every conditional on the
+    # way from the entry point to the SOQL multiplies it. Version 1.0.0.2
+    # analysed in 14,503 paths (~7 minutes at 600000 ms); the 1.0.1 range
+    # pinning and cursor validation first pushed the entry point past a
+    # 1,800,000 ms budget until AuditQueryService.search was rewritten with the
+    # minimum of branches (Math.min/max clamps, unconditional set inserts, one
+    # ternary for the cursor). The budget below is sized for the current code;
+    # if search() grows a conditional, re-measure before trusting the result,
+    # and update the pinned path count in .github/workflows/code-analyzer.yml.
     #
     # java_max_heap_size is deliberately 2g, NOT larger. Asking for more heap
     # than the machine can spare makes the JVM thrash and the analysis times out
     # anyway: on an 8 GB host a 4g request produced "3 paths from 2 entry
-    # points" and an error, while 2g with 4 threads completed all 14,503 paths
-    # across 3/3 entry points in ~7 minutes. More heap is not better here.
+    # points" and an error, while 2g with 4 threads completed the full analysis.
+    # More heap is not better here.
     #
     # Verify completion by the counts, never by a bare "0 violations":
     #   sf code-analyzer run --config-file code-analyzer.yml \
     #     --workspace force-app --rule-selector sfge
-    # must report "14503 path(s) from 3/3 entry point(s)" with no error. Run it
-    # on an otherwise idle machine -- under a concurrent 6-engine scan the same
-    # analysis can lose the memory race and time out.
+    # must report the full path count from 3/3 entry points with no error. Run
+    # it on an otherwise idle machine -- under a concurrent 6-engine scan the
+    # same analysis can lose the memory race and time out.
     sfge:
-        java_thread_timeout: 600000
+        java_thread_timeout: 1800000
         java_max_heap_size: 2g
         java_thread_count: 4

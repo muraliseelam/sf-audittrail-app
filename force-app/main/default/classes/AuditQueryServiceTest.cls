@@ -383,6 +383,10 @@ private class AuditQueryServiceTest {
         AuditQueryService.provider = mock;
         AuditCursor cursor = new AuditCursor();
         cursor.lastDateMillis = BASE.getTime();
+        // Pinned bounds make this a complete continuation cursor, so the id is
+        // validated; without them the service would start a fresh search.
+        cursor.rangeStartMillis = BASE.addDays(-10).getTime();
+        cursor.rangeEndMillis = BASE.addDays(1).getTime();
         cursor.lastId = 'not-an-id';
 
         Test.startTest();
@@ -402,6 +406,10 @@ private class AuditQueryServiceTest {
         AuditQueryService.provider = new MockAuditTrailProvider(descendingRows(3));
         AuditCursor cursor = new AuditCursor();
         cursor.lastDateMillis = BASE.getTime();
+        // Pinned bounds make this a complete continuation cursor, so the id is
+        // validated; without them the service would start a fresh search.
+        cursor.rangeStartMillis = BASE.addDays(-10).getTime();
+        cursor.rangeEndMillis = BASE.addDays(1).getTime();
         cursor.lastId = '';
 
         Test.startTest();
@@ -595,11 +603,11 @@ private class AuditQueryServiceTest {
     }
 
     @IsTest
-    static void continuationCursorMissingRangeFallsBackToTheFilter() {
-        // Contract C2 fallback: a continuation cursor that lacks either pinned
-        // bound (older client, hand-built payload) must recompute the range
-        // from the filter and pin it again, while still resuming from the
-        // keyset position it carries.
+    static void continuationCursorMissingRangeRestartsTheSearch() {
+        // A cursor that carries a position but not the pinned bounds is not a
+        // complete continuation (only a hand-built payload looks like that), so
+        // the search starts afresh: the range is resolved from the filter and
+        // pinned, and paging begins at the top of the window.
         AuditQueryService.provider = new MockAuditTrailProvider(descendingRows(25));
         AuditFilter filter = wideOpenFilter();
 
@@ -613,22 +621,22 @@ private class AuditQueryServiceTest {
         Test.stopTest();
 
         Assert.areEqual(10, first.rows.size(), 'The first page is full.');
-        Assert.areEqual(10, second.rows.size(), 'The continuation must still fill a page.');
+        Assert.areEqual(10, second.rows.size(), 'The restarted search fills a page.');
         Assert.areEqual(
-            String.valueOf(MockAuditTrailProvider.fakeId(11)),
+            String.valueOf(MockAuditTrailProvider.fakeId(1)),
             second.rows[0].recordId,
-            'The continuation must resume from the keyset position, not restart.'
+            'Without pinned bounds the search restarts at the top of the window.'
         );
-        Assert.isFalse(second.done, 'Five rows remain after the second page.');
+        Assert.isFalse(second.done, 'Fifteen rows remain after the first page of the restarted search.');
         Assert.areEqual(
             filter.startDateMillis,
             second.cursor.rangeStartMillis,
-            'The range start must be recomputed from the filter and pinned again.'
+            'The range start must be resolved from the filter and pinned.'
         );
         Assert.areEqual(
             filter.endDateMillis,
             second.cursor.rangeEndMillis,
-            'The range end must be recomputed from the filter and pinned again.'
+            'The range end must be resolved from the filter and pinned.'
         );
     }
 
@@ -705,6 +713,10 @@ private class AuditQueryServiceTest {
         AuditQueryService.provider = mock;
         AuditCursor cursor = new AuditCursor();
         cursor.lastDateMillis = BASE.getTime();
+        // Pinned bounds make this a complete continuation cursor, so the id is
+        // validated; without them the service would start a fresh search.
+        cursor.rangeStartMillis = BASE.addDays(-10).getTime();
+        cursor.rangeEndMillis = BASE.addDays(1).getTime();
         cursor.lastId = UserInfo.getUserId();
 
         Test.startTest();

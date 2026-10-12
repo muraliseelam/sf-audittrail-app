@@ -31,7 +31,9 @@ jobs:
     scan:
         name: Static analysis
         runs-on: ubuntu-latest
-        timeout-minutes: 45
+        # The six-engine scan plus a standalone Graph Engine run whose per-path
+        # budget is 30 minutes (code-analyzer.yml); leave headroom for both.
+        timeout-minutes: 90
         steps:
             - name: Check out repository
               uses: actions/checkout@v4

@@ -106,7 +106,15 @@ private class AuditQueryControllerTest {
         // exception text, which could carry query and limit internals.
         Test.startTest();
         try {
-            AuditQueryController.search(null, '{"lastDateMillis": 1700000000000, "lastId": "not-an-id"}', 10);
+            // A complete continuation cursor (position and pinned bounds) whose
+            // id is not well formed; a cursor without bounds would simply be
+            // treated as a fresh search.
+            AuditQueryController.search(
+                null,
+                '{"lastDateMillis": 1700000000000, "lastId": "not-an-id", ' +
+                '"rangeStartMillis": 1690000000000, "rangeEndMillis": 1700000000000}',
+                10
+            );
             Assert.fail('Expected the malformed cursor to fail.');
         } catch (AuraHandledException e) {
             Assert.isTrue(

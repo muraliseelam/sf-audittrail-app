@@ -57,17 +57,25 @@ public with sharing class AuditQueryService {
         // Branching in this method is kept deliberately low: the Graph Engine
         // enumerates every path through the search entry point, and each
         // conditional here multiplies that count. Clamps therefore use
-        // Math.min/Math.max, and the null check that decides whether a cursor
-        // is a real position stays inline in one ternary so the analysis can
-        // also see that `working` is never null.
-        AuditCursor working = (cursor == null || cursor.lastDateMillis == null) ? new AuditCursor() : cursor;
+        // Math.min/Math.max, observed values are collected unconditionally and
+        // nulls removed once at the end, and one ternary decides whether the
+        // client sent a complete continuation cursor - which also lets the
+        // analysis see that `working` is never null.
+        //
+        // A cursor without a position, or without the pinned bounds (a
+        // hand-built payload), starts the search afresh rather than resuming.
+        AuditCursor working = (cursor == null ||
+            cursor.lastDateMillis == null ||
+            cursor.rangeStartMillis == null ||
+            cursor.rangeEndMillis == null)
+            ? new AuditCursor()
+            : cursor;
         Boolean continuing = working.lastDateMillis != null;
 
         // The range is resolved on the first call and pinned in the cursor so
         // the lower bound cannot drift between pages, whatever the client sends
-        // on later calls. A continuation cursor missing either bound (older
-        // client, hand-built payload) falls back to recomputing from the filter.
-        if (!continuing || working.rangeStartMillis == null || working.rangeEndMillis == null) {
+        // on later calls.
+        if (!continuing) {
             pinRange(effective, working);
         }
         // The cursor is client-supplied, so its pinned bounds are re-clamped
@@ -124,12 +132,9 @@ public with sharing class AuditQueryService {
             for (AuditEventRow row : batch) {
                 result.scannedCount++;
                 result.scannedThroughMillis = row.eventDateMillis;
-                if (String.isNotBlank(row.section)) {
-                    observedSections.add(row.section);
-                }
-                if (String.isNotBlank(row.action)) {
-                    observedActions.add(row.action);
-                }
+                // Sets ignore repeats; null and blank are removed once, below.
+                observedSections.add(row.section);
+                observedActions.add(row.action);
                 // Advance the cursor for every scanned row, matched or not - the
                 // cursor tracks scan position, not match position.
                 working.consume(row);
@@ -161,14 +166,20 @@ public with sharing class AuditQueryService {
             lastId = (Id) working.lastId;
         }
 
-        if (exhausted || result.scannedThroughMillis == null) {
+        if (exhausted) {
             // Once the range is exhausted the whole window down to the lower
             // bound has been covered, so "searched back to" reports the range
-            // boundary rather than the oldest row that happened to exist.
+            // boundary rather than the oldest row that happened to exist. (An
+            // empty first fetch also lands here, so the value is never left
+            // null.)
             result.scannedThroughMillis = lowerBound.getTime();
         }
         result.done = exhausted;
         working.exhausted = exhausted;
+        observedSections.remove(null);
+        observedSections.remove('');
+        observedActions.remove(null);
+        observedActions.remove('');
         result.observedSections = sorted(observedSections);
         result.observedActions = sorted(observedActions);
         result.sectionFacets = toFacets(sectionCounts);
@@ -249,15 +260,13 @@ public with sharing class AuditQueryService {
             if (String.isNotBlank(filter.searchText)) {
                 // Bounded on purpose: the term loop runs once per scanned row,
                 // up to 10,000 rows per call, so neither the text length nor
-                // the term count may be left to the client.
-                String bounded = filter.searchText.left(MAX_SEARCH_TEXT_LENGTH).toLowerCase();
-                for (String term : bounded.split('\\s+')) {
-                    if (String.isNotBlank(term)) {
-                        terms.add(term);
-                        if (terms.size() >= MAX_SEARCH_TERMS) {
-                            break;
-                        }
-                    }
+                // the term count may be left to the client. Trimming first
+                // means split() yields no empty tokens, so no per-token check
+                // is needed.
+                List<String> words = filter.searchText.left(MAX_SEARCH_TEXT_LENGTH).trim().toLowerCase().split('\\s+');
+                Integer limitCount = Math.min(words.size(), MAX_SEARCH_TERMS);
+                for (Integer i = 0; i < limitCount; i++) {
+                    terms.add(words[i]);
                 }
             }
         }

@@ -71,19 +71,28 @@ style rule, dispositioned below.
 
 ## Environment note
 
-PMD, the Graph Engine and CPD require a local JDK, and the Flow engine requires Python. If
-either is missing, those engines **fail to load and are silently skipped**, and the scan
-reports a false all-clear. This scan was run with OpenJDK 21 and Python 3.12 present, so
-all engines were genuinely executed.
+PMD, the Graph Engine and CPD require a local JDK, and the Flow engine requires Python
+3.10 or later. If one is missing the engine **fails to load**: depending on the plugin
+version it is either skipped silently, so the scan reports a false all-clear, or, as
+5.16.0 did for the flow engine on 2026-10-11, reported as a Critical
+`UninstantiableEngineError` with no file, which is not a code finding. Every recorded run
+had OpenJDK 21, so PMD, CPD and the Graph Engine genuinely executed. The flow engine is
+not eligible for the `force-app` workspace (no Flow metadata); the 2026-10-11 three-tag
+runs had no Python at all, and Python 3.12.10 was installed only before the
+official-selector run. Check the engine and rule counts rather than the violation total;
+each run's environment is in
+[`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
 
 Two further ways this scan can report a false all-clear, both guarded against in
 `code-analyzer.yml`:
 
 - **Selector syntax.** A colon-separated rule selector is an _intersection_. No rule
   carries both the `Recommended` and `AppExchange` tags, so `Recommended:AppExchange`
-  selects **0 rules** and reports `0 violations` while proving nothing. The two tags must
-  be passed as two separate `--rule-selector` flags, which unions them (295 rules here).
-  Always confirm the count with `sf code-analyzer rules` before trusting a clean result.
+  selects **0 rules** and reports `0 violations` while proving nothing. The tags must be
+  passed as separate `--rule-selector` flags, which unions them — three flags here
+  (`Recommended`, `Security`, `AppExchange`), 310 rules, the same count `code-analyzer.yml`
+  and the CI gate check. Always confirm the count with `sf code-analyzer rules` before
+  trusting a clean result.
 - **Graph Engine path timeouts.** `AuditQueryController.search` has a 14,503-path space,
   far beyond the stock 30s per-path budget. On timeout the engine still prints
   `0 violations`, with the abandoned entry point reported only as an `Internal execution
@@ -159,14 +168,41 @@ project does not use. No functional or security impact.
 
 **Accepted, and deliberately not blanket-applied.**
 
-`System.runAs` is used precisely where it is meaningful — `AuditPermissionServiceTest`
-runs as real users on real profiles to prove that a user without **View Setup and
-Configuration** is denied by both `@AuraEnabled` entry points, and that the shipped
-permission set alone is sufficient to grant access.
+The four test classes hold 29 `@IsTest` methods. The rule flags the 26 that run as the
+test user; the other 3 use `System.runAs`, and they are exactly the three that test the
+access gate, all in `AuditPermissionServiceTest.cls`:
 
-The remaining tests exercise pure logic (cursor arithmetic, filter compilation, CSV
-escaping) where the running user is irrelevant. Wrapping them in `runAs` to satisfy the
-rule would add ceremony without adding assurance.
+- `deniesUserWithoutViewSetup` (`AuditPermissionServiceTest.cls:27-50`): a user on the
+  stock **Minimum Access - Salesforce** profile, which lacks **View Setup and
+  Configuration**, gets `false` from `canViewSetup()` and the permission exception from
+  `assertCanViewSetup()`.
+- `blocksControllerEntryPointsForUnprivilegedUser` (`:52-76`): the same user is refused
+  by `search` and `searchUsers`, the two `@AuraEnabled` methods that return data. The
+  controller's third `@AuraEnabled` method, `getContext`, is ungated by design and
+  returns no audit data (`AuditQueryController.cls:46-56`).
+- `packagedPermissionSetOpensTheAppWhenItCanGrantViewSetup` (`:85-126`): the same user,
+  assigned only the shipped `Audit_Trail_Viewer` permission set, passes the gate exactly
+  when that permission set genuinely carries `ViewSetup`. Under managed packaging it does
+  not — Salesforce strips the system permission on install — so in a subscriber org the
+  test pins the gate shut until the administrator grants the permission separately
+  (`CHANGELOG.md`, "Managed-package installs require ...").
+
+Of the remaining 26 methods, 18 do not depend on who runs them: the 13 in
+`AuditQueryServiceTest` (paging, cursor, filter and facet logic against the mock
+provider), the two `AuditEventRow` mapping tests in `SetupAuditTrailProviderTest`, the
+Apex-class-access check in `AuditPermissionServiceTest`, and the two
+`AuditQueryControllerTest` methods that only assert a value is present
+(`contextExposesRetentionWindow`, `permissionCheckRunsRealQuery`). The other 8 pass only
+when the running user holds `ViewSetup`, because they call a gated entry point or run the
+real `SetupAuditTrail` query in user mode: `allowsUserWithViewSetup`, the three `search`
+and two `searchUsers` tests in `AuditQueryControllerTest`, and the two real-SOQL tests in
+`SetupAuditTrailProviderTest`. A 29/29 pass, as recorded in
+[`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md), therefore implies the runner
+held `ViewSetup`; a runner without it would fail these 8. Wrapping the 26 in `runAs` to
+satisfy the rule would add ceremony without adding assurance. CSV escaping is covered by
+the Jest suite
+(`force-app/main/default/lwc/auditExplorer/__tests__/auditExplorer.test.js:242-277`),
+not by Apex.
 
 ### `@salesforce-ux/slds/no-hardcoded-values-slds2` (18)
 
@@ -177,11 +213,14 @@ no security or functional impact.
 
 **Accepted, intentional.**
 
-The single `System.debug(LoggingLevel.ERROR, ...)` is the server-side half of the generic
-error handling: unexpected exceptions are logged for the administrator and replaced with a
-non-specific message to the client, so platform exception text cannot leak query internals
-to the browser. It logs the exception type and message only — no credential, no session
-data, and no personal data.
+The single `System.debug(LoggingLevel.ERROR, ...)` (`AuditQueryController.cls:38`) is the
+server-side half of the generic error handling: unexpected exceptions are written to the
+Apex debug log and replaced with a non-specific message to the client, so platform
+exception text cannot leak query internals to the browser. Because this is managed-package
+code, a subscriber administrator sees that log line only subject to the org's trace flags
+and the debug settings that apply to the package's code; it is a diagnostic trail, not a
+notification. The line echoes the exception type and message only — never a row of audit
+data, and no credential, no session data, and no personal data.
 
 Removing it would satisfy the linter by discarding the diagnostic trail, which is the
 wrong trade.

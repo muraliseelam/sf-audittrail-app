@@ -21,10 +21,16 @@ cd sf-audittrail-app
 npm install
 
 # Deploy to a scratch org or sandbox
-sf org create scratch --definition-file config/project-scratch-def.json --alias audittrail-dev --set-default
+sf org create scratch --definition-file config/project-scratch-def.json --alias audittrail-dev --set-default --no-namespace
 sf project deploy start --source-dir force-app --target-org audittrail-dev
 sf org assign permset --name Audit_Trail_Viewer --target-org audittrail-dev
 ```
+
+`--no-namespace` is needed because `sfdx-project.json` declares the
+`atexplorer` namespace, and `sf org create scratch` fails against any Dev Hub
+that does not have that namespace linked, which is every Dev Hub except the
+maintainer's; namespaced validation happens in the maintainer's Dev Hub (see
+[`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)).
 
 ## Before opening a pull request
 
@@ -53,9 +59,12 @@ sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
 
 ## Code style
 
-- Apex: `with sharing` on every class; no inline SOQL/SOSL built from
-  concatenated user input — always use bind variables; prefer
-  `AccessLevel.USER_MODE` / `WITH USER_MODE` for CRUD/FLS enforcement.
+- Apex: `with sharing` on every production class and inner class (the four
+  `@IsTest` classes carry no sharing keyword, the `AuditTrailProvider`
+  interface cannot, and the `AuditPermissionException` exception type runs
+  no query); no inline SOQL/SOSL built from concatenated user input — always
+  use bind variables; prefer `AccessLevel.USER_MODE` / `WITH USER_MODE` for
+  CRUD/FLS enforcement.
 - LWC: no `lwc:dom="manual"`, no `innerHTML`/`eval`; render user-controlled
   text only through `{}` template interpolation.
 - Formatting is enforced by Prettier (`npm run prettier`) and is not

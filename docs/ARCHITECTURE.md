@@ -6,8 +6,13 @@
 Browser (Lightning Web Component: auditExplorer)
   |  imperative Apex (@AuraEnabled)
   v
-AuditQueryController          Single external surface. Every method calls
-  |                            AuditPermissionService before doing anything else.
+AuditQueryController          Single external surface. The two data-returning
+  |                            methods, search and searchUsers, call
+  |                            AuditPermissionService before doing anything
+  |                            else. getContext is ungated by design: it returns
+  |                            retention constants, the server time, the default
+  |                            page size and the caller's own canViewSetup
+  |                            flag - no audit or user data.
   |                            Also issues one SOQL query directly, against the
   |                            standard User object, for the "changed by"
   |                            type-ahead (searchUsers) - see below.
@@ -59,11 +64,22 @@ bounded batches (`SCAN_BATCH` = 1,000 rows/query, up to `MAX_BATCHES_PER_CALL`
 = 10 per call), pushes what SOQL _can_ filter (date range, `Action`,
 `CreatedById`) into the query, applies `Section`/free-text filtering in Apex
 over each batch, and returns as soon as a page is filled or the range is
-exhausted — handing back an opaque cursor (`AuditCursor`) so the browser can
-resume exactly where the server left off. Each call is a fresh transaction
-with its own governor limits, so the total scan depth is bounded only by how
-many times the client chooses to call `search()` again (bounded client-side
-by `MAX_CALLS_PER_ACTION` = 25 calls per user action).
+exhausted — handing back a cursor (`AuditCursor`) so the browser can resume
+where the server left off. Each call is a fresh transaction with its own
+governor limits, so the total scan depth is bounded only by how many times
+the client chooses to call `search()` again (bounded client-side by
+`MAX_CALLS_PER_ACTION` = 25 calls per user action).
+
+The cursor is not opaque. It is plain JSON (`lastDateMillis`,
+`seenIdsAtLastDate`, `exhausted`) that the browser keeps between calls and
+sends back as-is (`auditExplorer.js:219,237`), so the client can read and
+modify it. The server therefore treats it as untrusted input: at most
+`MAX_SEEN_IDS` = 5,000 ids are copied into the query bind, and any entry that
+is not a well-formed `Id` is skipped rather than allowed to throw
+(`AuditCursor.cls:11-17,45-61`). A modified cursor changes only where the
+caller's own next query starts and which ids it excludes; that query still
+runs under `USER_MODE` for the running user, and every call is still gated by
+`assertCanViewSetup()` first.
 
 ### Why the cursor tracks ids, not just a timestamp
 
@@ -88,10 +104,19 @@ validated against real data (122 records over 18 pages, 0 duplicates/skips).
 - **Editions without custom Apex are not supported**, because this package
   requires it. That covers **Professional Edition** and **Base Edition**; a
   Base Edition install fails at `Missing feature: Apex Classes`.
-- **No counts/aggregates from the platform.** "Top sections"/"Top users" are
-  computed in Apex over the rows scanned so far in the current search, not
-  over the org's entire audit history — a search that has only scanned back
-  30 days shows facets for those 30 days, not all 180.
+- **No counts/aggregates from the platform.** Nothing is counted by SOQL.
+  Apex tallies, per `search()` call, only the rows that matched the filter in
+  that call (`AuditQueryService.cls:98-102`) and returns them as
+  `sectionFacets`/`actionFacets`/`userFacets` (`AuditSearchResult.cls:25-31`).
+  The browser does not use those server tallies: it recomputes "Top
+  sections"/"Top users" over every matched row accumulated in the page so far,
+  across all calls of the current search (`auditExplorer.js:242-249`). The
+  facets therefore describe the result set on screen — matched rows within the
+  range scanned so far — not every row examined and not the org's entire audit
+  history: a search that has scanned back 30 days shows facets for its matches
+  in those 30 days, not all 180. Separately, the "Sections" filter options are
+  discovered from every row scanned, matched or not (`observedSections`,
+  `AuditQueryService.cls:88-90`, merged at `auditExplorer.js:241,267-284`).
 - **A single scan is not a single query.** For a sparse filter (for example,
   a rare search term) over a long date range, the client may need to make
   several sequential `search()` calls to fill one page, because the

@@ -1,5 +1,10 @@
 name: CI
 
+# Least-privilege GITHUB_TOKEN: nothing in this workflow writes to the
+# repository, so the token only needs to read it.
+permissions:
+    contents: read
+
 # Deterministic, org-independent checks: linting, formatting, and LWC unit
 # tests. Apex unit tests require a live Salesforce org (SetupAuditTrail rows
 # cannot be inserted outside one) and are intentionally NOT run here — see

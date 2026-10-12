@@ -15,15 +15,19 @@ processes, not by this repository.
 > review has actually been passed. Update the install link and version
 > references below at that time.
 
+This draft cites no Salesforce source for a character or pixel limit on any
+field; read the limit for each field from the Listing Builder's own field help
+before pasting the copy below.
+
 ## Listing name
 
 Audit Trail Explorer
 
-## Tagline (≤ 10 words)
+## Tagline
 
 Search, filter, and export your Setup Audit Trail.
 
-## Short description (≤ 250 characters)
+## Short description
 
 Fast, filterable search over Salesforce's Setup Audit Trail. Search by
 description, section, user, or date — something native Setup can't do —
@@ -42,7 +46,7 @@ storage to your org.
 **What it does**
 
 - Search up to 180 days (Salesforce's retention limit) of setup/configuration
-  changes by free text, section, action, changed-by user, and date range.
+  changes by free text, section, changed-by user, and date range.
 - See which sections and users show up most in your current result set.
 - Open any event for detail: delegate user and namespace.
 - Export the current result set to CSV for offline review or audit
@@ -89,7 +93,52 @@ Community support via GitHub issues:
 `https://github.com/muraliseelam/sf-audittrail-app/issues`. See
 [SECURITY.md](../SECURITY.md) for reporting security concerns privately.
 
-## Screenshots / demo assets needed (not included in this repo)
+## Fields the Listing Builder also requires
+
+The sections above cover only part of the form. The builder also asks for the
+following; values marked "(to be supplied by the publisher)" are not decided
+by anything in this repository.
+
+- Highlights: (to be supplied by the publisher).
+- SEO description: (to be supplied by the publisher).
+- Required and Compatible Salesforce products: Lightning Experience; editions
+  that can run custom Apex (Enterprise, Unlimited, Performance and Developer -
+  see the edition note under Install in [README.md](../README.md#install)).
+- Supported languages: English.
+- Supported features: (to be supplied by the publisher).
+- Industries: (to be supplied by the publisher).
+- Target user persona: Salesforce administrators, security and compliance
+  auditors.
+- Business needs: (to be supplied by the publisher).
+- Installation method: install from the AppExchange listing.
+- Lead org: (to be supplied by the publisher).
+- Support email, hours and SLA: (to be supplied by the publisher); the
+  GitHub-issues channel above is not a support SLA.
+- Provider company name, description, website and phone: (to be supplied by
+  the publisher).
+- Customer terms and conditions: (to be supplied by the publisher).
+  [LICENSE](../LICENSE) is the Apache-2.0 software licence, not customer
+  terms.
+- Privacy policy URL: (to be supplied by the publisher). The builder needs a
+  hosted URL; [docs/PRIVACY.md](PRIVACY.md) exists only in the repository.
+
+## Visual assets
+
+None exist yet. The repository contains no PNG, JPG or SVG outside
+`node_modules/` and `coverage/`, and the app has no custom icon (the tab uses
+the standard `Custom53: Bell` motif). The sizes below are legacy published
+guidance and must be confirmed against the builder's field help before any
+image is produced: small logo PNG 60x60 up to 100 KB; tile logo PNG 280x205
+up to 300 KB; banner PNG 1200x300 up to 1 MB; up to eight screenshots PNG up
+to 1 MB each.
+
+Do not take screenshots in org `00DRK00000aOfV72AK`: its Setup Audit Trail
+permanently holds the seeded "ATE Bulk" rows (see the note at the end of the
+"Functional UI verification of the managed install — 2026-09-13" section of
+[docs/LIVE-ORG-VALIDATION.md](LIVE-ORG-VALIDATION.md)). Review the chosen
+org's audit trail for real usernames before publishing any image.
+
+Screenshots still to be produced (not included in this repo):
 
 - [ ] Search screen with results populated and facets visible.
 - [ ] Row detail panel.

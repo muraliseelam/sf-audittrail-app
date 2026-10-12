@@ -113,11 +113,18 @@ Retained for historical traceability only; do not install these.
 | Item              | Result                                                      |
 | ----------------- | ----------------------------------------------------------- |
 | Org               | `rel-qa` (`00DRK00000aOfV72AK`), released package installed |
-| Test level        | `RunLocalTests`                                             |
+| Tests selected    | The installed package's 29 tests — see correction below     |
 | Tests passed      | **29 / 29 (0 failures)**, 100% pass rate                    |
 | Test run ID       | `707RK0000BPQrG1`                                           |
 | Test classes      | Ran as namespaced `atexplorer.*` classes                    |
 | Org-wide coverage | Not meaningfully reported for managed code — see note below |
+
+**Correction, 2026-10-11.** The test level originally recorded in this table
+was wrong for a subscriber org and has been removed; the result stands: the
+package's 29 tests ran and passed under run id `707RK0000BPQrG1`. Installed
+managed-package tests are selected only by `RunAllTestsInOrg` or by naming the
+classes explicitly, as the `mgd-qa2` record below and the 2026-09-10 record
+(`707RK0000BPbjPq`) already state.
 
 ### Earlier: managed beta `1.0.0.2` in the subscriber org
 
@@ -272,13 +279,16 @@ released version on this date, not inferred from the beta.
 
 ### Deterministic gate (what CI runs)
 
-`npm run lint` clean, `npm run prettier:verify` clean, `npm run test:unit`
-**7 / 7 Jest tests passing**.
+`npm run lint` clean, `npm run prettier:verify` clean,
+`npm run test:unit:coverage` (the command the `Run LWC Jest tests` step in
+`.github/workflows/ci.yml` runs) **7 / 7 Jest tests passing**.
 
 **LWC coverage, fixed 2026-09-12.** `npm run test:unit:coverage` previously
 instrumented nothing: it emitted an empty `coverage-final.json` (`{}`) and
-reported 0% for every file while still exiting 0, so the CI coverage step was
-green and measuring nothing. Cause: the `sfdx-lwc-jest` preset's default
+reported 0% for every file while still exiting 0, so the CI coverage step
+(`npm run test:unit:coverage`, which reports coverage and enforces no
+threshold; `jest.config.js` sets no `coverageThreshold`) was green and
+measuring nothing. Cause: the `sfdx-lwc-jest` preset's default
 `collectCoverageFrom` globs every file under `lwc/` and negates only `.html`
 and `.css`, leaving `.js-meta.xml` in the set; Istanbul cannot instrument
 those and the whole run collapses to an empty report. `jest.config.js` now
@@ -293,10 +303,12 @@ Measured result:
 | **All files**      | **72.16** | 68.75    | 57.81   | 73.09   |
 
 `csv.js` — the CSV formula-injection control — is fully covered. The component
-itself is not: **72.16% statements is below this project's >85% target**, and
-the uncovered ranges in `auditExplorer.js` (notably 301-332 and 342-381) are
-untested UI paths. This is now a measured, visible number rather than a silent
-zero; raising it is outstanding work, not something this change addressed.
+itself is not: **72.16% statements**, and the uncovered ranges in
+`auditExplorer.js` (notably 301-332 and 342-381) are untested UI paths. No
+coverage threshold is configured anywhere in this repository (`jest.config.js`
+has no `coverageThreshold`), so this figure is reported, not enforced. It is
+now a measured, visible number rather than a silent zero; raising it is
+outstanding work, not something this change addressed.
 
 ## Install into a persistent Developer Edition org — 2026-09-13
 
@@ -382,6 +394,95 @@ Two observations, neither a defect:
 > "ATE Bulk" entries; Setup Audit Trail is append-only. Do not use that org for
 > listing screenshots.
 
+## 2026-10-11 - Local reproduction and pre-submission audit
+
+Everything in this section was run on one Windows 11 workstation (7.72 GB RAM)
+at source commit `f27a009`. **No Salesforce org was authenticated on that
+workstation, so nothing org-dependent was re-run**: the install records, Apex
+test runs and permission-set observations above stand as recorded on their own
+dates. Nothing here is a review outcome; the package remains not submitted,
+not reviewed and not listed.
+
+### Toolchain
+
+| Item                 | Value                                                    |
+| -------------------- | -------------------------------------------------------- |
+| Node / npm           | 24.20.0 / 11.19.0                                        |
+| Salesforce CLI       | `@salesforce/cli` 2.153.5 win32-x64                      |
+| Code Analyzer plugin | 5.16.0                                                   |
+| JDK                  | OpenJDK 21.0.12.1 (Microsoft build)                      |
+| Python               | 3.12.10, installed after scans A and B and before scan C |
+
+### Source is unchanged since the released build
+
+`git diff --stat v1.0.0..HEAD -- force-app sfdx-project.json` is empty. Tag
+`v1.0.0` is commit `934f200`, the source that built released version `1.0.0.2`
+(`04thm000002OtQPAA0`); the seven commits since the tag (`4f50909` through
+`f27a009`) touch documentation, CI and configuration only. Every org-side
+result recorded above therefore still describes the shipped code.
+
+### Deterministic gates
+
+`npm run lint` passes, `npm run prettier:verify` passes and
+`npm run test:unit:coverage` passes: Jest **7 / 7**, `auditExplorer.js` 70.64%
+statements, `csv.js` 100%. These are the figures already tabulated under
+"Deterministic gate" above; nothing moved.
+
+### Code Analyzer
+
+Three scans, recorded in full in
+[`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
+
+**Scan A — repository selector, all engines (18:41-18:51 local).**
+`sf code-analyzer run --config-file code-analyzer.yml --workspace force-app
+--rule-selector Recommended --rule-selector Security --rule-selector
+AppExchange --severity-threshold 2` ran against a selector that resolved to
+**310 rules from 6 engines** (eslint 202, pmd 94, regex 6, retire-js 4, cpd 2,
+sfge 2; the same count before and after Python was installed) and produced the
+**85 code violations identical rule-for-rule and count-for-count to the
+2026-09-19 record** (0 Critical, 0 High, 11 Moderate, 74 Low). It also
+reported one Critical `UninstantiableEngineError` from the `flow` engine
+("Could not locate a Python v3.10.0+ install"), an engine-instantiation error
+with no file rather than a code finding, which is why the run exited 1 with 86
+entries in `ca-report.json`. Inside this same run the Graph Engine completed —
+"analyzed 14503 path(s) from 3 entry point(s). Detected 0 violation(s)" — with
+a 2g heap and 4 threads while host free memory was about 0.7-0.8 GB.
+
+**Scan B — Graph Engine alone (18:51-19:01 local).** Same configuration with
+`--rule-selector sfge`: "Detected 0 violation(s) from 14503 path(s) on 3/3
+entry point(s)", which meets this repository's validity bar (full path count,
+3/3 entry points, no `Internal execution error`). The only violation it
+printed was the same flow `UninstantiableEngineError`.
+
+**Scan C — Salesforce's official AppExchange command.** Run after Python
+3.12.10 was installed, from a clean git worktree at commit `934f200` (no
+`node_modules`, no `--config-file`, no `--workspace`, from the package
+top-level directory): `sf code-analyzer rules --rule-selector AppExchange
+--rule-selector Recommended:Security` resolved to **62 rules from 5 engines**
+(pmd 51, retire-js 4, eslint 3, flow 3, regex 1; no sfge, no cpd), and
+`sf code-analyzer run --rule-selector AppExchange --rule-selector
+Recommended:Security --output-file CodeAnalyzerReport.html` finished with exit
+0 and **"Found 0 violations."** (regex, retire-js, pmd and eslint executed;
+flow had no Flow files to scan). The report is kept by the maintainer outside
+the repository (`CodeAnalyzerReport.html` is gitignored); its SHA-256 is
+`5C05B155418A8A1BE3FA2FF77132260F3B62E628380B25AFA4DC293D93C9169E`.
+
+**Why CI never saw the flow error.** The Code Analyzer flow engine needs
+Python 3.10+, which GitHub's `ubuntu-latest` runner preinstalls and this
+workstation did not have; with `--workspace force-app` the flow engine is not
+eligible anyway (no Flow metadata), so the repository selector still counts
+310 rules from 6 engines on CI and locally.
+
+### Readiness audit
+
+A pre-submission audit reviewed the code, metadata and documents across eight
+dimensions (access control, injection, LWC client, data handling, tests,
+packaging, documentation consistency, runtime robustness), and every candidate
+finding was judged by three independent verifiers against the source. **67
+candidates: 63 confirmed (0 blocker, 0 high, 12 medium, 41 low, 10 info), 4
+rejected.** The confirmed items, their fixes and the submission procedure are
+in [`SECURITY-REVIEW-SUBMISSION.md`](SECURITY-REVIEW-SUBMISSION.md).
+
 ## Remaining manual/live checklist
 
 - [x] ~~Link the `atexplorer` namespace to the packaging Dev Hub~~ — done
@@ -402,9 +503,10 @@ Two observations, neither a defect:
       Irreversible; the version number is permanently consumed.
 - [ ] Submit the released managed package version for AppExchange Security
       Review.
-- [ ] Only after security review approval: update `README.md`,
-      `docs/APPEXCHANGE-LISTING.md`, and this file to reference the released
-      managed package's install URL.
+- [ ] After review approval: add the listing URL and the review outcome, in
+      Salesforce's own words, to `README.md`, `docs/APPEXCHANGE-LISTING.md`
+      and this file. (`README.md` already carries the install URL for
+      `04thm000002OtQPAA0`.)
 
 **Current state: released managed 2GP version `1.0.0.2`. Not submitted for
 AppExchange Security Review. No AppExchange listing.**

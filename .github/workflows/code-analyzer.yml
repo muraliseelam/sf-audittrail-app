@@ -123,8 +123,12 @@ jobs:
                   # "0 violations". Match the count rather than the surrounding
                   # wording: the "3/3 entry point(s)" phrasing comes from the
                   # progress spinner, which a non-TTY CI log may not render.
-                  if ! grep -qF "14503 path(s)" sfge.log; then
-                    echo "::error::Graph Engine did not report the full 14503-path analysis."
+                  # The count is a property of the source: 14503 for 1.0.0.2,
+                  # 6537 for 1.0.1 (commit f0ad675). Re-measure and update it
+                  # whenever AuditQueryController.search or anything it calls
+                  # gains or loses a conditional.
+                  if ! grep -qF "6537 path(s)" sfge.log; then
+                    echo "::error::Graph Engine did not report the full 6537-path analysis."
                     echo "::error::The analysis was abandoned part-way; a '0 violations' result is vacuous. Failing."
                     grep -iE "path\(s\)|entry point" sfge.log || true
                     exit 1

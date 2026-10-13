@@ -250,6 +250,7 @@ repository should be read as claiming otherwise.
 | [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Code Analyzer findings and their disposition                          |
 | [`docs/SECURITY-REVIEW-SUBMISSION.md`](docs/SECURITY-REVIEW-SUBMISSION.md)                     | Security Review submission status, findings and runbook               |
 | [`docs/SECURITY-PROGRAM-STATEMENT.md`](docs/SECURITY-PROGRAM-STATEMENT.md)                     | Publisher security program statement                                  |
+| [`docs/DAST-STATEMENT.md`](docs/DAST-STATEMENT.md)                                             | Why dynamic scanning (DAST) does not apply: no external endpoint      |
 | [`docs/CODE-ANALYZER-SCAN-RECORD.md`](docs/CODE-ANALYZER-SCAN-RECORD.md)                       | Dated Code Analyzer run records: rule counts, results, validity       |
 | [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                        |
 | [`SECURITY.md`](SECURITY.md)                                                                   | How to report a vulnerability                                         |

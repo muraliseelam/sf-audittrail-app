@@ -843,6 +843,29 @@ be submitted for AppExchange Security Review; the package has not been
 submitted for, has not passed, and is not listed after that review, and this
 entry does not change that.
 
+### CI reproduction — GitHub Actions
+
+After the release was pushed, the `Code Analyzer` workflow was dispatched on
+`main` at `306be7c`, whose `force-app` is identical to `f0ad675`:
+[run 38337153771](https://github.com/muraliseelam/sf-audittrail-app/actions/runs/38337153771),
+every step green in 13m33s on `ubuntu-latest`, with the CLI, the plugin and
+the JDK installed fresh on the runner as in the 2026-09-19 entry.
+
+- Rule selection: the count check passed, 310 rules from 6 engines.
+- All six engines: 119 violations across 16 files, 13 Moderate and 106 Low,
+  no Critical or High, identical to Run 2. The embedded Graph Engine portion
+  completed: 6537 paths from 3 entry points, 0 violations for the two security
+  rules.
+- Graph Engine alone: "Overall, analyzed 6537 path(s) from 3 entry point(s).
+  Detected 1 violation(s)", the `AvoidDatabaseOperationInLoop` finding of
+  Run 3, and the workflow's pinned 6537-path and 3/3-entry-point checks
+  passed.
+
+The path count is the same on a Linux runner as on the Windows workstation of
+Runs 1-3. The generated reports are attached to the run as the
+`code-analyzer-reports` artifact and expire after 30 days; this section is the
+durable record.
+
 ### Operational note — `node_modules` and the official command
 
 Since `5c70c8c`, `code-analyzer.yml` sets

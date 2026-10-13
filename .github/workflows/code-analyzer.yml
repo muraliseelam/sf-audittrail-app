@@ -81,7 +81,9 @@ jobs:
                     --rule-selector AppExchange \
                     --view detail > rules.txt 2>&1
                   echo "--- selector summary ---"
-                  sed -n '/=== Summary/,$p' rules.txt
+                  # On the runner the CLI writes colour codes even into the redirected
+                  # file, and they sit between "===" and "Summary". Strip them first.
+                  sed 's/\x1b\[[0-9;]*m//g' rules.txt | sed -n '/=== Summary/,$p'
                   if ! grep -q "Found 310 rule(s) from 6 engine(s)" rules.txt; then
                     echo "::error::Rule selector did not resolve to 310 rules from 6 engines."
                     echo "::error::A clean scan from this selector would prove nothing. Failing."

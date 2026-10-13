@@ -170,9 +170,10 @@ in `code-analyzer.yml`:
   added conditionals on the search path, and on the sources of `1.0.1.2` and
   `1.0.1.3` the standalone run timed out even at a diagnostic 1,800,000 ms,
   printing `3 path(s) from 2 entry point(s)` and the vacuous all-clear.
-  `AuditQueryService.search` was rewritten in `f0ad675` with the minimum of
-  branches (`Math.min`/`Math.max` clamps, unconditional set inserts with nulls
-  removed once, one ternary for the cursor — `AuditQueryService.cls:57-73`),
+  `AuditQueryService.search` was rewritten in `f05ed25` and `f0ad675` with the
+  minimum of branches (`Math.min`/`Math.max` clamps from `f05ed25`;
+  unconditional set inserts with nulls removed once and one ternary for the
+  cursor from `f0ad675` — `AuditQueryService.cls:57-73`),
   which brought the count to 6,537; `code-analyzer.yml` now sets
   `java_thread_timeout` to 1,800,000 ms and
   `.github/workflows/code-analyzer.yml` pins `6537 path(s)`. If `search()` or

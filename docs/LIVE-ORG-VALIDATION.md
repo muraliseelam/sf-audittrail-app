@@ -728,6 +728,21 @@ previous version; `1.0.1.1`, `1.0.1.2` and `1.0.1.3` remain unreleased betas.
 "Released" is the Salesforce packaging state only: the package is still **not
 submitted** for, **not reviewed** by and **not listed** on AppExchange.
 
+### Customer upgrade path: `1.0.0.2` to `1.0.1.4` - `ate-upg`
+
+`ate-mgd` reached `1.0.1.4` through the three 1.0.1 betas. Existing customers
+will upgrade directly from the previous released version, so that path was
+exercised separately after promotion, in a fresh org.
+
+| Item                                            | Result                                                                                                                                                     |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Target org                                      | Clean, un-namespaced scratch org, alias `ate-upg`, org ID `00Dcb00000QrxpMEAR`, created 2026-10-12 (02:31 UTC 2026-10-13), expires 2026-10-16, no packages |
+| Install `1.0.0.2` (`04thm000002OtQPAA0`)        | Request `0Hfcb000003fCBZCA2`, `SUCCESS`                                                                                                                    |
+| Upgrade to `1.0.1.4` (`04thm000002tWirAAE`)     | Request `0Hfcb000003fCDBCA2`, `SUCCESS`; `InstalledSubscriberPackage` shows `04thm000002tWirAAE`, `1.0.1.4`, `IsBeta` `false`                              |
+| Apex classes after the upgrade                  | The same 14 `atexplorer` classes as `1.0.0.2`; 1.0.1 adds and removes none                                                                                 |
+| `PermissionsViewSetup` / `PermissionsViewRoles` | **`false` / `false`** on the upgraded `atexplorer__Audit_Trail_Viewer`, whose description now reads as in 1.0.1 (managed installs strip both)              |
+| `RunAllTestsInOrg` after the upgrade            | Run `707cb00001ioLh6`: **50 passed, 0 failed** (the 1.0.1 test suite, as upgraded)                                                                         |
+
 ### Deterministic gates and static analysis on the same source
 
 `npm run lint` clean, `npm run prettier:verify` clean, Jest **26 / 26** (was

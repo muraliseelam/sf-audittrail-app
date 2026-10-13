@@ -532,3 +532,331 @@ taken here because the official command needs the engine available.
 The memory guidance from the 2026-09-10 note still stands. The Graph Engine
 happened to finish inside the six-engine run this time, but on a 7.72 GB host
 the result to record is the one from running it alone.
+
+## 2026-10-12 — source commit `f0ad675` (1.0.1 release source)
+
+Three runs on the maintainer's workstation in the `release/1.0.1` worktree at
+`f0ad675`, the commit that built managed version
+`1.0.1.4` (`04thm000002tWirAAE`), promoted to Released the same day. Later
+commits on the branch touch configuration and documentation only;
+`git diff f0ad675..HEAD -- force-app` is empty, so the source scanned here is
+the source of the released version.
+
+**This entry is a static-analysis record, not a review outcome.** "Released"
+is the Salesforce packaging state only. The package is not submitted for, not
+reviewed by and not listed on AppExchange, and nothing below changes that.
+
+### Why this run exists
+
+- 1.0.1 rewrote the search path: keyset paging on `(CreatedDate, Id)` in place
+  of a seen-id list (`AuditCursor.cls`, `SetupAuditTrailProvider.cls:26-35`),
+  a date range resolved on the server and pinned in the cursor
+  (`AuditQueryService.cls:200-211`), validation of the client-supplied cursor
+  (`AuditCursor.cls:53-65`), and one error contract for every entry point
+  (`AuditQueryController.cls:7-9`). The 85-finding tables above describe
+  `1.0.0.2`, not this code.
+- The Graph Engine's path count is a property of the code, and the 14,503
+  figure that `.github/workflows/code-analyzer.yml` pinned was measured on
+  `1.0.0.2`. The first three 1.0.1 commits could not be analysed to completion
+  at all; what happened on each is under "Superseded attempts" below.
+- The official AppExchange report must be generated on the source that matches
+  the version to be submitted. The report of 2026-10-11 describes `934f200`;
+  Run 1 here is its replacement for `1.0.1.4`.
+
+### Environment
+
+| Item                 | Value                                                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Code Analyzer plugin | `5.16.0`                                                                                                                                |
+| Salesforce CLI       | `@salesforce/cli/2.153.5` win32-x64, node 24.20.0                                                                                       |
+| JDK                  | OpenJDK 21.0.12.1 (Microsoft build, LTS)                                                                                                |
+| Python               | `3.12.10`                                                                                                                               |
+| Host                 | Windows 11 workstation, the same machine as the 2026-10-11 entry                                                                        |
+| Workspace scanned    | Runs 2-3: `force-app` of the `release/1.0.1` worktree at `f0ad675`; Run 1: top-level directory of the same worktree; `npm ci` run first |
+
+Same toolchain as the 2026-10-11 entry, with Python present from the start, so
+the `flow` engine instantiated in every run and that entry's
+`UninstantiableEngineError` did not recur. `npm ci` was run before anything
+else; why that matters for the official command is in the operational note at
+the end of this entry.
+
+### Rule selection
+
+Both selectors were measured from the worktree root before scanning. The
+repository selector:
+
+```
+sf code-analyzer rules --config-file code-analyzer.yml --workspace force-app \
+  --rule-selector Recommended --rule-selector Security --rule-selector AppExchange
+```
+
+| Engine      | Rules   |
+| ----------- | ------- |
+| `eslint`    | 202     |
+| `pmd`       | 94      |
+| `regex`     | 6       |
+| `retire-js` | 4       |
+| `cpd`       | 2       |
+| `sfge`      | 2       |
+| **Total**   | **310** |
+
+Identical to the three previous entries engine for engine; the count pinned in
+[`code-analyzer.yml`](../code-analyzer.yml) and checked by CI still describes
+this rule set. The official AppExchange selector:
+
+```
+sf code-analyzer rules --rule-selector AppExchange --rule-selector Recommended:Security
+```
+
+| Engine      | Rules  |
+| ----------- | ------ |
+| `pmd`       | 51     |
+| `retire-js` | 4      |
+| `eslint`    | 3      |
+| `flow`      | 3      |
+| `regex`     | 1      |
+| **Total**   | **62** |
+
+Identical to 2026-10-11. No `sfge` and no `cpd`, for the reason given in that
+entry: the colon-separated `Recommended:Security` intersection never reaches
+the two Graph Engine rules, which is why Runs 2 and 3 are kept next to the
+official report.
+
+### Run 1 — official AppExchange command
+
+From the worktree's top-level directory, with no `--config-file` and no
+`--workspace`, exactly as Salesforce's AppExchange page gives it:
+
+```
+sf code-analyzer run --rule-selector AppExchange --rule-selector Recommended:Security \
+  --output-file CodeAnalyzerReport.html
+```
+
+```
+Executing rules... done. Executed rules from retire-js, eslint, regex, pmd.
+Found 0 violations.
+```
+
+Exit code 0. `flow` instantiated but had no Flow metadata to scan; `sfge` and
+`cpd` hold no rule under this selector. One difference from the 2026-10-11
+Run 3, which was made from a checkout that predates `5c70c8c`: the current
+directory here holds a `code-analyzer.yml` that names
+`eslint_config_file: eslint.config.js`, and the plugin auto-loads it even
+without `--config-file`. The ESLint engine therefore applied the project's
+configuration. The three ESLint rules in the 62 are still the engine's own
+AppExchange and Security rules; the project's lint set is covered by Run 2 and
+`npm run lint`.
+
+The resulting `CodeAnalyzerReport.html` is the file to upload with the
+`1.0.1.4` submission. It is kept by the maintainer outside the repository
+(gitignored, `.gitignore:55`); it is 64,954 bytes and its SHA-256 is
+
+```
+03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C
+```
+
+computed with `Get-FileHash -Algorithm SHA256`. For the 1.0.1 submission it
+supersedes the `5C05B155...` report of 2026-10-11 (`934f200`, the `1.0.0.2`
+source) and the report made earlier on 2026-10-12 on `41e2a29` (the `1.0.1.2`
+source, listed under "Superseded attempts"); neither of those matches the
+source of `1.0.1.4`.
+
+### Run 2 — all six engines (repository selector)
+
+```
+sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
+  --rule-selector Recommended --rule-selector Security --rule-selector AppExchange \
+  --severity-threshold 2
+```
+
+11 minutes; exit code 0, so no Critical and no High finding from any of the
+310 rules. **119 violations across 16 files: 13 Moderate, 106 Low.**
+
+| Rule                                            | Engine | Severity | Count |
+| ----------------------------------------------- | ------ | -------- | ----- |
+| `ApexUnitTestClassShouldHaveRunAs`              | pmd    | Low      | 45    |
+| `ApexDoc`                                       | pmd    | Low      | 38    |
+| `@salesforce-ux/slds/no-hardcoded-values-slds2` | eslint | Low      | 22    |
+| `ExcessiveParameterList`                        | pmd    | Moderate | 4     |
+| `CognitiveComplexity`                           | pmd    | Moderate | 3     |
+| `CyclomaticComplexity`                          | pmd    | Moderate | 3     |
+| `@lwc/lwc-platform/no-inline-disable`           | eslint | Moderate | 2     |
+| `NcssCount`                                     | pmd    | Moderate | 1     |
+| `AvoidDebugStatements`                          | pmd    | Low      | 1     |
+
+`retire-js`, the `regex` secrets engine and `cpd` reported **0 violations**.
+No finding carries the `Security`, `AppExchange` or `ErrorProne` tag.
+
+Where the Moderate findings are:
+
+- `ExcessiveParameterList` (4): `AuditTrailProvider.fetch` at
+  `AuditTrailProvider.cls:25`, `SetupAuditTrailProvider.fetch` at
+  `SetupAuditTrailProvider.cls:9`, `MockAuditTrailProvider.fetch` at
+  `MockAuditTrailProvider.cls:19` and `MockAuditTrailProvider.row` at `:69`.
+  The keyset contract replaced the `Set<Id> excludeIds` parameter with
+  `Id lastId`, so the parameter count is what it was in `1.0.0.2`.
+- `CognitiveComplexity` (3): the `AuditQueryService` class total at
+  `AuditQueryService.cls:24`, `search()` at `:53`, and
+  `MockAuditTrailProvider.fetch` at `MockAuditTrailProvider.cls:19`.
+- `CyclomaticComplexity` (3): `search()` at `AuditQueryService.cls:53`, the
+  `AuditQueryServiceTest` class total at `AuditQueryServiceTest.cls:2`, and
+  `MockAuditTrailProvider.fetch` at `MockAuditTrailProvider.cls:19`.
+- `NcssCount` (1): `search()` at `AuditQueryService.cls:53`.
+- `@lwc/lwc-platform/no-inline-disable` (2): `auditExplorer.js:289` and
+  `__tests__/auditExplorer.test.js:81`, both the deliberate `no-await-in-loop`
+  for sequential cursor-driven calls.
+
+The one Low `AvoidDebugStatements` is the single `System.debug` in
+`genericFailure` (`AuditQueryController.cls:110`), which is where the real
+failure detail stays instead of reaching the browser.
+
+Against the `1.0.0.2` baseline (85 = 11 Moderate + 74 Low): +19
+`ApexUnitTestClassShouldHaveRunAs` (50 test methods, up from 29), +9 `ApexDoc`
+(new methods), +4 SLDS hard-coded values (new CSS), +1 `CyclomaticComplexity`
+and +1 `no-inline-disable` (the Jest file). `CognitiveComplexity` is unchanged
+at 3. Three rules that fired on the interim 1.0.1 commits,
+`FieldNamingConventions`, `AvoidDeeplyNestedIfStmts` and
+`ApexUnitTestClassShouldHaveAsserts`, do not fire on the final source. Every
+rule in the table is a family already dispositioned in
+[`SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](SECURITY-REVIEW-FINDINGS-DISPOSITION.md),
+and the mock and test-class hits are test code.
+
+The Graph Engine portion embedded in this run completed:
+
+```
+sfge: Overall, analyzed 6537 path(s) from 3 entry point(s). Detected 0 violation(s).
+```
+
+for the two Security-tagged `sfge` rules. The trimmed search path made that
+possible on the host where the 2026-09-10 run was abandoned after 3 paths. As
+in every previous entry it is noted and not relied on; Run 3 is the Graph
+Engine record.
+
+### Run 3 — Graph Engine alone (authoritative for `sfge`)
+
+With the committed configuration (`java_thread_timeout: 1800000`,
+`java_max_heap_size: 2g`, `java_thread_count: 4`), on an otherwise idle host,
+757 s:
+
+```
+sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
+  --rule-selector sfge
+```
+
+```
+sfge: Detected 1 violation(s) from 6537 path(s) on 3/3 entry point(s).
+sfge: Overall, analyzed 6537 path(s) from 3 entry point(s). Detected 1 violation(s).
+```
+
+This meets the validity bar — **6,537 paths, 3/3 entry points, no
+`Internal execution error`** — so every Graph Engine rule executed to
+completion on the release source. The two security rules report:
+
+- `sfge:ApexFlsViolation` — **0 violations**
+- `sfge:DatabaseOperationsMustUseWithSharing` — **0 violations**
+
+The one violation is `sfge:AvoidDatabaseOperationInLoop`, severity High in the
+report, tags `DevPreview, Performance, Apex` — not a Security or AppExchange
+rule: "A database operation occurred inside a loop [WhileLoopStatement at
+AuditQueryService:116]", located at `AuditQueryController.cls:22` (the `search`
+entry point) and `SetupAuditTrailProvider.cls:42` (the `Database.query`). It
+appears in this run and in no other because `--rule-selector sfge` selects
+every Graph Engine rule, while the three-tag selector reaches only the two
+Security-tagged ones.
+
+Disposition: by design and bounded. The `while` loop at
+`AuditQueryService.cls:116` is the progressive, time-sliced scan the
+application exists for. It issues at most `maxBatchesPerCall` (10) queries per
+transaction against the 100-query governor limit, each client call is its own
+transaction, and the ceiling is pinned by
+`ceilingStopsACallWithoutLosingProgress` (`AuditQueryServiceTest.cls:485`). It
+cannot be removed without abandoning the design, and it is accepted. The
+workflow's Graph Engine step carries no severity threshold; its gates are the
+path count and the absence of an internal execution error, so this finding is
+recorded here rather than failing CI.
+
+The path count moved from 14,503 (`1.0.0.2`) to 6,537 because `f05ed25` and
+`f0ad675` removed conditionals from the search path. `f0ad675` also raised
+`java_thread_timeout` in `code-analyzer.yml` from 600000 to 1800000 ms and the
+workflow job's `timeout-minutes` from 45 to 90; `37c2ad9` pins `6537 path(s)`
+in the workflow's count check. The count must be re-measured whenever
+`AuditQueryController.search` or anything it calls gains or loses a
+conditional.
+
+### Superseded attempts on earlier 1.0.1 commits
+
+Recorded so the interim figures are not mistaken for this entry's. Their logs
+are kept with the other artifacts outside the repository.
+
+- `47bd65f` (the `1.0.1.1` source): repository selector 127 violations (19
+  Moderate, 108 Low; 0 Critical/High), including
+  `ApexUnitTestClassShouldHaveAsserts` 2 (the assertions lived in a shared
+  helper), `FieldNamingConventions` 2 (`SCAN_BATCH` / `MAX_BATCHES_PER_CALL`)
+  and `AvoidDeeplyNestedIfStmts` 1. Its Graph Engine run was memory-starved (3
+  paths from 3 entry points) and reported one `sfge:ApexNullPointerException`
+  on `working.lastIdValue()`: a false positive, because the null check had
+  moved into a separate Boolean the path analysis cannot correlate. `41e2a29`
+  changed all four sites; the final source fires none of the three rules
+  (Run 2) and no `ApexNullPointerException` (Run 3).
+- `41e2a29` (the `1.0.1.2` source): official command "Found 0 violations",
+  report SHA-256
+  `1A91271FF6FB1796751C845287075F5282A7DCEA7AC7417C3668946F6CDAC6D7`, 64,954
+  bytes, superseded by Run 1 above; repository selector 123 violations (15
+  Moderate, 108 Low); the standalone Graph Engine run could not finish.
+  `AuditQueryController.search` reported "Path evaluation timed out" at the
+  stock 600000 ms per-path budget and again at a diagnostic 1800000 ms budget,
+  3 paths from 2 entry points, printing the vacuous "0 violations" that
+  `code-analyzer.yml` warns about. Cause: path explosion, not the host. 1.0.1
+  had added conditionals inside the per-row scan loop (four blank-coalescing
+  ternaries per row and a validated cursor-id read per batch); `f05ed25`
+  removed them.
+- `f05ed25` (the `1.0.1.3` source): the standalone Graph Engine still timed out
+  at 1800000 ms; the remaining multipliers were in the cursor normalisation
+  before the scan loop. `f0ad675` reduced that to one ternary, unconditional
+  set inserts and a counted loop over a trimmed split for the search terms
+  (the `Math.max`/`Math.min` clamps had already come in with `f05ed25`); that
+  is the source scanned above.
+
+### Combined result
+
+Code findings from Run 2, with the Graph Engine security rules taken from
+Run 3:
+
+| Severity  | Count   |
+| --------- | ------- |
+| Critical  | **0**   |
+| High      | **0**   |
+| Moderate  | 13      |
+| Low       | 106     |
+| **Total** | **119** |
+
+No violation in that table carries the `Security`, `AppExchange` or
+`ErrorProne` tag, and the official 62-rule selector (Run 1) found **0
+violations** on the same source. Outside the repository selector, Run 3's sweep
+of every Graph Engine rule adds one High-severity Performance finding,
+`AvoidDatabaseOperationInLoop`, recorded and accepted above; counting it, the
+release source carries 120 static-analysis findings: 1 High, 13 Moderate, 106
+Low.
+
+This is static-analysis evidence and nothing more. `1.0.1.4` is the version to
+be submitted for AppExchange Security Review; the package has not been
+submitted for, has not passed, and is not listed after that review, and this
+entry does not change that.
+
+### Operational note — `node_modules` and the official command
+
+Since `5c70c8c`, `code-analyzer.yml` sets
+`eslint_config_file: eslint.config.js`, and the plugin auto-loads that file
+from the current directory even when no `--config-file` is passed. The named
+ESLint configuration requires the project's devDependencies, so in a checkout
+without `node_modules` the official command's ESLint engine fails to
+instantiate, `UninstantiableEngineError` with "Cannot find module
+'eslint/config'", and the selector drops to 59 rules from 4 engines with one
+Critical engine error (verified on a pristine checkout of `47bd65f`). Like the
+Python error of 2026-10-11 it describes the machine, not `force-app`. Run
+`npm ci` before either command, as Runs 1 and 2 here did. The 2026-10-11 Run 3
+did not meet this because `934f200` predates `5c70c8c`.
+
+The memory guidance from the 2026-09-10 note still stands: the Graph Engine
+result to record is the one from running it alone, even though the embedded
+portion of Run 2 completed on this source.

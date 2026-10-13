@@ -1,10 +1,12 @@
 # Security Review Submission Plan
 
 This is the working document for taking managed package **Audit Trail
-Explorer** (`atexplorer`, `0Hohm0000000NHZCA2`, released version `1.0.0.2`,
-`04thm000002OtQPAA0`) through AppExchange Security Review. It records what is
-verified true today, what must change first, the end-to-end procedure, and
-what could not be confirmed from a primary source.
+Explorer** (`atexplorer`, `0Hohm0000000NHZCA2`, released version `1.0.1.4`,
+`04thm000002tWirAAE`, built from commit `f0ad675` and promoted 2026-10-12;
+`1.0.0.2`, `04thm000002OtQPAA0`, remains released as the previous version)
+through AppExchange Security Review. It records what is verified true today,
+what must change first, the end-to-end procedure, and what could not be
+confirmed from a primary source.
 
 **Status:** the package is released in the Salesforce packaging sense only.
 It has **not** been submitted for Security Review, has **not** been reviewed,
@@ -13,27 +15,30 @@ this document should be read as a review outcome.
 
 Every claim below cites a file and line in this repository or a Salesforce
 page. Where a source is secondary, stale or conflicting, the text says so.
-Line numbers were measured on commit `f27a009` before the 2026-10-11
-documentation edits: citations into `force-app/` are exact, because that
-source is unchanged; citations into Markdown files may have shifted by a few
-lines since.
+The findings in sections 2-4 are kept as written on 2026-10-11, as the record
+of what was found: their line numbers were measured on commit `f27a009` (the
+`1.0.0.2` source), so a `force-app/` citation there refers to that commit
+(`git show f27a009:<path>`), not to the current files, and citations into
+Markdown files may have shifted since. Text added on 2026-10-12 cites the
+`1.0.1` source (`f0ad675`, the commit `1.0.1.4` was built from) by its current
+line numbers.
 
-## 1. Status on 2026-10-11
+## 1. Status on 2026-10-12
 
-| Item                                 | Verified state today                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Evidence                                                                                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Package version                      | Managed 2GP `1.0.0.2` (`04thm000002OtQPAA0`), `IsReleased` `true`, promoted 2026-09-09 from Dev Hub `00Dhm000004MOXjEAO`                                                                                                                                                                                                                                                                                                                                                                                                                    | `docs/LIVE-ORG-VALIDATION.md:16-21`, `sfdx-project.json:22`                                                                                 |
-| Review / listing                     | Not submitted, not reviewed, not listed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `README.md:212-214`, `docs/LIVE-ORG-VALIDATION.md:409-410`                                                                                  |
-| Local gates                          | `npm run lint`, `npm run prettier:verify`, `npm run test:unit:coverage` all pass; Jest 7/7; `auditExplorer.js` 70.6% statements, `csv.js` 100%                                                                                                                                                                                                                                                                                                                                                                                              | Run on this machine today; `docs/LIVE-ORG-VALIDATION.md:289-293` and its section "2026-10-11 - Local reproduction and pre-submission audit" |
-| Apex tests                           | 29/29 in three orgs (`707RK0000BPQrG1`, `707RK0000BPbjPq`, `707bm00001FTsEQ`); 97% coverage at package build, `HasPassedCodeCoverageCheck` `true`                                                                                                                                                                                                                                                                                                                                                                                           | `docs/LIVE-ORG-VALIDATION.md:45,252-253,317,264-271`                                                                                        |
-| Code Analyzer (repo selector)        | Last recorded run 2026-09-19, plugin 5.16.0, 310 rules, 0 Critical / 0 High / 11 Moderate / 74 Low; Graph Engine 14,503 paths, 3/3 entry points, 0 violations. Report HTML is gitignored; the CI artifact expires about 2026-10-19                                                                                                                                                                                                                                                                                                          | `docs/CODE-ANALYZER-SCAN-RECORD.md:140-257`, `.gitignore:55`                                                                                |
-| Code Analyzer (repo selector, today) | Re-run today with plugin 5.16.0 and the repo selector: 310 rules from 6 engines; the same 85 code violations as 2026-09-19, rule for rule and count for count (0 Critical / 0 High / 11 Moderate / 74 Low); Graph Engine alone 14,503 paths, 3/3 entry points, 0 violations. Both runs also printed one Critical `UninstantiableEngineError` from the `flow` engine, an engine-instantiation error because Python 3.10+ was absent on this host (installed afterwards), not a code finding; it made the `--severity-threshold 2` run exit 1 | Scans A and B on this machine today (18:41-19:01 local); section 5, step 8                                                                  |
-| Official-selector report             | Generated 2026-10-11 from a clean git worktree at `934f200` (tag `v1.0.0`) with Salesforce's command (`--rule-selector AppExchange --rule-selector Recommended:Security`, no config file, no `--workspace`): 62 rules from 5 engines (pmd 51, retire-js 4, eslint 3, flow 3, regex 1); exit 0, "Found 0 violations." Kept outside the repository; SHA-256 `5C05B155418A8A1BE3FA2FF77132260F3B62E628380B25AFA4DC293D93C9169E`                                                                                                                | Scan C on this machine today; section 2.2; `.gitignore:55`                                                                                  |
-| Checkmarx scan                       | Never run; the word does not appear in the repository                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | grep of `README.md`, `SECURITY.md`, `CHANGELOG.md`, `docs/`                                                                                 |
-| Reviewer test org                    | Persistent Developer Edition `00Dbm00000u2XaoEAE` with `04thm000002OtQPAA0` installed, 29/29 tests; no reviewer users or instructions recorded                                                                                                                                                                                                                                                                                                                                                                                              | `docs/LIVE-ORG-VALIDATION.md:301-326`                                                                                                       |
-| Org access on this machine           | None authenticated; nothing needing an org can be re-run today                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Harness note                                                                                                                                |
-| Source drift since the build         | `force-app` unchanged since tag `v1.0.0` (commit `934f200`); seven post-tag commits touch docs, CI and config only                                                                                                                                                                                                                                                                                                                                                                                                                          | `git diff --stat v1.0.0..HEAD -- force-app` is empty (verifier run)                                                                         |
-| Next-version config                  | `versionNumber` `1.0.0.NEXT`, no `ancestorVersion`/`ancestorId`                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `sfdx-project.json:4-5`                                                                                                                     |
+| Item                               | Verified state today                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Evidence                                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Package version                    | Managed 2GP `1.0.1.4` (`04thm000002tWirAAE`, `Package2VersionId` `05ihm0000001CK5AAM`), built 2026-10-12 from `f0ad675` with 96% coverage and `HasPassedCodeCoverageCheck` `true`; promoted 2026-10-12 from Dev Hub `00Dhm000004MOXjEAO` (`sf package version report`: Released `true`, Ancestor Version `1.0.0.2`). `1.0.0.2` (`04thm000002OtQPAA0`) stays released as the previous version; `1.0.1.1`-`1.0.1.3` are superseded betas, never promoted                                                                                                                                                                                                                                                                                                                          | `sfdx-project.json:23-27`; `sf package version report --package 04thm000002tWirAAE` on 2026-10-12          |
+| Review / listing                   | Not submitted, not reviewed, not listed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | `README.md:237-238`, `docs/LIVE-ORG-VALIDATION.md:796-799`                                                 |
+| Local gates                        | `npm run lint`, `npm run prettier:verify`, `npm run test:unit:coverage` all pass on the `1.0.1` source; Jest 26/26 (was 7); `auditExplorer.js` 95.16% statements / 79.34% branches / 95.65% functions / 94.84% lines, `csv.js` 100% (v8 coverage provider; the stock Babel provider prints an empty table inside a git worktree on this machine, a measurement quirk, not a code problem)                                                                                                                                                                                                                                                                                                                                                                                       | Run in the release worktree on 2026-10-12                                                                  |
+| Apex tests                         | 50/50 (was 29): source deploy of `f0ad675` into the namespaced scratch org `ate-101` (`00Dh100000146fmEAA`), deploy `0Afh1000000NfiTCAS`, 18/18 components, `RunLocalTests` 50 run / 0 failed; managed `1.0.1.4` in the clean scratch org `ate-mgd` (`00Ddi00000EXdFSEA1`), `RunAllTestsInOrg` run `707di0000LCKGo0`, 50 passed / 0 failed. 96% coverage at package build, `HasPassedCodeCoverageCheck` `true`; per class `AuditQueryController` 92%, `AuditQueryService` 96%, every other class with executable lines 100% (`AuditFilter` has none)                                                                                                                                                                                                                            | Deploy and test-run ids as stated; `sf package version report`                                             |
+| Code Analyzer (repo selector)      | On `f0ad675`, plugin 5.16.0, `--rule-selector Recommended --rule-selector Security --rule-selector AppExchange --workspace force-app` with the committed config: 310 rules from 6 engines; exit 0; 119 violations across 16 files = 0 Critical / 0 High / 13 Moderate / 106 Low, none carrying the Security, AppExchange or ErrorProne tag. Versus the `1.0.0.2` baseline (85 = 11 Moderate / 74 Low, re-confirmed 2026-10-11): +19 `ApexUnitTestClassShouldHaveRunAs` and +9 `ApexDoc` from the new tests and methods, +4 SLDS hardcoded values from the new CSS, +1 `CyclomaticComplexity` (`search()`), +1 `no-inline-disable` (the Jest `settle()` helper); `FieldNamingConventions`, `AvoidDeeplyNestedIfStmts` and `ApexUnitTestClassShouldHaveAsserts` no longer appear  | Run 2026-10-12 in the release worktree after `npm ci`, 11 minutes; section 5, step 8                       |
+| Code Analyzer (Graph Engine alone) | On `f0ad675`, `--rule-selector sfge` with the committed config (`java_thread_timeout` 1,800,000 ms, 2g heap, 4 threads): "analyzed 6537 path(s) from 3 entry point(s)", 3/3 entry points, no internal execution error, 757 s on an idle host. The two Security-tagged rules (`ApexFlsViolation`, `DatabaseOperationsMustUseWithSharing`) report 0 violations; the one finding is `AvoidDatabaseOperationInLoop` (Performance, not Security or AppExchange) on the bounded batch loop at `AuditQueryService.cls:116`, which is the design (at most `maxBatchesPerCall` = 10 queries per transaction, each call its own transaction) and is accepted. The path count fell from 14,503 (`1.0.0.2`) to 6,537 because `search()` was rewritten with fewer branches; CI now pins 6537 | `code-analyzer.yml` (sfge block); `.github/workflows/code-analyzer.yml` (path-count check); run 2026-10-12 |
+| Official-selector report           | Regenerated 2026-10-12 from the release worktree at `f0ad675` (the source of `1.0.1.4`) after `npm ci`, with Salesforce's command (`--rule-selector AppExchange --rule-selector Recommended:Security`, no `--config-file`, no `--workspace`): 62 rules from 5 engines; exit 0, "Found 0 violations." Kept outside the repository; SHA-256 `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`, 64,954 bytes. The 2026-10-11 report for `1.0.0.2` (`5C05B155...`) is superseded                                                                                                                                                                                                                                                                                   | Section 2.2; section 5, step 8; `.gitignore:55`                                                            |
+| Checkmarx scan                     | Never run; the word does not appear in the repository                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | grep of `README.md`, `SECURITY.md`, `CHANGELOG.md`, `docs/`                                                |
+| Reviewer test org                  | Persistent Developer Edition `00Dbm00000u2XaoEAE` with `04thm000002OtQPAA0` (`1.0.0.2`) installed, 29/29 tests; no install of `1.0.1.4` there is recorded; no reviewer users or instructions recorded                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | `docs/LIVE-ORG-VALIDATION.md:301-326`                                                                      |
+| Org access on this machine         | Dev Hub `partner-pbo` (`00Dhm000004MOXjEAO`) and the scratch orgs `ate-101` and `ate-mgd` (both expire 2026-10-19) were used on 2026-10-12 for the `1.0.1` builds, the promotion and the validation runs above; the Partner Console and the DE org remain owner steps                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Run ids above                                                                                              |
+| Source drift since the build       | `force-app` identical to `f0ad675`, the commit `1.0.1.4` was built from; the one later commit, `37c2ad9`, records the `1.0.1.4` alias and the 6537 path pin (config and CI only). The maintainer tags `v1.0.1` on the final commit of this documentation pass                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `git diff --stat f0ad675..HEAD -- force-app` is empty (verifier run 2026-10-12)                            |
+| Next-version config                | `versionName` `Version 1.0.1`, `versionNumber` `1.0.1.NEXT`, `ancestorVersion` `HIGHEST`; aliases `1.0.1-1` to `1.0.1-4` recorded                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `sfdx-project.json:4-6,24-27`                                                                              |
 
 ## 2. Blockers - fix before submitting
 
@@ -49,7 +54,8 @@ third-party JavaScript.
 
 Two **process artifacts** were missing that Salesforce lists as required for
 this solution type; the Code Analyzer report (2.2) was produced on 2026-10-11
-and the Checkmarx report (2.1) is still missing. They are not defects in the
+and regenerated for `1.0.1.4` on 2026-10-12; the Checkmarx report (2.1) is
+still missing. They are not defects in the
 package, but without them Security Review Operations returns the submission
 at the 1-2 week verification stage, so the Checkmarx report still gates a
 successful submission in practice.
@@ -62,20 +68,21 @@ successful submission in practice.
   scan that you must complete using the Source Code Scanner". The repository
   never mentions it.
 - **Fix [Owner]:** connect the Dev Hub to the Partner Console, create the
-  draft listing, link version `1.0.0.2`, then scan it on the Partner Security
-  Portal (`https://security.my.salesforce-sites.com/sourcescanner/`; the URL
+  draft listing, link version `1.0.1.4` (`04thm000002tWirAAE`), then scan it
+  on the Partner Security Portal
+  (`https://security.my.salesforce-sites.com/sourcescanner/`; the URL
   printed in the guide, `security.secure.force.com`, is dead). Three scans per
   review are included. Expect possible CRUD/FLS false positives on
   `Database.query(soql, AccessLevel.USER_MODE)`
-  (`force-app/main/default/classes/SetupAuditTrailProvider.cls:40`) and `WITH
-USER_MODE` (`AuditQueryController.cls:82`); dispose of them in the
-  false-positive document (section 2.3).
+  (`force-app/main/default/classes/SetupAuditTrailProvider.cls:42` in the
+  `1.0.1` source) and `WITH USER_MODE` (`AuditQueryController.cls:83`);
+  dispose of them in the false-positive document (section 2.3).
 - **Caveat:** Salesforce's own pages conflict (see section 9). The
   conservative reading, both reports, is what the materials table and the
   live portal FAQ state.
 - Source: <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packageGuide/security_review_required_materials.htm>
 
-### 2.2 Code Analyzer report from the official command - DONE 2026-10-11
+### 2.2 Code Analyzer report from the official command - DONE 2026-10-11, regenerated for 1.0.1 on 2026-10-12
 
 - **Why a reviewer cares:** the instructions name one command and one file:
   `sf code-analyzer run --rule-selector AppExchange --rule-selector
@@ -105,6 +112,17 @@ Recommended:Security --output-file CodeAnalyzerReport.html`, run from the
   (65,085 bytes). It must be regenerated from the same commit as the
   submitted version if the shipped source ever changes. The three-tag scan
   and the `--rule-selector sfge` run remain supporting evidence (section 1).
+- **Regenerated for `1.0.1` on 2026-10-12 [Repo]:** the shipped source
+  changed, so the report was produced again from the release worktree at
+  `f0ad675` (the commit `1.0.1.4` was built from), in the package's top-level
+  directory, with the same CLI and plugin versions, after `npm ci` (see the
+  prerequisite in section 5, step 8). The two official selectors again
+  resolved to 62 rules from 5 engines, and the run exited 0 with "Found 0
+  violations." (rules executed from retire-js, eslint, regex and pmd; the flow
+  engine had no Flow metadata to scan). SHA-256
+  `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`
+  (64,954 bytes), kept by the maintainer outside the repository. This is the
+  file to upload for `1.0.1.4`; the 2026-10-11 report above is superseded.
 - Source: <https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/appexchange.html>
 
 ### 2.3 Documents the wizard asks for that did not exist on 2026-10-11
@@ -132,13 +150,15 @@ The second still waits on the Checkmarx scan (2.1).
 ## 3. Should fix before submitting
 
 Confirmed medium findings. Each is a real defect or a false statement that a
-reviewer or customer could hit; none fails the review on its own. The
-documentation items are cheap and should all be done; the code items need a
-new package version and are therefore a judgement call (see the note at the
-end of this section). The documentation items (3.1, 3.2, 3.3, 3.9, 3.13) were
-applied on 2026-10-11 under runbook step 9; each finding's text is kept as
-written, as the record of what was found. The code items (3.4-3.8,
-3.10-3.12) are unchanged pending that decision.
+reviewer or customer could hit; none fails the review on its own. All
+thirteen are now resolved. The documentation items (3.1, 3.2, 3.3, 3.9, 3.13)
+were applied on 2026-10-11 under runbook step 9 (commit `c484205`). The code
+items (3.4-3.8, 3.10-3.12) were fixed in `1.0.1`: commit `47bd65f`, with the
+follow-ups `41e2a29`, `f05ed25` and `f0ad675` that trim branches on the
+search path so the Graph Engine can analyse it (section 1), shipped as
+`1.0.1.4` (`04thm000002tWirAAE`, built from `f0ad675`, promoted 2026-10-12).
+Each finding's text is kept as written, as the record of what was found; a
+closing line on each says how it was resolved, citing the `1.0.1` source.
 
 ### 3.1 README install section contradicts itself
 
@@ -160,6 +180,9 @@ written, as the record of what was found. The code items (3.4-3.8,
   source deploys." Fold the blockquote at 122-130 into "Two grants are
   required". Reword the permission set description to lead with what managed
   subscribers get (metadata change, new version).
+- **Resolved** by the 2026-10-11 documentation pass (`c484205`); the
+  permission set description was reworded in `1.0.1`
+  (`Audit_Trail_Viewer.permissionset-meta.xml:4-5`).
 
 ### 3.2 Findings-disposition paragraph misdescribes the runAs tests
 
@@ -184,6 +207,8 @@ written, as the record of what was found. The code items (3.4-3.8,
   it does not). Of the remaining 26 tests, 15 are user-independent and 8
   require `ViewSetup` on the running user. Drop "alone is sufficient" and
   "CSV escaping". Align `docs/SECURITY-REVIEW-SOLUTION-DOC.md:211`.
+- **Resolved** by the 2026-10-11 documentation pass (`c484205`). The test
+  counts quoted above are those of `1.0.0.2`; `1.0.1` has 50 Apex tests.
 
 ### 3.3 Solution Doc overstates the positive runAs test
 
@@ -198,6 +223,8 @@ written, as the record of what was found. The code items (3.4-3.8,
   exercised by the running test user and, where the packaging model allows
   it, by a Minimum Access user assigned the shipped permission set"), or add
   the test in 3.4 so the sentence becomes true.
+- **Resolved** by the 2026-10-11 documentation pass (`c484205`); the test in
+  3.4 now exists, so the stronger sentence is also true of `1.0.1`.
 
 ### 3.4 No deterministic positive-path test; `getContext` has no restricted-user test
 
@@ -215,6 +242,17 @@ written, as the record of what was found. The code items (3.4-3.8,
   `canViewSetup()==true`, that `search` with a mock provider returns one row,
   that `searchUsers` finds the user, and that `getContext().get('canViewSetup')`
   is `true`; mirror `getContext` under the restricted user asserting `false`.
+- **Resolved in 1.0.1** (`47bd65f`, shipped in `1.0.1.4`):
+  `restrictedUserWithLocalViewSetupPermissionSetCanUseEveryEntryPoint`
+  (`AuditPermissionServiceTest.cls:131-196`) inserts a Minimum Access user and
+  an in-test permission set with `PermissionsViewSetup` and
+  `PermissionsViewRoles`, and under `runAs` asserts `canViewSetup()` is
+  `true`, that `search` returns the one mock row, that `getContext` reports
+  `true` and that `searchUsers` finds the user;
+  `restrictedUserGetContextReportsNoAccessWithoutThrowing` (`:107-122`)
+  asserts `false` for the restricted user; the `grantsViewSetup` branch now
+  asserts a positioned result and `contextExposesRetentionWindow` asserts
+  `canViewSetup` is `true`.
 
 ### 3.5 `searchUsers` has no exception handling; the error policy is overstated
 
@@ -236,6 +274,15 @@ written, as the record of what was found. The code items (3.4-3.8,
   convert everything else via `genericFailure`), update the test to expect
   `AuraHandledException`, and surface the error in the LWC. If the code is
   not changed before submission, scope the Solution Doc sentence to `search()`.
+- **Resolved in 1.0.1** (`47bd65f`, shipped in `1.0.1.4`): `searchUsers` and
+  `getContext` are wrapped in the same handler as `search`
+  (`AuditQueryController.cls:40-57,59-95`): the permission error is rethrown
+  through `permissionFailure()`, an `AuraHandledException` with `setMessage`
+  (`:101-107`), and everything else through `genericFailure()`;
+  `blocksControllerEntryPointsForUnprivilegedUser` expects an
+  `AuraHandledException` naming "View Setup and Configuration" from both
+  entry points, and the LWC surfaces a type-ahead failure instead of
+  swallowing it (`auditExplorer.js:391-396`).
 
 ### 3.6 `cacheable=true` on `getContext` and `searchUsers` versus "never cached"
 
@@ -253,6 +300,9 @@ written, as the record of what was found. The code items (3.4-3.8,
   calls are imperative and per-call gated. Or keep caching and amend the
   three documents to "never cached server-side; held in the Lightning
   client-side action cache for the page session".
+- **Resolved in 1.0.1** (`47bd65f`, shipped in `1.0.1.4`): both methods are
+  `@AuraEnabled(cacheable=false)` (`AuditQueryController.cls:40,59`), so the
+  "never cached" statements are true as written.
 
 ### 3.7 Seen-id cap silently truncates the exclusion set
 
@@ -276,6 +326,17 @@ AND Id < :lastId))`, verified in a scratch org. Otherwise fail closed when
   the cap is exceeded and lower it to a value that fits the statement limit.
   Add a test with more than 5,000 mock rows at one timestamp. If deferred,
   soften the comments and `docs/ARCHITECTURE.md:70-77` to state the limit.
+- **Resolved in 1.0.1** (`47bd65f`, continuation rules simplified in
+  `f0ad675`, shipped in `1.0.1.4`): the `NOT IN` exclusion is gone. The query orders by
+  `CreatedDate DESC, Id DESC` and a continuation adds
+  `(CreatedDate < :upperBound OR Id < :lastId)`
+  (`SetupAuditTrailProvider.cls:27,35`); the cursor carries one `lastId`
+  instead of a list and has no cap (`AuditCursor.cls:24,53-65`), and
+  `lastIdValue()` rejects a positioned cursor whose id is blank, malformed or
+  not a `SetupAuditTrail` id. `sameTimestampRowsPageByIdAcrossBatches` pages
+  250 same-timestamp rows across batch and page boundaries exactly once, and
+  `realQueryExecutesWithEveryOptionalFilter` executes the keyset predicate
+  against the real object.
 
 ### 3.8 The multi-batch scan path has never executed in any test or recorded run
 
@@ -294,6 +355,16 @@ AND Id < :lastId))`, verified in a scratch org. Otherwise fail closed when
   boundary; more than 10,000 rows with a non-matching filter (`done==false`,
   `scannedCount==10000`, resume completes). Narrow the "pinned by tests"
   sentences to the cursor until then.
+- **Resolved in 1.0.1** (`47bd65f`, renamed in `41e2a29`, shipped in
+  `1.0.1.4`): the two constants became `@TestVisible` `scanBatch` and
+  `maxBatchesPerCall` (`AuditQueryService.cls:34-37`); with
+  `useSmallBatches()` (100 rows, 3 batches) the tests
+  `multiBatchScanFindsAMatchInTheLastShortBatch` (250 rows, three fetches,
+  the match in the short last batch, `done`),
+  `sameTimestampRowsPageByIdAcrossBatches` and
+  `ceilingStopsACallWithoutLosingProgress` (350 rows: 300 scanned, `done`
+  `false`, the resume finishes the remaining 50) exercise the slice advance
+  and the per-call ceiling (`AuditQueryServiceTest.cls:426-528`).
 
 ### 3.9 Test level recorded for the headline subscriber-org run cannot be right
 
@@ -307,6 +378,7 @@ AND Id < :lastId))`, verified in a scratch org. Otherwise fail closed when
   (`RunAllTestsInOrg` or `--class-names ...`) in both places. The result is
   corroborated by two other runs, so this is a transcription error, not a
   missing result; but it is the headline figure and a reviewer can spot it.
+- **Resolved** by the 2026-10-11 documentation pass (`c484205`).
 
 ### 3.10 Upper date bound comes from the browser clock
 
@@ -320,6 +392,19 @@ AND Id < :lastId))`, verified in a scratch org. Otherwise fail closed when
 - **Fix (code):** send `endDateMillis: null` for presets so the server uses
   `Datetime.now()`, and derive the preset start from the server clock; keep
   explicit bounds for the custom range. Add a Jest assertion.
+- **Resolved in 1.0.1** (`47bd65f`, cursor handling simplified in `f0ad675`,
+  shipped in `1.0.1.4`): for a preset the client sends only `lastDays` and no
+  bounds (`auditExplorer.js:199-203`); the server resolves end = now and
+  start = now minus min(N, 180) from its own clock in `pinRange()` and pins
+  both in the cursor (`AuditQueryService.cls:200-211`,
+  `AuditCursor.rangeStartMillis`/`rangeEndMillis`), re-clamping them on every
+  continuation rather than trusting the client (`AuditQueryService.cls:84-93`).
+  A custom range still sends explicit bounds, with a blank "To" sent as null
+  so the server supplies now. Pinned by `lastDaysUsesServerClockAndPinsRange`,
+  `lastDaysIsCappedAtTheRetentionWindow`, `lastDaysZeroMeansExplicitDatesApply`,
+  `negativeLastDaysMeansExplicitDatesApply`,
+  `continuationBoundsAreReclampedFromAnUntrustedCursor` and the Jest test
+  "sends lastDays and no explicit bounds for a preset range".
 
 ### 3.11 "Search further back" re-reads live filters but continues the old cursor
 
@@ -334,6 +419,15 @@ AND Id < :lastId))`, verified in a scratch org. Otherwise fail closed when
 - **Fix (code):** snapshot the filter when a new search starts and reuse it
   for every load-more; disable or re-label the button when any input changes;
   add a Jest test that the second call's `filterJson` equals the first.
+- **Resolved in 1.0.1** (`47bd65f`, shipped in `1.0.1.4`): the filter is
+  snapshotted as `activeFilterJson` when a new search starts and every
+  "Search further back" call reuses it verbatim (`auditExplorer.js:252-273`);
+  any edit sets `filtersDirty` and shows "Filters changed. Click Search to
+  apply them; Search further back continues the current search."
+  (`auditExplorer.html:127-129`), and the lower bound cannot creep because
+  the range is pinned server-side (3.10). The Jest test "reuses the filter of
+  the running search" asserts the second call's `filterJson` equals the
+  first's; the behaviour was also seen in `ate-101` on 2026-10-12.
 
 ### 3.12 Removing a selected user pill does nothing
 
@@ -350,6 +444,12 @@ AND Id < :lastId))`, verified in a scratch org. Otherwise fail closed when
   with an index fallback, plus a Jest test dispatching
   `new CustomEvent('itemremove', { detail: { item: { name }, index: 0 } })`.
   Verify in an org by clicking the X on a user pill before building.
+- **Resolved in 1.0.1** (`47bd65f`, shipped in `1.0.1.4`):
+  `handleUserRemove` reads `event.detail.item.name` with a fallback to the
+  pill at `detail.index` (`auditExplorer.js:411-421`); Jest dispatches
+  `itemremove` with `{ item: { name }, index: 0 }` and with `{ index: 0 }`
+  alone and checks that the next search drops the user. Clicking the pill's x
+  in `ate-101` on 2026-10-12 removed the pill.
 
 ### 3.13 Solution Doc pins the wrong Code Analyzer version
 
@@ -360,92 +460,143 @@ AND Id < :lastId))`, verified in a scratch org. Otherwise fail closed when
 - **Fix:** "5.15.0 (2026-09-10) and 5.16.0 (2026-09-19), identical rule set
   and results; see CODE-ANALYZER-SCAN-RECORD.md", and add the official-selector
   run from section 2.2 once it exists.
+- **Resolved** by the 2026-10-11 documentation pass (`c484205`); the
+  official-selector runs are in section 2.2.
 
-### Note on code changes before submission
+### Decision on code changes before submission
 
-Items 3.4-3.8 and 3.10-3.12 require a new package version. Salesforce asks
-partners to submit the exact version they will distribute and, after a
-failed review, to "fix only the security issues discovered"; functional
-changes bundled into a resubmission force a fresh initial review. The choice
-is therefore: (a) build `1.0.1.x` (or `1.1.0.x`) now with these fixes, re-run
-all three validation directions in `docs/LIVE-ORG-VALIDATION.md`, and submit
-that; or (b) submit `1.0.0.2` as is, make only the documentation fixes, and
-ship the code fixes as the first post-review version built with `1.0.0.2`
-as ancestor. Either is defensible. Option (b) submits sooner; option (a)
-avoids a known, user-visible defect (3.12) being the reviewer's first
-impression. Whichever is chosen, do not create another version while a
-review is pending (section 5, step 17).
+Taken 2026-10-12: option (a). Salesforce asks partners to submit the exact
+version they will distribute and, after a failed review, to "fix only the
+security issues discovered", so the code fixes could not have followed a
+submitted `1.0.0.2` without a fresh initial review. `1.0.1` was built from
+the fixes above and is the version to submit, so the known user-visible
+defect (3.12) is not the reviewer's first impression. The alternative, (b),
+would have submitted `1.0.0.2` as is and shipped the fixes as the first
+post-review version with `1.0.0.2` as ancestor.
+
+What was built: four versions on 2026-10-12 from Dev Hub `00Dhm000004MOXjEAO`,
+each with 96% coverage and `HasPassedCodeCoverageCheck` `true`. `1.0.1.1`
+(`04thm000002tVurAAE`, from `47bd65f`), `1.0.1.2` (`04thm000002tVwTAAU`, from
+`41e2a29`) and `1.0.1.3` (`04thm000002tVy5AAE`, from `f05ed25`) are
+superseded betas, never promoted: their Graph Engine runs did not finish
+cleanly (one false-positive null-pointer finding, then per-path timeouts
+caused by the extra conditionals the new code had placed on the search path),
+each fixed by the next commit. `1.0.1.4` (`04thm000002tWirAAE`, from
+`f0ad675`) is the release: `sf package version promote` succeeded on
+2026-10-12 and `sf package version report` shows Released `true`, Ancestor
+Version `1.0.0.2`. Install URL
+<https://login.salesforce.com/packaging/installPackage.apexp?p0=04thm000002tWirAAE>
+(sandbox: `test.salesforce.com`); CLI
+`sf package install --package 04thm000002tWirAAE --target-org my-org --wait 20`,
+then
+`sf org assign permset --name atexplorer__Audit_Trail_Viewer --target-org my-org`.
+
+Validation of the released source (ids in section 1):
+
+- Apex: 50 tests (was 29). Source deploy of `f0ad675` into the namespaced
+  scratch org `ate-101`, `0Afh1000000NfiTCAS`, 50 run / 0 failed; managed
+  `1.0.1.4` in the clean scratch org `ate-mgd` (install request
+  `0Hfdi000002FyKTCA0`, an upgrade from `1.0.1.3`), `RunAllTestsInOrg` run
+  `707di0000LCKGo0`, 50 passed / 0 failed. The installed
+  `atexplorer__Audit_Trail_Viewer` again shows `PermissionsViewSetup=false`
+  and `PermissionsViewRoles=false`, so the two-grant model is unchanged.
+- LWC: Jest 26 tests (was 7); `npm run lint` and `npm run prettier:verify`
+  clean; `auditExplorer.js` 95.16% statements, `csv.js` 100%.
+- Code Analyzer on `f0ad675`: official command 62 rules, "Found 0
+  violations." (report SHA-256 `03E6CE52...`, section 2.2); three-tag union
+  310 rules, 0 Critical / 0 High / 13 Moderate / 106 Low, none Security- or
+  AppExchange-tagged; Graph Engine alone 6,537 paths from 3/3 entry points,
+  0 violations from the two Security rules.
+- Manual UI check on 2026-10-12 (no screenshots kept): in `ate-101` as the
+  administrator, the type-ahead, adding and removing a user pill, the
+  "Filters changed" hint, "Search further back" continuing the original
+  search while a pending term was not applied, and Enter applying it; in
+  `ate-mgd`, a Minimum Access user holding only
+  `atexplorer__Audit_Trail_Viewer` sees the denied message with no form and
+  Export disabled, and sees data once a local permission set granting View
+  Setup and View Roles is assigned.
+
+Still true: do not create another version while a review is pending (section
+5, step 17).
 
 ## 4. Known and accepted
 
-Confirmed low and info items. None affects the review outcome. The
-documentation rows are one-line edits and can be batched with section 3; the
-code rows are candidates for the first post-review version. Most
-documentation rows were applied on 2026-10-11 with section 3; the rows that
-touch the wording still under decision (the error policy, "never cached",
-the cursor guarantees, "pinned by tests", the permission set description and
-2GP ancestry) were not, and the table keeps every row as found.
+Confirmed low and info items. None affects the review outcome. Most
+documentation rows were applied on 2026-10-11 with section 3. The code rows
+whose Disposition now starts "Fixed in 1.0.1" shipped in `1.0.1.4`; the
+wording that waited on that decision (the error policy, "never cached", the
+cursor guarantees, "pinned by tests", the permission set description and 2GP
+ancestry) can now be stated as true of the `1.0.1` code. The remaining code
+rows were deliberately left alone and stay accepted: SLDS hardcoded values
+(22 scan hits after the new CSS), the type-ahead's listbox / live-region
+semantics, browser-time-zone formatting in the detail panel and progress
+text, the auto-search on connect, the permission set's `ViewSetup`/`ViewRoles`
+entries (kept for source deploys), the publisher org ids, the unpinned CI
+tool versions and the absent Jest `coverageThreshold`. The table keeps every
+row as found, with the Disposition cell updated where `1.0.1` changed it.
 
-| Item                                                                                                                   | Where                                                                                | Disposition                                                                                          |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| "Every Apex class ... declared `with sharing`" is false for the four test classes and the interface                    | `docs/SECURITY-REVIEW-SOLUTION-DOC.md:95`, `CONTRIBUTING.md:56`                      | Reword to "every production class and inner class"; interface cannot carry one                       |
-| "Every `@AuraEnabled` method calls this gate" contradicts the doc's own table ("Not gated, by design")                 | `SOLUTION-DOC.md:66` vs `:72`; `docs/ARCHITECTURE.md:9-10`                           | Reword to "both data-returning methods"; `getContext` is intentionally ungated and discloses nothing |
-| Controller denial test asserts only the exception type; line 31 builds the permission error without `setMessage()`     | `AuditPermissionServiceTest.cls:64`, `AuditQueryController.cls:31,40-42`             | Add `setMessage`, assert the message text; correct the comment at 40-42                              |
-| `searchText` term count is unbounded; CPU `LimitException` is uncatchable so "every other exception" is overstated     | `AuditQueryService.cls:182,208-212`                                                  | Cap terms (10) and length (200); say "every other catchable exception" in SOLUTION-DOC section 7     |
-| PRIVACY.md says CSV escaping alters no data; `csv.js` prepends an apostrophe to triggered cells                        | `docs/PRIVACY.md:50-52`, `csv.js:44-47`                                              | Reword PRIVACY.md to name the apostrophe prefix as the only modification                             |
-| Server ships fields the UI never renders (`CreatedById`, `CreatedByContext`, `CreatedByIssuer`, facets, `nowMillis`)   | `SetupAuditTrailProvider.cls:18-19`, `AuditEventRow.cls:47-48`                       | Trim the SELECT/DTO or render them; list every selected field (incl. `DelegateUser`) in PRIVACY.md   |
-| Object URL revoked synchronously after `click()`; `setTimeout` deferral is barred by lint                              | `auditExplorer.js:376-381`                                                           | Keep the previous URL in a field and revoke on next export / `disconnectedCallback`                  |
-| CSV has no UTF-8 BOM; older Excel on Windows shows mojibake for non-ASCII names                                        | `auditExplorer.js:376`                                                               | Prepend `﻿`; header starts with `"Date"` so the formula guard is unaffected                          |
-| 18 hardcoded colours/sizes do not follow SLDS 2 themes; detail panel can lose contrast in dark mode                    | `auditExplorer.css:3,7,13,23,47,59`                                                  | Wrap in `var(--slds-g-*, fallback)`; clears all 18 scan hits                                         |
-| Loading indicator is a 100% progress bar; type-ahead list has no live-region or combobox semantics                     | `auditExplorer.html:148-150,43-57`                                                   | Use `lightning-spinner`; add `role=listbox`/`aria-live`; return focus after select                   |
-| Jest never exercises `handleExport`, the type-ahead, the 25-call cap, Stop, or the cursor round-trip                   | `__tests__/auditExplorer.test.js:242`; `jest.config.js:3-16` (no threshold)          | Self-disclosed at `LIVE-ORG-VALIDATION.md:295-299`; add the tests and a `coverageThreshold`          |
-| Type-ahead fires per keystroke with no stale-response guard                                                            | `auditExplorer.js:300-314`                                                           | Capture the term in the closure and drop late responses                                              |
-| Detail date, progress text and retention date use the browser time zone; the table uses the Salesforce user's          | `auditExplorer.js:352,406-408,419`                                                   | Format with `@salesforce/i18n/timeZone` and `locale`                                                 |
-| "Today" preset is a rolling 24 hours, not a calendar day                                                               | `auditExplorer.js:31,137`                                                            | Relabel "Last 24 hours" or compute local midnight                                                    |
-| Disposition doc gives the rule count as 295 in one place and 310 everywhere else                                       | `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md:85` vs `:33`                           | Stale pre-Security-tag number; change to "three flags ... 310 rules"                                 |
-| LIKE-wildcard escaping in `searchUsers` has no test                                                                    | `AuditQueryController.cls:76`                                                        | Add `%%`, `__`, `\\%` cases asserting empty results                                                  |
-| `permissionCheckRunsRealQuery` runs no query and asserts a non-nullable Boolean; page-size clamp untested              | `AuditQueryControllerTest.cls:108-114`, `AuditQueryService.cls:138`                  | Delete or rename; add a `clampsOversizedPageSize` test                                               |
-| runAs tests depend on the English profile name and a spare licence; 8 tests assume the runner holds `ViewSetup`        | `AuditPermissionServiceTest.cls:13`                                                  | Select the profile by `UserLicense.Name`; document in CONTRIBUTING.md                                |
-| Mock provider does not sort, though its comment says "descending"                                                      | `MockAuditTrailProvider.cls:10,23-43`                                                | Sort in the constructor                                                                              |
-| CHANGELOG initial-unlocked entry credits that release with the 2026-09-10 scan and a 28-test count (was 22)            | `CHANGELOG.md:173-180`, `docs/LIVE-ORG-VALIDATION.md:107`                            | Move the scan bullet to the managed entry; state counts per version                                  |
-| CHANGELOG has two `[1.0.0]` headings sharing one link, no Unreleased section, stale bullets contradicting the preamble | `CHANGELOG.md:10,156,184,144-149,51-53`                                              | Rename the unlocked heading; add `[Unreleased]`; mark historical bullets as superseded               |
-| No 2GP ancestor and version not bumped past the released `1.0.0.2`                                                     | `sfdx-project.json:4-5`                                                              | Required before the next `package version create` (section 5, step 17); not needed for submission    |
-| Packaged permission set declares `ViewSetup`/`ViewRoles` that managed install strips                                   | `Audit_Trail_Viewer.permissionset-meta.xml:31-38`                                    | Design choice; disclosed at `SOLUTION-DOC.md:74-87`. Keep, or remove and fix the description         |
-| Shipped tests query `PermissionSet`/`ApexClass` by bare Name and insert a User                                         | `AuditPermissionServiceTest.cls:102-107,149-153,30`                                  | Filter by `NamespacePrefix`; guard the licence failure                                               |
-| Publisher org ids (Dev Hub/PBO, NamespaceRegistry, persistent DE org) in a public repo                                 | `docs/LIVE-ORG-VALIDATION.md:19,201-202,309,331`                                     | Not credentials; optional redaction (line 205-207 would need rewording)                              |
-| Workflows have no `permissions:` block; actions tag-pinned; CLI and plugin installed unpinned                          | `.github/workflows/ci.yml:18`, `.github/workflows/code-analyzer.yml:24,56-57`        | Add `permissions: contents: read`; pin versions from the scan record                                 |
-| README Layout table lists 4 of 14 classes and Uninstall points at it                                                   | `README.md:171-177,155-156`                                                          | Point Uninstall at the `sf project delete source` command only                                       |
-| CONTRIBUTING scratch-org command fails for any Dev Hub without the namespace                                           | `CONTRIBUTING.md:24`                                                                 | Add `--no-namespace`                                                                                 |
-| CHANGELOG says CI runs `test:unit`; it runs `test:unit:coverage`                                                       | `CHANGELOG.md:48-50`, `docs/LIVE-ORG-VALIDATION.md:275`                              | One-word fix                                                                                         |
-| Uninstall step names the un-namespaced permission set for the packaged install                                         | `README.md:152`                                                                      | Use `atexplorer__Audit_Trail_Viewer`                                                                 |
-| "Planned opt-in add-on" for >180-day retention is unsupported by anything in the repo                                  | `README.md:64-66` vs `docs/ARCHITECTURE.md:83-85`                                    | Align with ARCHITECTURE's conditional wording                                                        |
-| ">85% target" for LWC coverage is defined nowhere                                                                      | `docs/LIVE-ORG-VALIDATION.md:296`                                                    | Add `coverageThreshold` or reword                                                                    |
-| Stale checklist item: README already references the install URL                                                        | `docs/LIVE-ORG-VALIDATION.md:405-407`                                                | Reword to "add the listing URL and review status"                                                    |
-| Listing draft advertises an "action" filter the UI does not expose                                                     | `docs/APPEXCHANGE-LISTING.md:44-45`, `auditExplorer.js:148`                          | Drop "action" or add the control (Apex already binds it)                                             |
-| "122 records over 18 pages" paging claim has no recorded evidence                                                      | `SOLUTION-DOC.md:154-155,226`, `ARCHITECTURE.md:77`, `LIVE-ORG-VALIDATION.md:369`    | Record org/date/script or point to the evidenced 118-row run                                         |
-| Free-text search matches the literal word "null" against blank fields                                                  | `AuditQueryService.cls:199-206`                                                      | Coalesce blanks before joining                                                                       |
-| `canViewSetup` defaults to `true`; form renders before `getContext` resolves and after it rejects; Export outside gate | `auditExplorer.js:69,77-89`, `auditExplorer.html:3-13`                               | Tri-state load; treat rejection as denied; gate the Export button                                    |
-| `jest.config.js` comment and validation record describe a "coverage gate" that does not exist                          | `jest.config.js:10-11`, `docs/LIVE-ORG-VALIDATION.md:280-282`                        | Add a threshold or say "coverage step"                                                               |
-| ARCHITECTURE says facets are computed in Apex over scanned rows; the browser recomputes over matched rows              | `docs/ARCHITECTURE.md:91-94`, `auditExplorer.js:242-249`, `AuditSearchResult.cls:25` | Correct the doc; drop or document the unused server facets                                           |
-| `searchUsersFindsActiveUsers` fails for a running user with a one-character surname                                    | `AuditQueryControllerTest.cls:97-105`                                                | Insert a known test user and search a fixed term                                                     |
-| Info: CSV guard omits NFKC variants, DEL/C1, ZWNJ/ZWJ; Jest lacks a CR and a negative pipe case                        | `csv.js:25,36`                                                                       | Optional: test against `normalize('NFKC')`; add two Jest cases                                       |
-| Info: `AuditCursor.consume` dereferences `seenIdsAtLastDate` without a null guard (masked by the catch-all)            | `AuditCursor.cls:38`                                                                 | One-line guard                                                                                       |
-| Info: ARCHITECTURE calls the cursor "opaque"; it is plain client-modifiable JSON, treated as untrusted                 | `docs/ARCHITECTURE.md:62`                                                            | Reword to "plain JSON cursor treated as untrusted input"                                             |
-| Info: the single `eslint-disable` (`no-await-in-loop`) is live, scoped and justified                                   | `auditExplorer.js:216`                                                               | Accept; disposition at `FINDINGS-DISPOSITION.md:136-146` is accurate                                 |
-| Info: component auto-searches on every connect, including on Home pages (one bounded call per mount)                   | `auditExplorer.js:83`, `auditExplorer.js-meta.xml:8-10`                              | Optional `targetConfigs` switch                                                                      |
-| Info: completed searches report "back to <oldest row>" rather than the range boundary covered                          | `AuditQueryService.cls:87,121-123`                                                   | Set `scannedThroughMillis = lowerBound` when exhausted                                               |
-| Info: `System.debug` content is clean; "logged for the administrator" should be qualified for managed packages         | `AuditQueryController.cls:38`, `FINDINGS-DISPOSITION.md:181`                         | Qualify the wording                                                                                  |
-| Info: malformed verification command in a YAML comment (stray `#`)                                                     | `code-analyzer.yml:66`                                                               | Split into two comment lines                                                                         |
-| Info: husky/lint-staged configured but no `.husky/pre-commit` is tracked                                               | `package.json:16-17`                                                                 | Commit the hook or remove the tooling; CI enforces the same gates                                    |
-| Info: "no DML of any kind" is false for the packaged test classes                                                      | `docs/SECURITY-REVIEW-SOLUTION-DOC.md:46`, `AuditPermissionServiceTest.cls:30,108`   | Scope to runtime code                                                                                |
+| Item                                                                                                                   | Where                                                                                | Disposition                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Every Apex class ... declared `with sharing`" is false for the four test classes and the interface                    | `docs/SECURITY-REVIEW-SOLUTION-DOC.md:95`, `CONTRIBUTING.md:56`                      | Reword to "every production class and inner class"; interface cannot carry one                                                                                                                                                                                                        |
+| "Every `@AuraEnabled` method calls this gate" contradicts the doc's own table ("Not gated, by design")                 | `SOLUTION-DOC.md:66` vs `:72`; `docs/ARCHITECTURE.md:9-10`                           | Reword to "both data-returning methods"; `getContext` is intentionally ungated and discloses nothing                                                                                                                                                                                  |
+| Controller denial test asserts only the exception type; line 31 builds the permission error without `setMessage()`     | `AuditPermissionServiceTest.cls:64`, `AuditQueryController.cls:31,40-42`             | Fixed in 1.0.1: `permissionFailure()` calls `setMessage` (`AuditQueryController.cls:101-107`); `blocksControllerEntryPointsForUnprivilegedUser` asserts the message names View Setup and Configuration for both entry points                                                          |
+| `searchText` term count is unbounded; CPU `LimitException` is uncatchable so "every other exception" is overstated     | `AuditQueryService.cls:182,208-212`                                                  | Fixed in 1.0.1: capped at 200 characters and 10 terms (`AuditQueryService.cls:47-48,266-270`), pinned by `searchTextHonoursOnlyTheFirstTenTerms` and `searchTextIsTruncatedToTwoHundredCharacters`; the "every other catchable exception" wording is a documentation edit             |
+| PRIVACY.md says CSV escaping alters no data; `csv.js` prepends an apostrophe to triggered cells                        | `docs/PRIVACY.md:50-52`, `csv.js:44-47`                                              | Reword PRIVACY.md to name the apostrophe prefix as the only modification                                                                                                                                                                                                              |
+| Server ships fields the UI never renders (`CreatedById`, `CreatedByContext`, `CreatedByIssuer`, facets, `nowMillis`)   | `SetupAuditTrailProvider.cls:18-19`, `AuditEventRow.cls:47-48`                       | Trim the SELECT/DTO or render them; list every selected field (incl. `DelegateUser`) in PRIVACY.md                                                                                                                                                                                    |
+| Object URL revoked synchronously after `click()`; `setTimeout` deferral is barred by lint                              | `auditExplorer.js:376-381`                                                           | Fixed in 1.0.1: the URL is kept in `lastExportUrl` and revoked on the next export or in `disconnectedCallback` (`auditExplorer.js:94,112-114,484-489`); Jest "prefixes the BOM and defers revoking the object URL"                                                                    |
+| CSV has no UTF-8 BOM; older Excel on Windows shows mojibake for non-ASCII names                                        | `auditExplorer.js:376`                                                               | Fixed in 1.0.1: `UTF8_BOM` is prepended (`auditExplorer.js:46,471`); the first cell is still the quoted header `"Date"`, so the formula guard is unaffected                                                                                                                           |
+| 18 hardcoded colours/sizes do not follow SLDS 2 themes; detail panel can lose contrast in dark mode                    | `auditExplorer.css:3,7,13,23,47,59`                                                  | Wrap in `var(--slds-g-*, fallback)`; clears all 18 scan hits                                                                                                                                                                                                                          |
+| Loading indicator is a 100% progress bar; type-ahead list has no live-region or combobox semantics                     | `auditExplorer.html:148-150,43-57`                                                   | Partly fixed in 1.0.1: a `lightning-spinner` replaces the progress bar (`auditExplorer.html:155-157,259-261`); the listbox / live-region semantics are unchanged and accepted                                                                                                         |
+| Jest never exercises `handleExport`, the type-ahead, the 25-call cap, Stop, or the cursor round-trip                   | `__tests__/auditExplorer.test.js:242`; `jest.config.js:3-16` (no threshold)          | Partly fixed in 1.0.1: Jest now covers all five (26 tests: the "CSV export", "user type-ahead" and "search loop bounds" groups, and the cursor echo assertion in the progressive-search test); no `coverageThreshold` was added (accepted)                                            |
+| Type-ahead fires per keystroke with no stale-response guard                                                            | `auditExplorer.js:300-314`                                                           | Fixed in 1.0.1: the term is captured in the closure and a response for a superseded term is dropped; failures are surfaced (`auditExplorer.js:374-398`); Jest "drops a stale response that arrives after the term changed"                                                            |
+| Detail date, progress text and retention date use the browser time zone; the table uses the Salesforce user's          | `auditExplorer.js:352,406-408,419`                                                   | Format with `@salesforce/i18n/timeZone` and `locale`                                                                                                                                                                                                                                  |
+| "Today" preset is a rolling 24 hours, not a calendar day                                                               | `auditExplorer.js:31,137`                                                            | Fixed in 1.0.1: relabelled "Last 24 hours" (`auditExplorer.js:33`); the range itself is now resolved on the server (3.10)                                                                                                                                                             |
+| Disposition doc gives the rule count as 295 in one place and 310 everywhere else                                       | `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md:85` vs `:33`                           | Stale pre-Security-tag number; change to "three flags ... 310 rules"                                                                                                                                                                                                                  |
+| LIKE-wildcard escaping in `searchUsers` has no test                                                                    | `AuditQueryController.cls:76`                                                        | Fixed in 1.0.1: `searchUsersTreatsPercentAsLiteral`, `searchUsersTreatsUnderscoreAsLiteral` and `searchUsersTreatsEscapedPercentAsLiteral` (`AuditQueryControllerTest.cls:196-250`), run against an inserted user with a distinctive last name                                        |
+| `permissionCheckRunsRealQuery` runs no query and asserts a non-nullable Boolean; page-size clamp untested              | `AuditQueryControllerTest.cls:108-114`, `AuditQueryService.cls:138`                  | Fixed in 1.0.1: replaced by `pageSizeIsClampedToTheMaximumAndDefaulted` (999 clamps to 200; null and 0 fall back to the default); `contextExposesRetentionWindow` now asserts `canViewSetup` is `true`                                                                                |
+| runAs tests depend on the English profile name and a spare licence; 8 tests assume the runner holds `ViewSetup`        | `AuditPermissionServiceTest.cls:13`                                                  | Select the profile by `UserLicense.Name`; document in CONTRIBUTING.md                                                                                                                                                                                                                 |
+| Mock provider does not sort, though its comment says "descending"                                                      | `MockAuditTrailProvider.cls:10,23-43`                                                | Fixed in 1.0.1: sorted (`CreatedDate DESC, Id DESC`) in the constructor and implements the keyset exclusion (`MockAuditTrailProvider.cls:7-11,59-66`)                                                                                                                                 |
+| CHANGELOG initial-unlocked entry credits that release with the 2026-09-10 scan and a 28-test count (was 22)            | `CHANGELOG.md:173-180`, `docs/LIVE-ORG-VALIDATION.md:107`                            | Move the scan bullet to the managed entry; state counts per version                                                                                                                                                                                                                   |
+| CHANGELOG has two `[1.0.0]` headings sharing one link, no Unreleased section, stale bullets contradicting the preamble | `CHANGELOG.md:10,156,184,144-149,51-53`                                              | Rename the unlocked heading; add `[Unreleased]`; mark historical bullets as superseded                                                                                                                                                                                                |
+| No 2GP ancestor and version not bumped past the released `1.0.0.2`                                                     | `sfdx-project.json:4-5`                                                              | Done for 1.0.1: `versionNumber` `1.0.1.NEXT`, `ancestorVersion` `HIGHEST` (`sfdx-project.json:4-6`); `1.0.1.4` reports Ancestor Version `1.0.0.2`                                                                                                                                     |
+| Packaged permission set declares `ViewSetup`/`ViewRoles` that managed install strips                                   | `Audit_Trail_Viewer.permissionset-meta.xml:31-38`                                    | Design choice, kept; disclosed at `SOLUTION-DOC.md:74-87`. The description now leads with what managed subscribers get and says the install strips the two permissions (1.0.1, `Audit_Trail_Viewer.permissionset-meta.xml:4-5`); the strip was re-confirmed on `1.0.1.4` in `ate-mgd` |
+| Shipped tests query `PermissionSet`/`ApexClass` by bare Name and insert a User                                         | `AuditPermissionServiceTest.cls:102-107,149-153,30`                                  | Partly fixed in 1.0.1: both lookups filter by `NamespacePrefix` (`AuditPermissionServiceTest.cls:218,251,269`); the User inserts remain, without a licence guard                                                                                                                      |
+| Publisher org ids (Dev Hub/PBO, NamespaceRegistry, persistent DE org) in a public repo                                 | `docs/LIVE-ORG-VALIDATION.md:19,201-202,309,331`                                     | Not credentials; optional redaction (line 205-207 would need rewording)                                                                                                                                                                                                               |
+| Workflows have no `permissions:` block; actions tag-pinned; CLI and plugin installed unpinned                          | `.github/workflows/ci.yml:18`, `.github/workflows/code-analyzer.yml:24,56-57`        | Add `permissions: contents: read`; pin versions from the scan record                                                                                                                                                                                                                  |
+| README Layout table lists 4 of 14 classes and Uninstall points at it                                                   | `README.md:171-177,155-156`                                                          | Point Uninstall at the `sf project delete source` command only                                                                                                                                                                                                                        |
+| CONTRIBUTING scratch-org command fails for any Dev Hub without the namespace                                           | `CONTRIBUTING.md:24`                                                                 | Add `--no-namespace`                                                                                                                                                                                                                                                                  |
+| CHANGELOG says CI runs `test:unit`; it runs `test:unit:coverage`                                                       | `CHANGELOG.md:48-50`, `docs/LIVE-ORG-VALIDATION.md:275`                              | One-word fix                                                                                                                                                                                                                                                                          |
+| Uninstall step names the un-namespaced permission set for the packaged install                                         | `README.md:152`                                                                      | Use `atexplorer__Audit_Trail_Viewer`                                                                                                                                                                                                                                                  |
+| "Planned opt-in add-on" for >180-day retention is unsupported by anything in the repo                                  | `README.md:64-66` vs `docs/ARCHITECTURE.md:83-85`                                    | Align with ARCHITECTURE's conditional wording                                                                                                                                                                                                                                         |
+| ">85% target" for LWC coverage is defined nowhere                                                                      | `docs/LIVE-ORG-VALIDATION.md:296`                                                    | Add `coverageThreshold` or reword                                                                                                                                                                                                                                                     |
+| Stale checklist item: README already references the install URL                                                        | `docs/LIVE-ORG-VALIDATION.md:405-407`                                                | Reword to "add the listing URL and review status"                                                                                                                                                                                                                                     |
+| Listing draft advertises an "action" filter the UI does not expose                                                     | `docs/APPEXCHANGE-LISTING.md:44-45`, `auditExplorer.js:148`                          | Drop "action" or add the control (Apex already binds it)                                                                                                                                                                                                                              |
+| "122 records over 18 pages" paging claim has no recorded evidence                                                      | `SOLUTION-DOC.md:154-155,226`, `ARCHITECTURE.md:77`, `LIVE-ORG-VALIDATION.md:369`    | Record org/date/script or point to the evidenced 118-row run                                                                                                                                                                                                                          |
+| Free-text search matches the literal word "null" against blank fields                                                  | `AuditQueryService.cls:199-206`                                                      | Fixed in 1.0.1: null fields are dropped through a set before the haystack is joined (`AuditQueryService.cls:286-289`); `blankFieldDoesNotMatchTheWordNull`                                                                                                                            |
+| `canViewSetup` defaults to `true`; form renders before `getContext` resolves and after it rejects; Export outside gate | `auditExplorer.js:69,77-89`, `auditExplorer.html:3-13`                               | Fixed in 1.0.1: `canViewSetup` is tri-state (spinner until `getContext` answers, denied on `false`, error only on rejection; `auditExplorer.js:83,118-132`, `auditExplorer.html:14,258-280`); Export is enabled only with rows and confirmed access (`auditExplorer.js:534-536`)      |
+| `jest.config.js` comment and validation record describe a "coverage gate" that does not exist                          | `jest.config.js:10-11`, `docs/LIVE-ORG-VALIDATION.md:280-282`                        | Add a threshold or say "coverage step"                                                                                                                                                                                                                                                |
+| ARCHITECTURE says facets are computed in Apex over scanned rows; the browser recomputes over matched rows              | `docs/ARCHITECTURE.md:91-94`, `auditExplorer.js:242-249`, `AuditSearchResult.cls:25` | Correct the doc; drop or document the unused server facets                                                                                                                                                                                                                            |
+| `searchUsersFindsActiveUsers` fails for a running user with a one-character surname                                    | `AuditQueryControllerTest.cls:97-105`                                                | Fixed in 1.0.1: inserts a user with last name `Aazyxwvutsrq` and searches that term (`AuditQueryControllerTest.cls:10-26,178-194`)                                                                                                                                                    |
+| Info: CSV guard omits NFKC variants, DEL/C1, ZWNJ/ZWJ; Jest lacks a CR and a negative pipe case                        | `csv.js:25,36`                                                                       | Optional: test against `normalize('NFKC')`; add two Jest cases                                                                                                                                                                                                                        |
+| Info: `AuditCursor.consume` dereferences `seenIdsAtLastDate` without a null guard (masked by the catch-all)            | `AuditCursor.cls:38`                                                                 | Moot in 1.0.1: `seenIdsAtLastDate` no longer exists; the cursor carries a single `lastId` and `lastIdValue()` validates it (`AuditCursor.cls:24,53-65`)                                                                                                                               |
+| Info: ARCHITECTURE calls the cursor "opaque"; it is plain client-modifiable JSON, treated as untrusted                 | `docs/ARCHITECTURE.md:62`                                                            | Reword to "plain JSON cursor treated as untrusted input"                                                                                                                                                                                                                              |
+| Info: the single `eslint-disable` (`no-await-in-loop`) is live, scoped and justified                                   | `auditExplorer.js:216`                                                               | Accept; disposition at `FINDINGS-DISPOSITION.md:136-146` is accurate. 1.0.1 adds a second, in the Jest helper `settle()`, for the same rule and the same reason (sequential cursor-driven calls)                                                                                      |
+| Info: component auto-searches on every connect, including on Home pages (one bounded call per mount)                   | `auditExplorer.js:83`, `auditExplorer.js-meta.xml:8-10`                              | Optional `targetConfigs` switch                                                                                                                                                                                                                                                       |
+| Info: completed searches report "back to <oldest row>" rather than the range boundary covered                          | `AuditQueryService.cls:87,121-123`                                                   | Fixed in 1.0.1: `scannedThroughMillis` is set to the lower bound once the range is exhausted (`AuditQueryService.cls:169-176`); `exhaustedScanReportsRangeBoundary`, `exhaustedScanWithRowsReportsRangeBoundaryNotOldestRow`                                                          |
+| Info: `System.debug` content is clean; "logged for the administrator" should be qualified for managed packages         | `AuditQueryController.cls:38`, `FINDINGS-DISPOSITION.md:181`                         | Qualify the wording                                                                                                                                                                                                                                                                   |
+| Info: malformed verification command in a YAML comment (stray `#`)                                                     | `code-analyzer.yml:66`                                                               | Split into two comment lines                                                                                                                                                                                                                                                          |
+| Info: husky/lint-staged configured but no `.husky/pre-commit` is tracked                                               | `package.json:16-17`                                                                 | Commit the hook or remove the tooling; CI enforces the same gates                                                                                                                                                                                                                     |
+| Info: "no DML of any kind" is false for the packaged test classes                                                      | `docs/SECURITY-REVIEW-SOLUTION-DOC.md:46`, `AuditPermissionServiceTest.cls:30,108`   | Scope to runtime code                                                                                                                                                                                                                                                                 |
 
 ## 5. Submission runbook
 
 End to end, from today's state to a published listing. Steps marked [Owner]
 need the Partner Console, legal or payment access; steps marked [Repo] can
-be prepared from the repository and CLI. No org is authenticated on this
-machine today, so every `sf` command against an org or Dev Hub is for the
-owner's session. Steps 1-5 and 7-10 can proceed in parallel.
+be prepared from the repository and CLI. Steps 7-10 are done (9 on
+2026-10-11; 7, 8 and 10 for `1.0.1.4` on 2026-10-12, with Dev Hub
+`partner-pbo` and the two scratch orgs in section 1); the Partner Console
+steps and the DE org remain for the owner's session. Steps 1-5 can proceed
+in parallel.
 
 1. **[Owner] Confirm ISV Partner Program enrollment and the distribution
    agreement.** Have a partner recruitment representative confirm both; a
@@ -465,7 +616,7 @@ owner's session. Steps 1-5 and 7-10 can proceed in parallel.
 3. **[Owner] Connect the PBO and the packaging Dev Hub to the Partner
    Console.** Publishing > Technologies > Solutions > Connect Technology >
    Connect Org, once with the PBO/LMA org and once with Dev Hub
-   `00Dhm000004MOXjEAO`. Afterwards version `1.0.0.2` appears under Solutions
+   `00Dhm000004MOXjEAO`. Afterwards version `1.0.1.4` appears under Solutions
    with listing readiness "Security Review Required".
    <https://developer.salesforce.com/docs/platform/pkg2-dev/guide/sfdx-dev-dev2gp-publish-appexchange.html>
 
@@ -475,8 +626,9 @@ owner's session. Steps 1-5 and 7-10 can proceed in parallel.
    install telemetry and the Subscriber Support Console.
    <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packageGuide/appexchange_publish_manage.htm>
 
-5. **[Owner] Create the draft listing, price it Free, link version 1.0.0.2,
-   attest Lightning Ready and the Security Requirements.** Listings > New
+5. **[Owner] Create the draft listing, price it Free, link version 1.0.1.4
+   (`04thm000002tWirAAE`), attest Lightning Ready and the Security
+   Requirements.** Listings > New
    Listing; copy from `docs/APPEXCHANGE-LISTING.md` plus the gaps in section 7. Linking the version is a hard prerequisite for Checkmarx. The app is
    LWC-only (`auditExplorer.js-meta.xml:7-11`), so Lightning Ready holds.
    <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packageGuide/appexchange_link_solution.htm>
@@ -484,44 +636,59 @@ owner's session. Steps 1-5 and 7-10 can proceed in parallel.
 6. **[Owner] Run the Checkmarx Source Code Scanner.** Partner Security Portal
    `https://security.my.salesforce-sites.com/sourcescanner/`, logged in as the
    Dev Hub System Administrator (needs Author Apex; that email must be invited
-   to the publisher account with the Listings permission). Scan `1.0.0.2`,
+   to the publisher account with the Listings permission). Scan `1.0.1.4`,
    export the report, and add any findings to the false-positive
    document. Three scans per review. If login fails, the documented fallback
    is a Partner Community case titled "Partner Security Portal Issue".
    <https://security.my.salesforce-sites.com/sourcescanner/SourceScannerHelp>
 
 7. **[Repo] Verify the source matches the shipped version and tag it.**
+   Done for `1.0.1.4` on 2026-10-12: it was built from `f0ad675`, and
+   `force-app` has not changed since (the one later commit, `37c2ad9`,
+   records the version alias and the Graph Engine path pin). The maintainer
+   tags `v1.0.1` on the final commit of this documentation pass, so the tag
+   will resolve to a commit whose `force-app` equals `f0ad675`'s
+   (<https://github.com/muraliseelam/sf-audittrail-app/releases/tag/v1.0.1>
+   once pushed).
 
     ```bash
-    git diff --stat v1.0.0..HEAD -- force-app      # must be empty (it is today)
-    git rev-parse v1.0.0^{commit}                  # 934f200
+    git diff --stat f0ad675..HEAD -- force-app     # must be empty (it is today)
+    git diff --stat f0ad675..v1.0.1 -- force-app   # must be empty once tagged
     ```
 
-    The scan in step 8 must run from that commit (`git worktree add` or a clean
-    checkout), because Salesforce requires the code to match the package.
+    The scan in step 8 must run from source identical to that commit, because
+    Salesforce requires the code to match the package. For `1.0.0.2` the
+    equivalent anchors were tag `v1.0.0`, commit `934f200`.
     <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packageGuide/security_review_code_analyzer_scan.htm>
 
 8. **[Repo] Generate `CodeAnalyzerReport.html` with the official command.**
-   Done 2026-10-11: from a clean worktree at `934f200`, the selector
-   resolved to 62 rules from 5 engines and the run exited 0 with "Found 0
-   violations." (HTML kept outside the repository, SHA-256
-   `5C05B155418A8A1BE3FA2FF77132260F3B62E628380B25AFA4DC293D93C9169E`;
-   section 2.2). The commands, kept for reproducibility:
+   Done for `1.0.1.4` on 2026-10-12: from the release worktree at `f0ad675`,
+   after `npm ci`, the selector resolved to 62 rules from 5 engines and the
+   run exited 0 with "Found 0 violations." (HTML kept outside the repository,
+   SHA-256 `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`,
+   64,954 bytes; section 2.2). The 2026-10-11 run for `1.0.0.2` from `934f200`
+   (SHA-256 `5C05B155...`) is superseded. The commands, kept for
+   reproducibility:
 
     ```bash
     sf code-analyzer rules --rule-selector AppExchange --rule-selector Recommended:Security
     sf code-analyzer run --rule-selector AppExchange --rule-selector Recommended:Security --output-file CodeAnalyzerReport.html
     ```
 
-    Run from the package's top-level directory of the `934f200` checkout.
-    Confirm the rule count is greater than zero before trusting the result.
-    Gotcha: the `flow` engine requires Python 3.10+ on the machine running
-    the scan; without it the report carries a Critical
-    `UninstantiableEngineError` ("could not be instantiated ... Could not
-    locate a Python v3.10.0+ install"), an engine error rather than a code
-    finding, and a `--severity-threshold 2` run exits 1 because of it.
-    GitHub's `ubuntu-latest` runner has `python3` preinstalled; this
-    workstation did not until 2026-10-11.
+    Run from the package's top-level directory of a checkout whose
+    `force-app` equals `f0ad675`'s. Confirm the rule count is greater than
+    zero before trusting the result. Two gotchas, both environment errors
+    rather than code findings, and both visible as a Critical
+    `UninstantiableEngineError` in the report: the `flow` engine requires
+    Python 3.10+ ("could not be instantiated ... Could not locate a Python
+    v3.10.0+ install"; this workstation lacked it until 2026-10-11, GitHub's
+    `ubuntu-latest` runner has it); and since commit `5c70c8c` the
+    repository's `code-analyzer.yml`, which the CLI auto-loads from the
+    current directory, sets `eslint_config_file: eslint.config.js`, so
+    without `node_modules` the `eslint` engine fails with "Cannot find module
+    'eslint/config'" (verified on a pristine checkout of `47bd65f`: 59 rules
+    from 4 engines and that one engine error). Run `npm ci` first. Either
+    error makes a `--severity-threshold 2` run exit 1.
     Keep the three-tag scan and the Graph Engine run as supporting evidence:
 
     ```bash
@@ -532,7 +699,12 @@ owner's session. Steps 1-5 and 7-10 can proceed in parallel.
       --rule-selector sfge --output-file ca-sfge.json
     ```
 
-    Record the run (plugin version, rule count, result) in
+    On `f0ad675` these gave 119 violations (0 Critical / 0 High) and
+    "analyzed 6537 path(s) from 3 entry point(s)" with 0 violations from the
+    two Security rules (section 1); the Graph Engine run takes about 13
+    minutes on an idle host at the committed 1,800,000 ms per-path budget,
+    and CI fails unless the log shows the full 6537-path count. Record the
+    run (plugin version, rule count, result) in
     `docs/CODE-ANALYZER-SCAN-RECORD.md`. Store the HTML outside the repo; it
     is gitignored and the CI copy expires 30 days after each run.
     <https://developer.salesforce.com/docs/platform/salesforce-code-analyzer/guide/appexchange.html>
@@ -546,18 +718,22 @@ owner's session. Steps 1-5 and 7-10 can proceed in parallel.
     ```
 
 10. **[Owner decides, Repo implements] Decide whether to ship the code
-    fixes before submission** (section 3 note). If yes: fix 3.4-3.8 and
-    3.10-3.12, add `"ancestorVersion": "HIGHEST"` and bump `versionNumber` to
-    `1.0.1.NEXT` in `sfdx-project.json`, then (owner, with the Dev Hub):
+    fixes before submission.** Decided 2026-10-12: option (a), recorded at
+    the end of section 3. Done: 3.4-3.8 and 3.10-3.12 fixed (`47bd65f` and
+    its follow-ups); `sfdx-project.json` carries `versionNumber` `1.0.1.NEXT`
+    and `"ancestorVersion": "HIGHEST"`; four versions built with
+    `sf package version create` and code coverage (96% each), the last of
+    them promoted:
 
     ```bash
-    sf package version create --package "Audit Trail Explorer" --installation-key-bypass --code-coverage --wait 30
-    sf package version promote --package <new 04t id>
+    sf package version promote --package 04thm000002tWirAAE --target-dev-hub partner-pbo   # 2026-10-12: Released = true
     ```
 
-    Re-run all three directions in `docs/LIVE-ORG-VALIDATION.md:209-258`,
-    reinstall into the DE org, and redo steps 5-8 for the new version. Do not
-    use `--skip-ancestor-check`.
+    `1.0.1.4` reports Ancestor Version `1.0.0.2`. Validated as the end of
+    section 3 summarises: source deploy with tests in `ate-101`, managed
+    install and `RunAllTestsInOrg` in `ate-mgd`, the local gates, and Code
+    Analyzer (steps 7-8 redone for `f0ad675`). Still open for the new
+    version: the DE org reinstall (step 12) and the Partner Console steps 5-6.
     <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packageGuide/security_review_listing_readiness.htm>
 
 11. **[Repo drafts, Owner signs] Prepare the upload set.** Export to PDF
@@ -571,7 +747,12 @@ owner's session. Steps 1-5 and 7-10 can proceed in parallel.
     <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packageGuide/security_review_false_positives.htm>
 
 12. **[Owner] Prepare the reviewer test environment.** In Developer Edition
-    `00Dbm00000u2XaoEAE` (already has `04thm000002OtQPAA0` installed): create
+    `00Dbm00000u2XaoEAE` (holds `04thm000002OtQPAA0`, `1.0.0.2`): first
+    upgrade it to `1.0.1.4` with
+    <https://login.salesforce.com/packaging/installPackage.apexp?p0=04thm000002tWirAAE>
+    or `sf package install --package 04thm000002tWirAAE --target-org <alias> --wait 20`
+    (the version installed here must be the one the listing links, scans and
+    submits), then create
     a reviewer user holding `atexplorer__Audit_Trail_Viewer` plus a local
     permission set granting View Setup and Configuration (and View Roles),
     and a second user holding only `atexplorer__Audit_Trail_Viewer` so the
@@ -612,14 +793,16 @@ owner's session. Steps 1-5 and 7-10 can proceed in parallel.
 17. **[Both] Do not create another package version while the review is
     pending.** Salesforce: "wait until it passes before you create more
     versions. Build new package versions by using the version that passed as
-    a direct ancestor." Before the first post-review build, the maintainer adds
-    `"ancestorVersion": "HIGHEST"` (or `"ancestorId": "04thm000002OtQPAA0"`)
-    and a bumped `versionNumber` to `sfdx-project.json`; submit only major
-    and minor versions, not patches.
+    a direct ancestor." The ancestry is already in place: `sfdx-project.json:6`
+    carries `"ancestorVersion": "HIGHEST"`, set for the `1.0.1` build (where
+    it resolved to `1.0.0.2`); Salesforce resolves `HIGHEST` to the highest
+    released version, now `1.0.1.4`. Before the first post-review build
+    the only change needed is to bump `versionNumber` past `1.0.1.NEXT`; submit only
+    major and minor versions, not patches.
     <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packageGuide/security_review_listing_readiness.htm>
 
 18. **[Both] If Failed:** fix only the reported security items in the same
-    package id and namespace, rescan, build a new version with `1.0.0.2` as
+    package id and namespace, rescan, build a new version with `1.0.1.4` as
     ancestor, resubmit (follow-up testing 2-3 weeks; no fee for a Free
     solution). False-positive-only disputes are added to the failed review
     at no cost. Functional changes bundled in force a fresh initial review.
@@ -650,23 +833,23 @@ owner's session. Steps 1-5 and 7-10 can proceed in parallel.
 
 ## 6. Artifact checklist
 
-| Artifact                                                       | What reviewers expect                                                                             | Where it is in this repo                                                                                                                                                                                                                                                                                         | Action                                           |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Managed-Released package version                               | Not beta, not unmanaged; same version installed, linked, scanned and submitted                    | `1.0.0.2` / `04thm000002OtQPAA0`, `IsReleased` `true` (`docs/LIVE-ORG-VALIDATION.md:16-22,264-271`)                                                                                                                                                                                                              | None                                             |
-| Developer Edition test org with the version installed          | Reviewers pen-test it; login verified at submission                                               | `00Dbm00000u2XaoEAE` with the version installed (`LIVE-ORG-VALIDATION.md:301-317`); no reviewer users or instructions                                                                                                                                                                                            | Owner: step 12                                   |
-| `CodeAnalyzerReport.html` from the official command            | CLI-generated, official selector, code matching the version                                       | Present, outside the repository (gitignored, `.gitignore:55`): generated 2026-10-11 from `934f200` with the official command, 62 rules, 0 violations, SHA-256 `5C05B155418A8A1BE3FA2FF77132260F3B62E628380B25AFA4DC293D93C9169E` (section 2.2). Three-tag union scans recorded in `CODE-ANALYZER-SCAN-RECORD.md` | None; regenerate only if source changes          |
-| Checkmarx / Source Code Scanner report                         | Mandatory for any submission containing a Salesforce package (per materials table and portal FAQ) | MISSING (no mention anywhere)                                                                                                                                                                                                                                                                                    | Owner: step 6                                    |
-| False-positive document                                        | One row per flagged finding explaining why it is not exploitable                                  | Partial: `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md` (Code Analyzer only; see 3.2 for a false paragraph)                                                                                                                                                                                                      | Repo: fix 3.2, extend with Checkmarx findings  |
-| Solution architecture and security documentation               | Data touch points, authentication/authorisation, controls                                         | Present: `docs/SECURITY-REVIEW-SOLUTION-DOC.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACY.md` (with the corrections in sections 3 and 4)                                                                                                                                                                            | Repo: apply fixes, export                      |
-| End-user / reviewer usage documentation                        | "Detailed solution user documentation"                                                            | Present since 2026-10-11: `docs/USER-GUIDE.md` (usage, reviewer test-user setup); the README contradiction in 3.1 is fixed                                                                                                                                                                                       | None; export with step 11                        |
-| Company information security policy                            | A security program statement scaled to company size                                               | Drafted 2026-10-11: `docs/SECURITY-PROGRAM-STATEMENT.md`; publisher values and signature read "(to be supplied by the publisher)"                                                                                                                                                                                | Owner: fill in and sign                          |
-| Third-party component inventory                                | Libraries in static resources, unminified; RetireJS clean                                         | Present: "None" (`SOLUTION-DOC.md:157-160`); no `staticresources` directory; RetireJS 0 findings                                                                                                                                                                                                                 | None                                             |
-| DAST report                                                    | Only for external endpoints, mobile or API                                                        | Not applicable: no callouts (`SOLUTION-DOC.md:45`)                                                                                                                                                                                                                                                               | Repo: one-line N/A statement in the upload set |
-| External authentication details                                | URLs and credentials for any external system                                                      | Not applicable beyond the DE org login                                                                                                                                                                                                                                                                           | None                                             |
-| Lightning Ready attestation                                    | Console checkbox; app must work in Lightning Experience                                           | App is LWC-only (`auditExplorer.js-meta.xml:7-11`, `tabs/Audit_Trail_Explorer.tab-meta.xml:4`); attestation never mentioned                                                                                                                                                                                      | Owner: step 5                                    |
-| Draft listing linked to the version                            | Needed before Checkmarx and Start Review                                                          | Copy only: `docs/APPEXCHANGE-LISTING.md`; nothing in the console                                                                                                                                                                                                                                                 | Owner: step 5; Repo: section 7 gaps            |
-| ISV Partner Program enrollment, PADA, Partner Console contacts | Confirmed by a partner rep before Start Review                                                    | Not recorded anywhere                                                                                                                                                                                                                                                                                            | Owner: steps 1-2                                 |
-| 2GP ancestry for post-review versions                          | Readiness inherits only from the declared ancestor                                                | MISSING (`sfdx-project.json:4-5`)                                                                                                                                                                                                                                                                                | Repo: step 17, before the next build           |
+| Artifact                                                       | What reviewers expect                                                                             | Where it is in this repo                                                                                                                                                                                                                                                                                                                                                                                                        | Action                                                                      |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Managed-Released package version                               | Not beta, not unmanaged; same version installed, linked, scanned and submitted                    | `1.0.1.4` / `04thm000002tWirAAE`, Released `true` (promoted 2026-10-12, Ancestor Version `1.0.0.2`; `sfdx-project.json:27`); scanned from its source commit `f0ad675` (section 2.2); linking it and the Checkmarx scan are owner steps 5-6                                                                                                                                                                                      | None                                                                        |
+| Developer Edition test org with the version installed          | Reviewers pen-test it; login verified at submission                                               | `00Dbm00000u2XaoEAE` holds `1.0.0.2` (`LIVE-ORG-VALIDATION.md:301-317`); no install of `1.0.1.4` there is recorded; no reviewer users or instructions                                                                                                                                                                                                                                                                           | Owner: step 12 (upgrade to `1.0.1.4` first)                                 |
+| `CodeAnalyzerReport.html` from the official command            | CLI-generated, official selector, code matching the version                                       | Present, outside the repository (gitignored, `.gitignore:55`): regenerated 2026-10-12 from `f0ad675` (the source of `1.0.1.4`) with the official command after `npm ci`, 62 rules, 0 violations, SHA-256 `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`, 64,954 bytes (section 2.2); the 2026-10-11 report for `1.0.0.2` is superseded. Three-tag union and Graph Engine runs on the same commit: section 1 | None; regenerate only if source changes                                     |
+| Checkmarx / Source Code Scanner report                         | Mandatory for any submission containing a Salesforce package (per materials table and portal FAQ) | MISSING (no mention anywhere)                                                                                                                                                                                                                                                                                                                                                                                                   | Owner: step 6                                                               |
+| False-positive document                                        | One row per flagged finding explaining why it is not exploitable                                  | Partial: `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md` (Code Analyzer only; see 3.2 for a false paragraph)                                                                                                                                                                                                                                                                                                                     | Repo: fix 3.2, extend with Checkmarx findings                               |
+| Solution architecture and security documentation               | Data touch points, authentication/authorisation, controls                                         | Present: `docs/SECURITY-REVIEW-SOLUTION-DOC.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACY.md` (with the corrections in sections 3 and 4)                                                                                                                                                                                                                                                                                           | Repo: apply fixes, export                                                   |
+| End-user / reviewer usage documentation                        | "Detailed solution user documentation"                                                            | Present since 2026-10-11: `docs/USER-GUIDE.md` (usage, reviewer test-user setup); the README contradiction in 3.1 is fixed                                                                                                                                                                                                                                                                                                      | None; export with step 11                                                   |
+| Company information security policy                            | A security program statement scaled to company size                                               | Drafted 2026-10-11: `docs/SECURITY-PROGRAM-STATEMENT.md`; publisher values and signature read "(to be supplied by the publisher)"                                                                                                                                                                                                                                                                                               | Owner: fill in and sign                                                     |
+| Third-party component inventory                                | Libraries in static resources, unminified; RetireJS clean                                         | Present: "None" (`SOLUTION-DOC.md:157-160`); no `staticresources` directory; RetireJS 0 findings                                                                                                                                                                                                                                                                                                                                | None                                                                        |
+| DAST report                                                    | Only for external endpoints, mobile or API                                                        | Not applicable: no callouts (`SOLUTION-DOC.md:45`)                                                                                                                                                                                                                                                                                                                                                                              | Repo: one-line N/A statement in the upload set                              |
+| External authentication details                                | URLs and credentials for any external system                                                      | Not applicable beyond the DE org login                                                                                                                                                                                                                                                                                                                                                                                          | None                                                                        |
+| Lightning Ready attestation                                    | Console checkbox; app must work in Lightning Experience                                           | App is LWC-only (`auditExplorer.js-meta.xml:7-11`, `tabs/Audit_Trail_Explorer.tab-meta.xml:4`); attestation never mentioned                                                                                                                                                                                                                                                                                                     | Owner: step 5                                                               |
+| Draft listing linked to the version                            | Needed before Checkmarx and Start Review                                                          | Copy only: `docs/APPEXCHANGE-LISTING.md`; nothing in the console                                                                                                                                                                                                                                                                                                                                                                | Owner: step 5; Repo: section 7 gaps                                         |
+| ISV Partner Program enrollment, PADA, Partner Console contacts | Confirmed by a partner rep before Start Review                                                    | Not recorded anywhere                                                                                                                                                                                                                                                                                                                                                                                                           | Owner: steps 1-2                                                            |
+| 2GP ancestry for post-review versions                          | Readiness inherits only from the declared ancestor                                                | Present: `ancestorVersion` `HIGHEST` and `versionNumber` `1.0.1.NEXT` (`sfdx-project.json:4-6`); `1.0.1.4` was built with `1.0.0.2` as ancestor                                                                                                                                                                                                                                                                                 | None now; bump `versionNumber` before the first post-review build (step 17) |
 
 ## 7. Listing assets
 
@@ -760,9 +943,10 @@ Realistic plan from today, assuming partner enrollment and the PADA are
 already in place: about two weeks to produce the Checkmarx report and its
 false-positive document (the official-selector report, the usage guide and
 the security program statement exist since 2026-10-11) and the reviewer
-users (longer if a new package version is built first, section 3 note); 4-6
-weeks of review; listing work in parallel. Roughly 6-9 weeks to a published
-listing if it passes first time, i.e. late November to mid December 2026.
+users (the new package version, `1.0.1.4`, was built and promoted on
+2026-10-12, section 3, so no further build gates submission); 4-6 weeks of
+review; listing work in parallel. Roughly 6-9 weeks to a published listing
+if it passes first time, i.e. late November to mid December 2026.
 
 **Dates to watch:** the 2026-09-19 CI scan artifact expires about
 2026-10-19; book office hours for 3-4 weeks after the submission date on the
@@ -775,7 +959,11 @@ Sources: <https://developer.salesforce.com/docs/platform/isvforce/guide/security
 
 ## 9. Open questions
 
-Things the research could not confirm from a primary source.
+Things the research could not confirm from a primary source. Two earlier
+items were closed on 2026-10-12 and removed: which commit built the submitted
+version is now recorded (`1.0.1.4` from `f0ad675`, confirmed with
+`sf package version report`; section 1), and the 5,000-id `NOT IN` bind no
+longer exists (3.7).
 
 1. **Is a Checkmarx report strictly required when a Code Analyzer report is
    supplied?** "Test Your Entire Solution" says managed packages use Code
@@ -808,16 +996,10 @@ Things the research could not confirm from a primary source.
 10. **Partner-only pages not read** (HTTP 401): Security Review Requirements
     Checklist, Checklist Builder, Lightning Ready Guide, Partner Program
     Policies PDF.
-11. **Which commit built `04thm000002OtQPAA0`.** The repository says
-    `934f200` (`docs/LIVE-ORG-VALIDATION.md:211`, tag `v1.0.0`) and
-    `force-app` has not changed since; `sf package version report` could not
-    be run to confirm because no Dev Hub is authenticated here.
-12. **Whether the 5,000-id `NOT IN` bind (section 3.7) exceeds the SOQL
-    statement limit on the platform.** Never executed; needs a scratch org.
-13. **Whether the Secure Coding Guide's "all JavaScript in static resources,
+11. **Whether the Secure Coding Guide's "all JavaScript in static resources,
     unminified" rule is enforced for pure LWC bundles with no third-party
     code.** Most plausibly it applies to bundled libraries only.
-14. **Does a subscriber administrator see the `System.debug` line from
+12. **Does a subscriber administrator see the `System.debug` line from
     managed code with a standard trace flag?** Affects only the wording at
     `FINDINGS-DISPOSITION.md:181`.
 

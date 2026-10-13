@@ -5,15 +5,22 @@ and therefore cannot be run from this repository's CI. It is updated by
 whoever performs each step, with the concrete evidence (org, test run id,
 report values) rather than a bare pass/fail, so the record stays auditable.
 
-**Status:** managed 2GP version `1.0.0.2` is a **released** package version,
-promoted 2026-09-09. Nothing below constitutes an AppExchange security review
-approval, certification, or listing — "released" is the Salesforce packaging
-state only. See
-[`docs/APPEXCHANGE-LISTING.md`](APPEXCHANGE-LISTING.md) for the claims policy.
+**Status:** managed 2GP version `1.0.1.4` (`04thm000002tWirAAE`) is the
+current **released** package version, promoted 2026-10-12; `1.0.0.2`
+(`04thm000002OtQPAA0`), promoted 2026-09-09, remains released as the previous
+version. Nothing below constitutes an AppExchange security review approval,
+certification, or listing — "released" is the Salesforce packaging state only.
+See [`docs/APPEXCHANGE-LISTING.md`](APPEXCHANGE-LISTING.md) for the claims
+policy. The 1.0.1 record is under
+[2026-10-12 - Release 1.0.1 validation](#2026-10-12---release-101-validation).
 
 ## Package install validation
 
-### Current: RELEASED managed 2GP `1.0.0.2` (`04thm000002OtQPAA0`) — 2026-09-09
+The install record for the current released version, `1.0.1.4`, is under
+[2026-10-12 - Release 1.0.1 validation](#2026-10-12---release-101-validation)
+below; the entries here are the `1.0.0.2` lineage.
+
+### Previous release: managed 2GP `1.0.0.2` (`04thm000002OtQPAA0`) — 2026-09-09
 
 Version `1.0.0.2` was promoted to a released version on **2026-09-09**
 (`sf package version promote`, Dev Hub `partner-pbo` / `00Dhm000004MOXjEAO`).
@@ -108,7 +115,7 @@ Retained for historical traceability only; do not install these.
 
 ## Apex test runs
 
-### Current: RELEASED managed `1.0.0.2` in the subscriber org — 2026-09-09
+### Previous release: managed `1.0.0.2` in the subscriber org — 2026-09-09
 
 | Item              | Result                                                      |
 | ----------------- | ----------------------------------------------------------- |
@@ -140,7 +147,7 @@ classes explicitly, as the `mgd-qa2` record below and the 2026-09-10 record
 > regression. The authoritative figure is the **97%** measured at package
 > build time, with `HasPassedCodeCoverageCheck=true`.
 
-### Current: source deploy of the same commit — 2026-09-09
+### Previous release: source deploy of the same commit — 2026-09-09
 
 | Item         | Result                                             |
 | ------------ | -------------------------------------------------- |
@@ -277,6 +284,14 @@ released version on this date, not inferred from the beta.
 | `Code Coverage Met`  | `true`               |
 | `Validation Skipped` | `false`              |
 
+**Superseded 2026-10-12.** `1.0.0.2` is no longer the latest released
+version: `1.0.1.4` (`04thm000002tWirAAE`) was promoted on 2026-10-12 and the
+same report now shows `Released = true` for it, with `1.0.0.2` as its
+ancestor; see
+[Packaging state after promotion](#packaging-state-after-promotion-read-back-from-the-dev-hub).
+The values above still describe `1.0.0.2`, which remains released as the
+previous version.
+
 ### Deterministic gate (what CI runs)
 
 `npm run lint` clean, `npm run prettier:verify` clean,
@@ -376,9 +391,10 @@ audit rows sharing one identical timestamp, so the 50-row page boundary fell
 | Empty state                 | "No audit events matched your filters in this range."                |
 | Retention notice            | "Salesforce retains Setup Audit Trail for 180 days…" shown in the UI |
 
-118 exported rows against 118 rows in the org, with zero duplicates, is a live
-confirmation of the cursor's seen-ids design on a harder dataset than the
-122-record check recorded elsewhere.
+118 exported rows against 118 rows in the org, with zero duplicates, was a live
+confirmation of the `1.0.0.2` cursor's seen-ids design. `1.0.1` replaced that
+design with keyset paging on `(CreatedDate, Id)`; see "2026-10-12 - Release
+1.0.1 validation" below.
 
 Two observations, neither a defect:
 
@@ -483,6 +499,260 @@ candidates: 63 confirmed (0 blocker, 0 high, 12 medium, 41 low, 10 info), 4
 rejected.** The confirmed items, their fixes and the submission procedure are
 in [`SECURITY-REVIEW-SUBMISSION.md`](SECURITY-REVIEW-SUBMISSION.md).
 
+## 2026-10-12 - Release 1.0.1 validation
+
+Release 1.0.1 is the first code change since `1.0.0.2`. The released version,
+`1.0.1.4`, was built from commit `f0ad675` on branch `release/1.0.1`. The
+commit tagged `v1.0.1` differs from it only outside `force-app` (the
+`1.0.1.4` alias in `sfdx-project.json`, the pinned path count in
+`.github/workflows/code-analyzer.yml`, and the documentation;
+`git diff --stat f0ad675..v1.0.1 -- force-app` is empty), so every result
+below describes the tagged code. The LWC is byte-identical across all
+four 1.0.1 builds (`git diff 47bd65f..HEAD -- force-app/main/default/lwc` is
+empty); the three rebuilds after `1.0.1.1` changed Apex and configuration
+only.
+
+Nothing in this section is a review outcome. The package remains **not
+submitted** for AppExchange Security Review, **not reviewed** and **not
+listed**; "released" below is the Salesforce packaging state only.
+
+### What the validation exercises
+
+The behaviour changes the steps below touch, located in the shipped source:
+
+- Paging is keyset-based on `(CreatedDate, Id)`. The cursor carries the last
+  consumed `lastDateMillis`/`lastId` pair instead of a list of seen ids
+  (`AuditCursor.cls`), the query resumes with
+  `AND (CreatedDate < :upperBound OR Id < :lastId)` and orders by
+  `CreatedDate DESC, Id DESC` (`SetupAuditTrailProvider.cls:27`, `:35`), and a
+  continuation cursor whose id is blank, malformed or not a `SetupAuditTrail`
+  id is rejected before any query runs (`AuditCursor.cls:53`).
+- The date range is owned by the server. A preset sends `AuditFilter.lastDays`
+  (`AuditFilter.cls:22`); the first call of a search resolves the window from
+  the server clock and pins it in the cursor (`AuditQueryService.cls:200`);
+  continuation calls page over that window after re-clamping it to the
+  retention floor (`AuditQueryService.cls:67` onwards). Free text is bounded
+  to 200 characters and 10 terms (`AuditQueryService.cls:47-48`).
+- Every controller entry point throws only `AuraHandledException`: the
+  permission message is passed through with `setMessage`
+  (`AuditQueryController.cls:101`), everything else collapses to the generic
+  text, and `getContext` and `searchUsers` are `cacheable=false`
+  (`AuditQueryController.cls:40`, `:59`).
+- In the LWC, removing a user pill works because the `itemremove` handler
+  reads `detail.item` and `detail.index` (`auditExplorer.js:411`); the filter
+  of the running search is snapshotted (`auditExplorer.js:269`) so "Search
+  further back" continues it, and edits made since show the hint "Filters
+  changed. Click Search to apply them; Search further back continues the
+  current search." (`auditExplorer.js:47`, `auditExplorer.html:127`); access
+  is tri-state - a spinner until `getContext` answers, the denied message, or
+  the error alone (`auditExplorer.html:258` onwards); Export CSV is enabled
+  only with rows and confirmed access (`auditExplorer.js:534`); the CSV starts
+  with the UTF-8 BOM (`auditExplorer.js:46`); "Today" is now "Last 24 hours"
+  (`auditExplorer.js:33`).
+- The shipped permission set still declares `ViewSetup` and `ViewRoles` for
+  source deploys; its description now says a managed install strips them
+  (`Audit_Trail_Viewer.permissionset-meta.xml:4-5`).
+- 50 Apex test methods (was 29) across the four test classes; 26 Jest tests
+  (was 7).
+
+### Source deploy of the final commit - `ate-101`
+
+| Item               | Result                                                                                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Org                | Namespaced scratch org, alias `ate-101`, org ID `00Dh100000146fmEAA`, created 2026-10-11, expires 2026-10-19                                                                           |
+| Deploy             | `force-app` from commit `f0ad675`, deploy ID `0Afh1000000NfiTCAS`                                                                                                                      |
+| Components         | 18 / 18                                                                                                                                                                                |
+| Test level         | `RunLocalTests`                                                                                                                                                                        |
+| Tests passed       | **50 / 50 (0 failures)**                                                                                                                                                               |
+| Per-class coverage | `AuditCursor` 100%, `AuditQueryController` 92%, `AuditSearchResult` 100%, `AuditQueryService` 96%, `AuditPermissionService` 100%, `AuditEventRow` 100%, `SetupAuditTrailProvider` 100% |
+
+`AuditFilter` has had no executable lines since `f05ed25` removed its two
+unused date helpers, so it no longer appears in the coverage table. The lowest
+class is `AuditQueryController` at 92%.
+
+Earlier `RunLocalTests` deploys of the branch into the same org, for
+traceability:
+
+| Source                                                | Deploy ID                                                                         | Result                                                                                                                   |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `f27a009` (`main`, the `1.0.0.2` baseline)            | `0Afh1000000N46ACAS`                                                              | 18 / 18 components, 29 run, 0 failed                                                                                     |
+| `47bd65f` (the 1.0.1 code release)                    | `0Afh1000000N92fCAC`                                                              | 50 run, 0 failed                                                                                                         |
+| Branch, before two cursor-validation tests were added | `0Afh1000000NFpZCAW`                                                              | 48 run, 0 failed                                                                                                         |
+| `41e2a29` (source of `1.0.1.2`)                       | `0Afh1000000NGdZCAW`                                                              | 18 / 18 components, 50 run, 0 failed; `AuditQueryService` 97%, `AuditFilter` 100%, every other class as in the final run |
+| `f05ed25` (source of `1.0.1.3`)                       | `0Afh1000000NLdGCAW` (restructuring), `0Afh1000000NI7XCAW` (dead helpers removed) | 50 run, 0 failed, each                                                                                                   |
+
+### Manual UI smoke test - 2026-10-12
+
+Performed with browser automation - not by a human - against the source
+deploy in `ate-101` and the managed install in `ate-mgd`. No screenshots were
+kept, so this pass produced no listing assets; the checklist records that part
+separately.
+
+**In `ate-101` (source deploy of the 1.0.1 code), as the administrator:**
+
+| Check                                     | Result                                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tab loads                                 | Renders with data                                                                                                                                                         |
+| User type-ahead                           | Returns active users; selecting one adds a pill                                                                                                                           |
+| Pill removal                              | Clicking the pill's x removes it - the `1.0.0.2` defect is gone                                                                                                           |
+| Filter edited after a search              | The hint "Filters changed. Click Search to apply them; Search further back continues the current search." appears                                                         |
+| "Search further back" with a pending edit | Continued the original search: rows 50 -> 64, progress "Search complete - examined 64 events back to <range boundary>"; the pending non-matching term was **not** applied |
+| Enter in the search box                   | Applied the pending term: 0 events, the empty state, hint cleared                                                                                                         |
+
+**In `ate-101` via Login As, as a Minimum Access - Salesforce user holding only
+the packaged `Audit_Trail_Viewer` permission set:** the full app loads. In a
+source deploy the permission set's `ViewSetup` entry is honoured, as the
+documentation says - the source-deploy row of the table under
+[Managed packaging strips system permissions](#managed-packaging-strips-system-permissions),
+now seen in the UI.
+
+**In `ate-mgd` (managed install of `1.0.1.1`) via Login As, as the same kind of
+user holding only `atexplorer__Audit_Trail_Viewer`:**
+
+| Grants held                                                                                                   | Result                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `atexplorer__Audit_Trail_Viewer` only                                                                         | The denied message that names "View Setup and Configuration" in place of the form; Export CSV disabled; no spinner |
+| Plus a local permission set `ATE_Local_View_Setup` (`PermissionsViewSetup=true`, `PermissionsViewRoles=true`) | The app loaded with data (50 events) for that user                                                                 |
+
+This is the two-grant sequence `README.md` describes, observed in the UI
+rather than only through the throwaway test class recorded under
+[The administrator workaround is verified, not just documented](#the-administrator-workaround-is-verified-not-just-documented).
+The LWC installed by `1.0.1.1` is the one shipped in `1.0.1.4` (see the diff
+note at the top of this section), so the UI behaviour carries over; the Apex
+behind it was re-tested in the same org on `1.0.1.4` (below).
+
+**Org setup this test needs.** A Minimum Access - Salesforce user in a scratch
+or Developer Edition org also needs the **Lightning Experience User**
+permission before Lightning Experience itself loads; without it the login
+ends at "You can't access Lightning Experience". Login As requires
+**Administrators Can Log in as Any User** (Setup > Login Access Policies).
+`docs/USER-GUIDE.md` ("Setting up a test user for reviewers") covers the rest
+of the test-user setup.
+
+### Package version `1.0.1.4` (`04thm000002tWirAAE`)
+
+| Item                         | Result                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| Package (2GP, managed)       | `Audit Trail Explorer` — `0Hohm0000000NHZCA2`, namespace `atexplorer`      |
+| Package version              | `1.0.1.4` (`04thm000002tWirAAE`; `Package2VersionId` `05ihm0000001CK5AAM`) |
+| Built                        | 2026-10-12, from commit `f0ad675`                                          |
+| Ancestor                     | `1.0.0.2` (`04thm000002OtQPAA0`)                                           |
+| Package coverage             | 96% (authoritative figure, measured at package build time)                 |
+| `HasPassedCodeCoverageCheck` | `true`                                                                     |
+| Dev Hub                      | `partner-pbo` / `00Dhm000004MOXjEAO`                                       |
+
+Install URL (for a sandbox, swap `login.salesforce.com` for
+`test.salesforce.com`):
+
+```
+https://login.salesforce.com/packaging/installPackage.apexp?p0=04thm000002tWirAAE
+```
+
+Or from the CLI:
+
+```bash
+sf package install --package 04thm000002tWirAAE --target-org my-org --wait 20
+sf org assign permset --name atexplorer__Audit_Trail_Viewer --target-org my-org
+```
+
+#### Superseded 1.0.1 betas
+
+Three earlier 1.0.1 builds were created on 2026-10-12, each at 96% coverage
+with `HasPassedCodeCoverageCheck=true`, each a beta that was never promoted.
+They are kept in `sfdx-project.json`'s package aliases for traceability; the
+subscriber org below was upgraded through all four in sequence.
+
+| Version   | Id                   | Source                                         | Why it was superseded                                                                                                                                                                                                                                                                                                                                   |
+| --------- | -------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1.0.1.1` | `04thm000002tVurAAE` | `d931ba7` (`force-app` identical to `47bd65f`) | Its Graph Engine run flagged `sfge:ApexNullPointerException` on `working.lastIdValue()`, a false positive from a null check that had moved into a separate Boolean the path analysis cannot correlate; fixed in `41e2a29`.                                                                                                                              |
+| `1.0.1.2` | `04thm000002tVwTAAU` | `41e2a29`                                      | The standalone Graph Engine run could not finish: `AuditQueryController.search` timed out at the stock 600 s per-path budget and again at a diagnostic 1,800 s, printing a vacuous "0 violations". Cause: path explosion from conditionals 1.0.1 had added inside the per-row scan loop; fixed in `f05ed25` with the same behaviour and fewer branches. |
+| `1.0.1.3` | `04thm000002tVy5AAE` | `f05ed25`                                      | Still timed out at 1,800 s; the remaining multipliers were in the cursor normalisation before the scan loop. Fixed in `f0ad675`, which also sizes the Graph Engine budget for the code (`code-analyzer.yml` `java_thread_timeout` 1,800,000 ms).                                                                                                        |
+
+### Managed install into a clean subscriber org - `ate-mgd`
+
+| Item                                            | Result                                                                                                                                                   |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Target org                                      | Clean, un-namespaced scratch org, alias `ate-mgd`, org ID `00Ddi00000EXdFSEA1`, created 2026-10-12, expires 2026-10-19, no packages installed beforehand |
+| Install `1.0.1.1`                               | Request `0Hfdi000002FareCAC`, `SUCCESS`                                                                                                                  |
+| Upgrade to `1.0.1.2`                            | Request `0Hfdi000002FhebCAC`, `SUCCESS`                                                                                                                  |
+| Upgrade to `1.0.1.3`                            | Request `0Hfdi000002FiKYCA0`, `SUCCESS`; `InstalledSubscriberPackage` showed `04thm000002tVy5AAE`, build 3                                               |
+| Upgrade to `1.0.1.4`                            | Request `0Hfdi000002FyKTCA0`, `SUCCESS`; `InstalledSubscriberPackage` shows `04thm000002tWirAAE`, build 4                                                |
+| `PermissionsViewSetup` / `PermissionsViewRoles` | **`false` / `false`** on the installed `atexplorer__Audit_Trail_Viewer` after every one of the four installs                                             |
+
+The install-time system-permission strip is therefore re-confirmed on 1.0.1,
+against the released `1.0.1.4` as well as the three betas.
+
+Apex tests in the subscriber org, run with `RunAllTestsInOrg` (the test level
+that selects installed managed tests, per the 2026-10-11 correction above):
+
+| Installed version | Test run ID       | Result                  |
+| ----------------- | ----------------- | ----------------------- |
+| `1.0.1.1`         | `707di0000LCGPxR` | 50 passed, 0 failed     |
+| `1.0.1.2`         | `707di0000LCGvO4` | 50 passed, 0 failed     |
+| `1.0.1.3`         | `707di0000LCHRya` | 50 passed, 0 failed     |
+| `1.0.1.4`         | `707di0000LCKGo0` | **50 passed, 0 failed** |
+
+Org-wide coverage reads 0% in `ate-mgd` because Salesforce does not expose
+managed-package coverage to subscriber orgs; the build-time 96% is the
+meaningful figure. The denied-then-granted UI sequence for a Minimum Access
+user in this org is recorded under the smoke test above.
+
+**Operational note.** For about 15 minutes after `sf package version create`
+the new version was not yet visible to the subscriber org, and
+`sf package install` failed with "No record found ... FROM
+SubscriberPackageVersion". The install succeeded once the Tooling API in that
+org returned the version (`InstallValidationStatus` `NO_ERRORS_DETECTED`).
+
+### Promotion to released - 2026-10-12
+
+`sf package version promote --package 04thm000002tWirAAE --target-dev-hub
+partner-pbo` succeeded on 2026-10-12 at 19:23 local time (America/Chicago).
+Promotion is irreversible and consumes the version number permanently.
+
+#### Packaging state after promotion, read back from the Dev Hub
+
+`sf package version report` against Dev Hub `partner-pbo`:
+
+| Field               | Value                |
+| ------------------- | -------------------- |
+| Version             | `1.0.1.4`            |
+| Subscriber version  | `04thm000002tWirAAE` |
+| `Released`          | **`true`**           |
+| `Ancestor Version`  | `1.0.0.2`            |
+| `Code Coverage`     | **96%**              |
+| `Code Coverage Met` | `true`               |
+
+`1.0.1.4` is therefore the current released managed version and the version
+to submit for AppExchange Security Review. `1.0.0.2` remains released as the
+previous version; `1.0.1.1`, `1.0.1.2` and `1.0.1.3` remain unreleased betas.
+"Released" is the Salesforce packaging state only: the package is still **not
+submitted** for, **not reviewed** by and **not listed** on AppExchange.
+
+### Deterministic gates and static analysis on the same source
+
+`npm run lint` clean, `npm run prettier:verify` clean, Jest **26 / 26** (was
+7). Measured with Jest's v8 coverage provider, `auditExplorer.js` is at 95.16%
+statements, 79.34% branches, 95.65% functions and 94.84% lines, and `csv.js`
+at 100%; the stock Babel provider reports an empty table when run inside a git
+worktree on this machine, a measurement quirk rather than a code problem. No
+coverage threshold is enforced, as before.
+
+Salesforce Code Analyzer on `f0ad675` (plugin 5.16.0, run 2026-10-12 after
+`npm ci`, which the repository's `code-analyzer.yml` needs for its ESLint
+config): Salesforce's official AppExchange command resolved 62 rules from 5
+engines and reported **"Found 0 violations."**; the repository's three-tag
+union (310 rules, 6 engines) exited 0 with 0 Critical, 0 High, 13 Moderate and
+106 Low, none tagged `Security`, `AppExchange` or `ErrorProne`; and the
+standalone Graph Engine run completed **6,537 paths over 3/3 entry points**
+(down from 14,503 on `1.0.0.2` because of the branch trimming; the workflow
+now pins 6537) with 0 violations from the two Security-tagged rules. Its
+single `AvoidDatabaseOperationInLoop` finding is the bounded, time-sliced
+batch loop the application exists for, and is accepted. The
+`CodeAnalyzerReport.html` to upload for `1.0.1.4` has SHA-256
+`03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C` (64,954
+bytes) and is kept by the maintainer outside the repository. Scan records live
+in [`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
+
 ## Remaining manual/live checklist
 
 - [x] ~~Link the `atexplorer` namespace to the packaging Dev Hub~~ — done
@@ -490,26 +760,42 @@ in [`SECURITY-REVIEW-SUBMISSION.md`](SECURITY-REVIEW-SUBMISSION.md).
 - [x] ~~Create a 2GP managed package from this source under the linked
       namespace~~ — done (`0Hohm0000000NHZCA2`).
 - [x] ~~Validate install of the managed package version into a clean org~~ —
-      done for managed beta `1.0.0.2` into `00DRL00000Vkme62AB`.
+      done for managed beta `1.0.0.2` into `00DRL00000Vkme62AB`; done again
+      2026-10-12 for `1.0.1.4` (`04thm000002tWirAAE`) into `ate-mgd`
+      (`00Ddi00000EXdFSEA1`), install request `0Hfdi000002FyKTCA0`.
 - [x] ~~Run Apex tests against the managed package version in a subscriber
-      org~~ — done: 29/29.
+      org~~ — done: 29/29 on `1.0.0.2`; 50/50 on `1.0.1.4`, run
+      `707di0000LCKGo0`.
 - [x] ~~Live verification that the documented administrator workaround
       actually works~~ — done in the managed subscriber org
-      `00DRL00000Vkme62AB`, see below.
-- [ ] Live UI smoke test of the managed install by a human, for
-      screenshots and listing assets.
+      `00DRL00000Vkme62AB`, see below; observed again through the UI on
+      2026-10-12 in `ate-mgd` (managed `1.0.1.1`): denied with the packaged
+      permission set alone, open after a local permission set granting
+      `ViewSetup` was added.
+- [x] ~~Live UI smoke test of the managed install~~ — done 2026-10-12 to this
+      extent: the source deploy in `ate-101` (as the administrator, and as a
+      Minimum Access user via Login As) and the managed install of `1.0.1.1`
+      in `ate-mgd` (Minimum Access user via Login As, denied then granted),
+      performed with browser automation rather than by a human; no screenshots were kept. See
+      [Manual UI smoke test](#manual-ui-smoke-test---2026-10-12).
+- [ ] Human-driven UI pass of the managed install for screenshots and listing
+      assets - the part of the previous item that the 2026-10-12 pass did not
+      produce.
 - [x] ~~Promote a managed package version from beta to released~~ — done
-      2026-09-09: `1.0.0.2` (`04thm000002OtQPAA0`), Dev Hub `partner-pbo`.
-      Irreversible; the version number is permanently consumed.
-- [ ] Submit the released managed package version for AppExchange Security
-      Review.
+      2026-09-09: `1.0.0.2` (`04thm000002OtQPAA0`), and 2026-10-12: `1.0.1.4`
+      (`04thm000002tWirAAE`), both on Dev Hub `partner-pbo`. Irreversible; the
+      version numbers are permanently consumed.
+- [ ] Submit the released managed package version `1.0.1.4`
+      (`04thm000002tWirAAE`) for AppExchange Security Review.
 - [ ] After review approval: add the listing URL and the review outcome, in
       Salesforce's own words, to `README.md`, `docs/APPEXCHANGE-LISTING.md`
-      and this file. (`README.md` already carries the install URL for
-      `04thm000002OtQPAA0`.)
+      and this file. (The install URL for `04thm000002tWirAAE` is recorded
+      under "Package version `1.0.1.4`" above.)
 
-**Current state: released managed 2GP version `1.0.0.2`. Not submitted for
-AppExchange Security Review. No AppExchange listing.**
+**Current state: released managed 2GP version `1.0.1.4`
+(`04thm000002tWirAAE`), promoted 2026-10-12; `1.0.0.2` remains released as the
+previous version. Not submitted for AppExchange Security Review. No
+AppExchange listing.**
 
 "Released" is the Salesforce packaging state and nothing more: the version
 installs into any org type including production and carries normal managed

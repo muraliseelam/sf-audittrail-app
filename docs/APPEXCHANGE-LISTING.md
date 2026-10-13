@@ -6,8 +6,8 @@ customer adoption, or install counts — those are added by Salesforce/AppExchan
 processes, not by this repository.
 
 > **Not ready to publish as-is.** The package described here is a **released
-> managed 2GP version** (`1.0.0.2`, `04thm000002OtQPAA0`, promoted
-> 2026-09-09) that has **not** been submitted for, or passed, AppExchange
+> managed 2GP version** (`1.0.1.4`, `04thm000002tWirAAE`, promoted
+> 2026-10-12) that has **not** been submitted for, or passed, AppExchange
 > Security Review, and has **no** AppExchange listing. Promotion satisfied
 > the packaging precondition for submission; the review itself is still
 > outstanding. Do not publish this listing, or any variant of it, until

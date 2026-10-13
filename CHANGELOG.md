@@ -9,20 +9,121 @@ Salesforce packages are versioned.
 
 ## [Unreleased]
 
-Documentation, CI and configuration only. `force-app` and `sfdx-project.json`
-are unchanged since tag `v1.0.0` (commit `934f200`), the source that built
-released managed version `1.0.0.2` (`04thm000002OtQPAA0`); no new package
-version has been created. The package remains **not submitted** for
-AppExchange Security Review, **not reviewed** and **not listed**.
+## [1.0.1] - 2026-10-12
+
+Released managed 2GP version `1.0.1.4` (`04thm000002tWirAAE`), built on
+2026-10-12 from commit `f0ad675` and promoted from beta the same day
+(`sf package version report`: Released true, Ancestor Version `1.0.0.2`, Code
+Coverage 96%, Code Coverage Met true). It installs as an upgrade over the
+released `1.0.0.2` (`04thm000002OtQPAA0`), which remains released as the
+previous version. Three earlier `1.0.1` betas were built and superseded on the
+way - `1.0.1.1` (`04thm000002tVurAAE`), `1.0.1.2` (`04thm000002tVwTAAU`) and
+`1.0.1.3` (`04thm000002tVy5AAE`) - and none was promoted; their aliases stay in
+`sfdx-project.json` for traceability. Tag `v1.0.1` marks the release commit,
+whose `force-app` is identical to `f0ad675`.
+
+**Not an AppExchange release.** The package has not been submitted for
+AppExchange Security Review, has not been reviewed and is not listed on
+AppExchange. "Released" is the Salesforce packaging state only. Installation is
+by direct URL:
+<https://login.salesforce.com/packaging/installPackage.apexp?p0=04thm000002tWirAAE>
+(sandboxes: `test.salesforce.com`), or with
+`sf package install --package 04thm000002tWirAAE --target-org my-org --wait 20`
+followed by
+`sf org assign permset --name atexplorer__Audit_Trail_Viewer --target-org my-org`.
+
+**Both grants are still required.** The installed
+`atexplorer__Audit_Trail_Viewer` permission set shows
+`PermissionsViewSetup=false` and `PermissionsViewRoles=false` after every
+`1.0.1` install, so an administrator must grant "View Setup and Configuration"
+separately. The permission set's own description now says so.
 
 ### Added
 
+- `AuditFilter.lastDays`: preset ranges send the number of days instead of
+  bounds computed from the browser clock. `AuditQueryService.pinRange`
+  resolves the window on the server on the first call of a search (end = now,
+  start = now minus min(`lastDays`, 180)) and pins it in the cursor as
+  `rangeStartMillis`/`rangeEndMillis`; every continuation pages over exactly
+  that window whatever the client sends later. Zero or negative `lastDays`
+  means the explicit dates apply; a preset longer than retention is capped at
+  the retention window. Tests: `lastDaysUsesServerClockAndPinsRange` (which
+  also sends a different filter on the continuation call and asserts the
+  pinned range wins), `lastDaysIsCappedAtTheRetentionWindow`,
+  `lastDaysZeroMeansExplicitDatesApply`,
+  `negativeLastDaysMeansExplicitDatesApply`.
+- Cursor validation. `AuditCursor.lastIdValue()` rejects a continuation cursor
+  whose id is blank, not a well-formed Id, or an Id of an object other than
+  `SetupAuditTrail`, before any query runs; the controller turns the rejection
+  into the generic client message. The pinned bounds carried in the cursor are
+  re-clamped on every call (start up to the retention floor, position down to
+  the range end), so an edited cursor cannot widen the scan. A cursor that
+  carries a position but not both pinned bounds - which only a hand-built
+  payload looks like, as the client round-trips the whole cursor - restarts
+  the search instead of resuming it. Tests:
+  `malformedContinuationCursorIsRejected`,
+  `blankIdOnPositionedCursorIsRejected`, `cursorIdOfAnotherObjectIsRejected`,
+  `continuationBoundsAreReclampedFromAnUntrustedCursor`,
+  `continuationCursorMissingRangeRestartsTheSearch`,
+  `searchHidesInternalErrorDetail`, `searchHidesDeserializationFailureDetail`,
+  `searchRoundTripsCursorJson`.
+- Free-text bounds. `searchText` is cut to 200 characters and only its first
+  10 whitespace-separated terms are honoured (`MAX_SEARCH_TEXT_LENGTH`,
+  `MAX_SEARCH_TERMS` in `AuditQueryService`), because the term loop runs once
+  per scanned row and a call can scan up to 10,000 rows. Tests:
+  `searchTextIsTruncatedToTwoHundredCharacters`,
+  `searchTextHonoursOnlyTheFirstTenTerms`.
+- `AuditQueryService.scanBatch` and `maxBatchesPerCall` are `@TestVisible`
+  variables (formerly the constants `SCAN_BATCH` and `MAX_BATCHES_PER_CALL`;
+  the production values 1000 and 10 are unchanged and nothing outside tests
+  assigns them). `AuditQueryServiceTest.useSmallBatches()` sets them to 100
+  and 3 so a few hundred mock rows exercise the multi-batch and per-call
+  ceiling paths: `multiBatchScanFindsAMatchInTheLastShortBatch`,
+  `sameTimestampRowsPageByIdAcrossBatches`,
+  `ceilingStopsACallWithoutLosingProgress`.
+- `auditExplorer`: a filter snapshot. The filter a search started with is kept
+  as `activeFilterJson`, and every "Search further back" call reuses it
+  verbatim; edits made since show the hint "Filters changed. Click Search to
+  apply them; Search further back continues the current search." until the
+  next Search (button or Enter in the search box) picks them up.
+- `auditExplorer`: tri-state access. `canViewSetup` is undefined until
+  `getContext` answers, so the component shows a `lightning-spinner`
+  ("Loading") and no form until then, the "View Setup and Configuration"
+  message when access is false, and only the error - no form, no search - when
+  `getContext` fails. Export CSV is enabled only when access is confirmed and
+  rows exist.
+- Apex tests: 50 test methods (was 29) across `AuditPermissionServiceTest`,
+  `AuditQueryControllerTest`, `AuditQueryServiceTest` and
+  `SetupAuditTrailProviderTest`. Besides those named above:
+  `restrictedUserWithLocalViewSetupPermissionSetCanUseEveryEntryPoint` (the
+  deterministic positive case: a Minimum Access user granted View Setup
+  through a locally created permission set can use `search`, `getContext` and
+  `searchUsers`), `restrictedUserGetContextReportsNoAccessWithoutThrowing`,
+  `pageSizeIsClampedToTheMaximumAndDefaulted`, `searchUsersFindsActiveUsers`
+  (against an inserted user with a distinctive last name),
+  `searchUsersTreatsPercentAsLiteral`, `searchUsersTreatsUnderscoreAsLiteral`,
+  `searchUsersTreatsEscapedPercentAsLiteral`,
+  `exhaustedScanReportsRangeBoundary`,
+  `exhaustedScanWithRowsReportsRangeBoundaryNotOldestRow`,
+  `blankFieldDoesNotMatchTheWordNull`.
+- Jest: 26 tests (was 7) covering the pill removal, the filter snapshot and
+  hint, the filter payload for presets and custom ranges, the type-ahead
+  (selection, two-character minimum, stale-response guard, error surfacing),
+  the access tri-state, CSV export (BOM, object-URL lifecycle, no-row no-op)
+  and the search-loop bounds (25-call cap, Stop). `auditExplorer.js` coverage
+  is 95.16% statements / 79.34% branch / 95.65% functions / 94.84% lines
+  (measured with the v8 coverage provider; the stock Babel provider reports an
+  empty table when run inside a git worktree on the maintainer's machine, a
+  measurement quirk, not a code problem) and `csv.js` 100%.
+- `sfdx-project.json`: `packageAliases` for `Audit Trail Explorer@1.0.1-1`
+  through `@1.0.1-4`.
 - `.github/workflows/code-analyzer.yml`: a weekly and on-demand Salesforce
   Code Analyzer workflow, kept out of the per-PR gate. It fails unless the
   three-flag selector resolves to 310 rules from 6 engines, runs the Graph
-  Engine on its own, and fails unless that run reports the full 14,503-path
-  analysis over 3/3 entry points; a bare "0 violations" is never accepted as
-  proof.
+  Engine on its own, and fails unless that run reports the full path analysis
+  over 3/3 entry points (the pinned count is a property of the source: 14,503
+  paths for `1.0.0.2`, 6,537 for this release); a bare "0 violations" is never
+  accepted as proof.
 - `docs/CODE-ANALYZER-SCAN-RECORD.md`: the 2026-09-10 (plugin 5.15.0,
   workstation) and 2026-09-19 (plugin 5.16.0, CI) scan records, identical
   rule for rule and count for count, and the 2026-10-11 workstation
@@ -45,6 +146,71 @@ AppExchange Security Review, **not reviewed** and **not listed**.
 
 ### Changed
 
+- Paging is keyset-based on `(CreatedDate, Id)`. `AuditCursor` carries
+  `lastDateMillis` and `lastId` instead of a `seenIdsAtLastDate` list, so it
+  stays a fixed size however many rows share a timestamp; the 5,000-id cap
+  (`MAX_SEEN_IDS`) and its test are gone with the list.
+  `SetupAuditTrailProvider` orders by `CreatedDate DESC, Id DESC` and resumes
+  with `AND (CreatedDate < :upperBound OR Id < :lastId)` in place of
+  `AND Id NOT IN :excludeIds`. `AuditTrailProvider.fetch` takes `Id lastId`
+  where it took `Set<Id> excludeIds`; `MockAuditTrailProvider` sorts its rows
+  the same way and applies the same keyset exclusion.
+  `AuditFilter.startDate()`/`endDate()`, unused once the range is pinned in
+  the cursor, are removed.
+- Uniform error contract in `AuditQueryController`: every entry point throws
+  only `AuraHandledException`. `searchUsers` and `getContext` are wrapped the
+  way `search` already was; a permission failure passes its user-facing text
+  through `permissionFailure`, which calls `setMessage` so the client sees the
+  permission name instead of "Script-thrown exception"; every other failure
+  collapses to the generic message.
+  `blocksControllerEntryPointsForUnprivilegedUser` now asserts that the
+  message names View Setup and Configuration for both `search` and
+  `searchUsers`.
+- Exhausted scans report the range boundary. Once the range is exhausted,
+  `scannedThroughMillis` is the lower bound of the pinned window rather than
+  the oldest row that happened to be examined, so the "examined N events back
+  to ..." date names the window actually covered; an unfinished call still
+  reports the oldest row it examined.
+- `AuditQueryService.search` is written with as few conditionals as the
+  behaviour allows: `Math.max`/`Math.min` clamps in `search()` and
+  `pinRange()`, observed sections and actions collected unconditionally into
+  sets with null and blank removed once after the loop, one ternary deciding
+  whether the client sent a complete continuation cursor, a plain cast for the
+  id `consume()` just wrote, a counted loop over the trimmed term split, and a
+  set-based null drop in `CompiledFilter.matches`. This is what keeps the
+  entry point analysable by the Graph Engine (see "Static analysis" below):
+  the `1.0.1.2` and `1.0.1.3` betas had pushed `AuditQueryController.search`
+  past a 1,800,000 ms per-path budget.
+- `auditExplorer`: presets send `lastDays` and no explicit bounds, and the
+  "Today" preset is relabelled "Last 24 hours", which is what the server
+  computes for it. For a custom range a blank "To" is sent as null and
+  resolved as "now" on the server; a blank "From" defaults to seven days ago
+  and a "From" below the retention floor is clamped to it on the client, as
+  before.
+- `auditExplorer`: the in-progress indicator is a `lightning-spinner`
+  ("Searching") in place of the `lightning-progress-bar`.
+- `Audit_Trail_Viewer` permission set description: now reads that View Setup
+  and Configuration (and View Roles) take effect for source deploys only and
+  that a managed-package install strips them, so an administrator must grant
+  View Setup and Configuration separately.
+- Tests: `AuditPermissionServiceTest` filters its `PermissionSet` and
+  `ApexClass` lookups by `NamespacePrefix`, so under a managed install they
+  find the packaged copies; `System.assert*` calls are replaced by `Assert.*`
+  with messages; vacuous assertions are replaced
+  (`pageSizeIsClampedToTheMaximumAndDefaulted` takes the place of
+  `permissionCheckRunsRealQuery`, `contextExposesRetentionWindow` asserts
+  `canViewSetup` is true, the packaged-permission-set test asserts a
+  positioned result);
+  `SetupAuditTrailProviderTest.realQueryExecutesWithEveryOptionalFilter`
+  passes a `lastId` so the `Id < :lastId` predicate executes against the real
+  object.
+- `sfdx-project.json`: `versionName` "Version 1.0.1", `versionNumber`
+  `1.0.1.NEXT`, `ancestorVersion` `HIGHEST` (which resolved to `1.0.0.2`).
+- `code-analyzer.yml`: the Graph Engine `java_thread_timeout` is raised from
+  600000 to 1800000 ms and the comment rewritten (the path count is a property
+  of the code; 14,503 was the `1.0.0.2` figure). In
+  `.github/workflows/code-analyzer.yml` the job `timeout-minutes` goes from 45
+  to 90 and the pinned path count from 14503 to 6537.
 - The Code Analyzer workflow runs on Node 22, which the Salesforce CLI
   requires (its `engines` field). On Node 20 the 2026-09-14 scheduled run
   crashed at CLI startup, before any rule was loaded.
@@ -58,18 +224,186 @@ AppExchange Security Review, **not reviewed** and **not listed**.
 
 ### Fixed
 
+- `auditExplorer.js`: removing a user pill did nothing.
+  `lightning-pill-container`'s `itemremove` event carries `{ item, index }`,
+  not the pill's `name`;
+  `handleUserRemove` now reads `detail.item.name` and falls back to the pill
+  at `detail.index`. The user is dropped from the next search (Jest) and the
+  pill's x removes it in the org (manual smoke test below).
+- `AuditQueryService.CompiledFilter.matches`: a blank `display`, `section`,
+  `action` or `userName` reached the haystack as the literal word "null"
+  (`String.valueOf(null)`), so the search term "null" matched every row with
+  an empty field. Null fields are now dropped before the haystack is built
+  (`blankFieldDoesNotMatchTheWordNull`).
+- `auditExplorer.js` CSV export: the file now starts with the UTF-8 BOM, which
+  Excel on Windows needs to decode non-ASCII text (the first cell is still the
+  quoted header "Date", so the formula guard in `csv.js` is unaffected), and
+  the object URL is no longer revoked synchronously after `click()`, which can
+  cancel the download; it is kept until the next export or
+  `disconnectedCallback`.
+- `auditExplorer.js` type-ahead: a lookup that failed was swallowed silently
+  and a response arriving after the term had changed could overwrite the newer
+  list. Failures now surface through the component's error banner, and a
+  response whose term no longer matches the box is dropped.
 - `code-analyzer.yml`: Code Analyzer 5.16.0 stopped applying an ESLint
   configuration file it had merely discovered, so the ESLint engine fell back
   to its bundled defaults and the selector silently resolved to 309 rules
   (201 eslint). The project config is now passed explicitly through
   `eslint_config_file`; the selector again resolves to 310 rules (202
   eslint), identical to the 5.15.0 baseline. The CI rule-count check caught
-  the drift on 2026-09-19.
+  the drift on 2026-09-19. Consequence: in a checkout without `node_modules`
+  the official AppExchange command's eslint engine fails with "Cannot find
+  module 'eslint/config'" - an environment error, not a code finding; run
+  `npm ci` first.
 - `jest.config.js`: `npm run test:unit:coverage` instrumented nothing, wrote
   an empty `coverage-final.json` and reported 0% for every file while still
   exiting 0. The coverage glob is now limited to `.js` files outside
-  `__tests__`; measured coverage is 70.64% statements for `auditExplorer.js`
-  and 100% for `csv.js` (7/7 Jest tests).
+  `__tests__`; at the time of the fix measured coverage was 70.64% statements
+  for `auditExplorer.js` and 100% for `csv.js` (7/7 Jest tests). The `1.0.1`
+  figures are under "Added" above.
+
+### Security
+
+- `getContext` and `searchUsers` are `@AuraEnabled(cacheable=false)` (both
+  were `cacheable=true`), so the access flag and the user type-ahead results
+  are no longer eligible for the client-side Lightning cache. The `1.0.0`
+  statement below that type-ahead results are never persisted, cached or
+  logged now holds on the client as well as the server.
+- The client-supplied id list is gone with the keyset cursor: the only
+  client-controlled values in a continuation are one timestamp, one Id, which
+  must be a well-formed `SetupAuditTrail` Id, and two pinned bounds that are
+  re-clamped on the server. There is no list bind and no cap to tune.
+- The date range is owned by the server: a stale or skewed browser clock, or
+  a different filter sent on a continuation call, cannot widen the window
+  (`lastDaysUsesServerClockAndPinsRange`).
+- The free-text bounds (200 characters, 10 terms) cap the per-row cost of the
+  haystack test for the up to 10,000 rows one call may scan.
+- No internal detail reaches the browser from any entry point: exception
+  text, query text and the word "Malformed" are all masked; the permission
+  message is the only pass-through, and `searchUsers` now follows the same
+  contract as `search`.
+- Export CSV is gated on confirmed access as well as on rows, and nothing
+  actionable is rendered before `getContext` has answered.
+- `docs/SECURITY-REVIEW-SUBMISSION.md` records the audit this release answers
+  (67 candidates, 63 confirmed: 0 blocker, 0 high, 12 medium, 41 low, 10
+  info; 4 rejected). Resolved here by code: its items 3.4 to 3.8 and 3.10 to
+  3.12 and the section 4 code rows. Deliberately unchanged and accepted: the
+  SLDS hardcoded values (now 22 hits), the type-ahead list and live-region
+  semantics, browser-timezone formatting in the detail panel and progress
+  text, the auto-search on connect, the permission set still declaring
+  ViewSetup/ViewRoles for source deploys, publisher org ids in the docs,
+  unpinned CI tool versions and the absence of a Jest `coverageThreshold`.
+
+### Verified in a live org (not run in CI)
+
+- **Package build and promotion.** `1.0.1.4` (`04thm000002tWirAAE`,
+  `Package2VersionId` `05ihm0000001CK5AAM`) built on 2026-10-12 from `f0ad675`
+  at 96% coverage with `HasPassedCodeCoverageCheck=true`;
+  `sf package version promote --package 04thm000002tWirAAE` succeeded on
+  2026-10-12. The superseded betas `1.0.1.1` (from `d931ba7`, `force-app`
+  identical to `47bd65f`), `1.0.1.2` (from `41e2a29`) and `1.0.1.3` (from
+  `f05ed25`) also built at 96% with the coverage check passed; each was
+  replaced for a Graph Engine reason recorded under "Static analysis".
+- **Source deploy of `f0ad675`** to a namespaced scratch org with
+  `RunLocalTests`: deploy `0Afh1000000NfiTCAS`, 18/18 components, **50 run, 0
+  failed**; per-class coverage `AuditCursor` 100%, `AuditQueryController`
+  92%, `AuditSearchResult` 100%, `AuditQueryService` 96%,
+  `AuditPermissionService` 100%, `AuditEventRow` 100%,
+  `SetupAuditTrailProvider` 100% (`AuditFilter` has no executable lines). The
+  `main` baseline `f27a009` in the namespaced scratch org `ate-101`: deploy
+  `0Afh1000000N46ACAS`, 18/18 components, 29 run, 0 failed.
+- **Managed install** into the clean, un-namespaced scratch org `ate-mgd`:
+  `1.0.1.1` installed (request `0Hfdi000002FareCAC`), then upgraded to
+  `1.0.1.2` (`0Hfdi000002FhebCAC`), `1.0.1.3` (`0Hfdi000002FiKYCA0`) and
+  `1.0.1.4` (`0Hfdi000002FyKTCA0`), every request SUCCESS;
+  `InstalledSubscriberPackage` shows `04thm000002tWirAAE` build 4.
+  `RunAllTestsInOrg` on `1.0.1.4`: run `707di0000LCKGo0`, **50 passed, 0
+  failed** (on `1.0.1.1`, `1.0.1.2` and `1.0.1.3`: runs `707di0000LCGPxR`,
+  `707di0000LCGvO4` and `707di0000LCHRya`, each 50 passed, 0 failed).
+  Org-wide coverage reads 0% there because Salesforce does not expose
+  managed-package coverage to subscribers; the build-time 96% is the
+  meaningful figure.
+- **Permission stripping re-confirmed.** After every `1.0.1` install the
+  installed `atexplorer__Audit_Trail_Viewer` shows `PermissionsViewSetup=false`
+  and `PermissionsViewRoles=false`. Via Login As in `ate-mgd`, a Minimum
+  Access - Salesforce user holding only the packaged permission set sees the
+  "View Setup and Configuration" message, no form, Export CSV disabled and no
+  spinner; after a locally created permission set (`PermissionsViewSetup` and
+  `PermissionsViewRoles` true) was assigned, the app loaded with data for that
+  user - the two-grant sequence `README.md` describes. In the source-deploy
+  org `ate-101` the same kind of user sees the full app, because the shipped
+  permission set's ViewSetup entry is honoured outside managed packaging.
+- **Manual UI smoke test** (2026-10-12, `ate-101`, administrator): the tab
+  loads with data; the type-ahead returns active users; selecting one adds a
+  pill and the pill's x removes it (the `1.0.0.2` defect is gone); editing a
+  filter shows the "Filters changed" hint; "Search further back" continued the
+  original search (50 to 64 rows; the progress text read "Search complete -
+  examined 64 events back to" followed by the range boundary) without applying
+  a pending non-matching term; Enter in the search box applied it (0 events,
+  empty state, hint cleared).
+- Operational notes: for about 15 minutes after `sf package version create`
+  the new version was not yet visible to the subscriber org and
+  `sf package install` failed with "No record found ... FROM
+  SubscriberPackageVersion"; the install succeeded once the org's Tooling API
+  returned the version (`InstallValidationStatus NO_ERRORS_DETECTED`). A
+  Minimum Access - Salesforce user in a scratch or Developer Edition org also
+  needs the "Lightning Experience User" permission before Lightning Experience
+  itself loads, and Login As requires "Administrators Can Log in as Any User".
+
+### Static analysis (not run in CI at release time)
+
+- **Official AppExchange command** on `f0ad675`
+  (`sf code-analyzer run --rule-selector AppExchange --rule-selector Recommended:Security --output-file CodeAnalyzerReport.html`;
+  plugin 5.16.0, `@salesforce/cli` 2.153.5, Node 24.20.0, OpenJDK 21.0.12.1,
+  run 2026-10-12 from the release worktree after `npm ci`): 62 rules from 5
+  engines, **"Found 0 violations."** (executed: retire-js, eslint, regex, pmd;
+  there is no Flow metadata for the flow engine). The report
+  (`CodeAnalyzerReport.html`, 64,954 bytes, SHA-256
+  `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`) is kept
+  outside the repository by the maintainer and is the one to upload with the
+  `1.0.1.4` submission; the `1.0.0.2` and `1.0.1.2` report hashes are
+  superseded for that purpose.
+- **Three-tag union** (`Recommended` + `Security` + `AppExchange` with the
+  committed `code-analyzer.yml`, 310 rules from 6 engines, run 2026-10-12, 11
+  minutes) on `f0ad675`: exit 0, **0 Critical, 0 High**, 119 violations across
+  16 files = 13 Moderate + 106 Low, no finding carrying the `Security`,
+  `AppExchange` or `ErrorProne` tag. By rule:
+  `ApexUnitTestClassShouldHaveRunAs` 45, `ApexDoc` 38,
+  `@salesforce-ux/slds/no-hardcoded-values-slds2` 22, `ExcessiveParameterList`
+  4, `CognitiveComplexity` 3, `CyclomaticComplexity` 3,
+  `@lwc/lwc-platform/no-inline-disable` 2 (both the deliberate
+  `no-await-in-loop` for sequential cursor-driven calls), `NcssCount` 1,
+  `AvoidDebugStatements` 1. Versus the `1.0.0.2` baseline (85 = 11 Moderate +
+  74 Low): +19 RunAs (new tests), +9 ApexDoc (new methods), +4 SLDS (new
+  CSS), +1 CyclomaticComplexity, +1 no-inline-disable (Jest);
+  `FieldNamingConventions`, `AvoidDeeplyNestedIfStmts` and
+  `ApexUnitTestClassShouldHaveAsserts` no longer appear. All are the families
+  the `1.0.0.2` disposition already accepts.
+- **Graph Engine on its own** (`--rule-selector sfge`, `java_thread_timeout`
+  1800000, 2g heap, 4 threads, 757 s on an otherwise idle host) on `f0ad675`:
+  "analyzed 6537 path(s) from 3 entry point(s)", 3/3 entry points, no
+  "Internal execution error" - the validity bar is met. The two Security rules
+  (`ApexFlsViolation`, `DatabaseOperationsMustUseWithSharing`) report 0
+  violations. The one finding is `sfge:AvoidDatabaseOperationInLoop`
+  (Performance, not Security or AppExchange) on the batch loop in
+  `AuditQueryService.search`: by design and bounded - the loop is the
+  progressive, time-sliced scan the application exists for, issues at most
+  `maxBatchesPerCall` (10) queries per transaction against the 100-query
+  limit, and the ceiling is pinned by `ceilingStopsACallWithoutLosingProgress`;
+  accepted. The path count moved from 14,503 (`1.0.0.2`) to 6,537 because of
+  the branch trimming.
+- **Why there were four builds.** `1.0.1.1`'s Graph Engine run flagged
+  `sfge:ApexNullPointerException` on `working.lastIdValue()`, a false positive
+  (the null check had moved into a separate Boolean the path analysis cannot
+  correlate), fixed in `41e2a29`. On `1.0.1.2` the standalone run could not
+  finish: `AuditQueryController.search` reported "Path evaluation timed out"
+  at the stock 600 s per-path budget and again at a diagnostic 1,800 s (3
+  paths from 2 entry points), printing the vacuous "0 violations" that
+  `code-analyzer.yml` warns about; `f05ed25` trimmed the branches inside the
+  scan loop. On `1.0.1.3` the run still timed out at 1,800 s because of the
+  remaining multipliers in the cursor normalisation before the loop; `f0ad675`
+  removed those. The cause was path explosion from conditionals `1.0.1` had
+  added on the search path, not the host; the behaviour is unchanged.
 
 ## [1.0.0] - 2026-09-09
 
@@ -267,5 +601,6 @@ deliberately not linked: tag `v1.0.0` marks the managed release above.
   against commit `934f200`, the managed-lineage source, not against these
   unlocked builds; it is recorded under the managed [1.0.0] entry above.
 
-[Unreleased]: https://github.com/muraliseelam/sf-audittrail-app/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/muraliseelam/sf-audittrail-app/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/muraliseelam/sf-audittrail-app/releases/tag/v1.0.1
 [1.0.0]: https://github.com/muraliseelam/sf-audittrail-app/releases/tag/v1.0.0

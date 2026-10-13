@@ -34,10 +34,10 @@ renders and which the CSV export writes.
 Three of the selected fields — `CreatedById`, `CreatedByContext` and
 `CreatedByIssuer` — are returned to the browser in every row but are never
 displayed or exported; nothing in the component reads them. `Id` is used only
-as the row key of the results table (`auditExplorer.html:182`). The rendered
+as the row key of the results table (`auditExplorer.html:190`). The rendered
 columns are defined at `auditExplorer.js:7-26`, the detail panel at
-`auditExplorer.html:204-246` and the export columns at
-`auditExplorer.js:361-373`.
+`auditExplorer.html:212-254` and the export columns at
+`auditExplorer.js:454-466`.
 
 **User type-ahead.** The "Filter by user" field also queries the standard
 `User` object — `Id`, `Name`, and `Username` only, for **active users**
@@ -51,18 +51,25 @@ audit trail in the first place), runs under `USER_MODE` so field-level
 security on `User` is enforced for the running user, requires at least 2
 characters of input, returns at most 20 matches, and — like everything else
 in this app — the results are used only to render the UI and are never
-stored, cached, or logged.
+stored or logged. They are not cached in either direction: the server
+performs no caching of its own (no Platform Cache, no custom object, nothing
+kept between calls), and `searchUsers` is declared
+`@AuraEnabled(cacheable=false)` (`AuditQueryController.cls:59`), as are
+`search` and `getContext` (`AuditQueryController.cls:21,40`), so the Lightning
+client-side action cache is not used and no result is ever served from it.
+The list lives only in the component's in-memory state while the page is
+open.
 
 ## What the app does _not_ do
 
-| Question                                                                                                   | Answer                                                                                                                               |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Does it create a custom object, Big Object, or file to store data?                                         | No.                                                                                                                                  |
-| Does it write, cache, or log audit data server-side beyond the standard debug log?                         | No. Only unexpected _exception_ type/message is written to the debug log (see below); no audit row content is ever logged.           |
-| Does it make an external HTTP callout, or is it configured with a named credential or remote site setting? | No.                                                                                                                                  |
-| Does it send data to Salesforce, the package publisher, or any third party for analytics/telemetry?        | No. The package contains no telemetry of any kind.                                                                                   |
-| Does it use browser storage (`localStorage`, cookies, IndexedDB) to persist audit data?                    | No. All state lives in the component's in-memory JavaScript for the duration of the page view and is discarded on navigation/reload. |
-| Does uninstalling the package leave data behind?                                                           | No. Because nothing is stored, there is nothing to clean up.                                                                         |
+| Question                                                                                                   | Answer                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does it create a custom object, Big Object, or file to store data?                                         | No.                                                                                                                                                                                                                                                                                                                                                                       |
+| Does it write, cache, or log audit data server-side beyond the standard debug log?                         | No. Nothing is cached on the server, and none of the three `@AuraEnabled` methods is cacheable (`AuditQueryController.cls:21,40,59`), so the Lightning client-side action cache holds no audit or user data either. Only an unexpected _exception_'s type and message are written to the debug log (`AuditQueryController.cls:110`); no audit row content is ever logged. |
+| Does it make an external HTTP callout, or is it configured with a named credential or remote site setting? | No.                                                                                                                                                                                                                                                                                                                                                                       |
+| Does it send data to Salesforce, the package publisher, or any third party for analytics/telemetry?        | No. The package contains no telemetry of any kind.                                                                                                                                                                                                                                                                                                                        |
+| Does it use browser storage (`localStorage`, cookies, IndexedDB) to persist audit data?                    | No. All state lives in the component's in-memory JavaScript for the duration of the page view and is discarded on navigation/reload.                                                                                                                                                                                                                                      |
+| Does uninstalling the package leave data behind?                                                           | No. Because nothing is stored, there is nothing to clean up.                                                                                                                                                                                                                                                                                                              |
 
 ## CSV export
 
@@ -71,7 +78,10 @@ already loaded into the page (`Blob` + `URL.createObjectURL`); the file is
 never uploaded anywhere. It is written to the location your browser saves
 downloads to, under your organization's normal device and browser security
 policies — the app has no visibility into or control over that file once it
-is downloaded.
+is downloaded. The file starts with the UTF-8 byte-order mark so that Excel on
+Windows decodes it as UTF-8 (`auditExplorer.js:45-46,471`); the mark is an
+encoding signal ahead of the quoted header cell, not data, and no cell content
+depends on it.
 
 Exported cells are escaped to prevent spreadsheet formula/CSV injection when
 the file is opened in Excel, Google Sheets, or similar tools (see

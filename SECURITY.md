@@ -11,8 +11,8 @@ eventual AppExchange security review, and
 for the Salesforce Code Analyzer findings and their disposition.
 
 > **Package status:** the current package version is **released managed 2GP
-> `1.0.0.2`** (`04thm000002OtQPAA0`, namespace `atexplorer`), promoted
-> 2026-09-09. "Released" is the Salesforce packaging state: it installs into
+> `1.0.1.4`** (`04thm000002tWirAAE`, namespace `atexplorer`), promoted
+> 2026-10-12. "Released" is the Salesforce packaging state: it installs into
 > any org type including production. The package has **not** been submitted
 > for, or passed, AppExchange Security Review, and has **no** AppExchange
 > listing. See
@@ -23,12 +23,16 @@ for the Salesforce Code Analyzer findings and their disposition.
 
 Security fixes are issued against the current released managed version only.
 
-| Version   | Package version id   | Lineage                       | Supported            |
-| --------- | -------------------- | ----------------------------- | -------------------- |
-| `1.0.0.2` | `04thm000002OtQPAA0` | Managed (`atexplorer`)        | **Yes** — current    |
-| `1.0.0.1` | `04thm000002OtOnAAK` | Managed (`atexplorer`)        | No — superseded beta |
-| `1.0.0.2` | `04tbm000000gaALAAY` | Unlocked (superseded lineage) | No                   |
-| `1.0.0.1` | `04tbm000000aeOjAAI` | Unlocked (superseded lineage) | No                   |
+| Version   | Package version id   | Lineage                       | Supported             |
+| --------- | -------------------- | ----------------------------- | --------------------- |
+| `1.0.1.4` | `04thm000002tWirAAE` | Managed (`atexplorer`)        | **Yes** — current     |
+| `1.0.1.3` | `04thm000002tVy5AAE` | Managed (`atexplorer`)        | No — superseded beta  |
+| `1.0.1.2` | `04thm000002tVwTAAU` | Managed (`atexplorer`)        | No — superseded beta  |
+| `1.0.1.1` | `04thm000002tVurAAE` | Managed (`atexplorer`)        | No — superseded beta  |
+| `1.0.0.2` | `04thm000002OtQPAA0` | Managed (`atexplorer`)        | No — previous release |
+| `1.0.0.1` | `04thm000002OtOnAAK` | Managed (`atexplorer`)        | No — superseded beta  |
+| `1.0.0.2` | `04tbm000000gaALAAY` | Unlocked (superseded lineage) | No                    |
+| `1.0.0.1` | `04tbm000000aeOjAAI` | Unlocked (superseded lineage) | No                    |
 
 The unlocked lineage is a separate, non-namespaced package that could not be
 converted in place into the managed one; it is retained in `sfdx-project.json`

@@ -36,10 +36,10 @@ jobs:
         timeout-minutes: 90
         steps:
             - name: Check out repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
 
             - name: Set up Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v7
               with:
                   # The Salesforce CLI requires Node >= 22 (its `engines` field). On 20 the
                   # scheduled run of 2026-09-14 crashed at CLI startup, inside undici, with
@@ -51,7 +51,7 @@ jobs:
             # they fail to load and are skipped SILENTLY, and the scan reports a
             # false all-clear.
             - name: Set up JDK
-              uses: actions/setup-java@v4
+              uses: actions/setup-java@v6
               with:
                   distribution: temurin
                   java-version: '21'
@@ -140,7 +140,7 @@ jobs:
 
             - name: Upload scan reports
               if: always()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: code-analyzer-reports
                   path: |

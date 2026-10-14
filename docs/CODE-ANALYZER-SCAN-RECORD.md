@@ -258,7 +258,7 @@ durable record.
 
 ## 2026-10-11 — source commit `934f200` (shipped source) / HEAD `f27a009`
 
-Three runs on the maintainer's workstation during the pre-submission readiness
+Three runs on the publisher's workstation during the pre-submission readiness
 audit. `HEAD` was `f27a009`. `git diff --stat v1.0.0..HEAD -- force-app
 sfdx-project.json` is empty, so the source scanned from the working tree in
 Runs 1 and 2 is the source that built released managed version `1.0.0.2`
@@ -278,9 +278,7 @@ clean worktree checked out at `934f200` itself.
   submitted version. Before this date that report had never been generated
   for this package; the repository's reproducible scan uses the three-flag
   selector in [`code-analyzer.yml`](../code-analyzer.yml), which is a superset
-  but not the file the reviewers ask for
-  ([`SECURITY-REVIEW-SUBMISSION.md`](SECURITY-REVIEW-SUBMISSION.md)). Run 3
-  is that report.
+  but not the file the reviewers ask for. Run 3 is that report.
 
 ### Environment
 
@@ -473,9 +471,10 @@ applied", so its three rules here are the engine's own AppExchange and Security
 rules, not this project's lint set; that is what the official command does by
 design, and the project's lint rules are covered by Run 1 and `npm run lint`.
 
-The resulting `CodeAnalyzerReport.html` is the file the submission asks for. It
-is kept by the maintainer outside the repository (`CodeAnalyzerReport.html` is
-gitignored, `.gitignore:55`); it is 65,085 bytes and its SHA-256 is
+The resulting `CodeAnalyzerReport.html` is the report the submission asks for;
+for `1.0.1.4` it is superseded by the 2026-10-12 report below. It is not
+committed (`CodeAnalyzerReport.html` is gitignored, `.gitignore:55`); it is
+65,085 bytes and its SHA-256 is
 
 ```
 5C05B155418A8A1BE3FA2FF77132260F3B62E628380B25AFA4DC293D93C9169E
@@ -535,7 +534,7 @@ the result to record is the one from running it alone.
 
 ## 2026-10-12 — source commit `f0ad675` (1.0.1 release source)
 
-Three runs on the maintainer's workstation in the `release/1.0.1` worktree at
+Three runs on the publisher's workstation in the `release/1.0.1` worktree at
 `f0ad675`, the commit that built managed version
 `1.0.1.4` (`04thm000002tWirAAE`), promoted to Released the same day. Later
 commits on the branch touch configuration and documentation only;
@@ -647,9 +646,9 @@ configuration. The three ESLint rules in the 62 are still the engine's own
 AppExchange and Security rules; the project's lint set is covered by Run 2 and
 `npm run lint`.
 
-The resulting `CodeAnalyzerReport.html` is the file to upload with the
-`1.0.1.4` submission. It is kept by the maintainer outside the repository
-(gitignored, `.gitignore:55`); it is 64,954 bytes and its SHA-256 is
+The resulting `CodeAnalyzerReport.html` is the Code Analyzer report attached
+to the `1.0.1.4` submission. It is not committed (gitignored,
+`.gitignore:55`); it is 64,954 bytes and its SHA-256 is
 
 ```
 03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C
@@ -874,7 +873,7 @@ ESLint configuration requires the project's devDependencies, so in a checkout
 without `node_modules` the official command's ESLint engine fails to
 instantiate, `UninstantiableEngineError` with "Cannot find module
 'eslint/config'", and the selector drops to 59 rules from 4 engines with one
-Critical engine error (verified on a pristine checkout of `47bd65f`). Like the
+Critical engine error (verified on a clean checkout of `47bd65f`). Like the
 Python error of 2026-10-11 it describes the machine, not `force-app`. Run
 `npm ci` before either command, as Runs 1 and 2 here did. The 2026-10-11 Run 3
 did not meet this because `934f200` predates `5c70c8c`.

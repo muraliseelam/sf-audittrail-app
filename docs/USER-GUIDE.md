@@ -8,9 +8,10 @@ as `[E4]` that points to the file and line in this repository where the
 behaviour is implemented; the markers are resolved in the
 [Evidence](#evidence) list at the end.
 
-**Status:** the package is a released managed version in the Salesforce
-packaging sense. It has not been submitted for AppExchange Security Review,
-has not been reviewed, and has no AppExchange listing.
+**Status:** managed version `1.0.1.4` is released in the Salesforce packaging
+sense and is the version submitted for AppExchange Security Review. No version
+of the package has completed that review, and its AppExchange listing is an
+unpublished draft.
 
 ## 1. What it is
 
@@ -31,7 +32,7 @@ before the app works `[E4]`:
 
 1. **The packaged permission set `atexplorer__Audit_Trail_Viewer`** (label
    "Audit Trail Viewer"). It grants the Audit Trail Explorer app, its tab and
-   its four Apex classes, and nothing else: no object or field permissions
+   four of its Apex classes, and nothing else: no object or field permissions
    `[E5]`.
 2. **The system permission "View Setup and Configuration"**, granted
    separately, through the user's profile or through a permission set created
@@ -43,8 +44,9 @@ package source does declare `ViewSetup` and `ViewRoles` `[E6]`, but Salesforce
 removes system permissions from a managed package's permission sets when the
 package is installed, as an anti-privilege-escalation measure. On the
 installed `atexplorer__Audit_Trail_Viewer`, `PermissionsViewSetup` and
-`PermissionsViewRoles` are `false`; this was verified in three different
-orgs, including a persistent Developer Edition org `[E7]`.
+`PermissionsViewRoles` are `false`; this was verified in four different
+orgs, including a persistent Developer Edition org and the reviewer test org
+provided with the security review submission `[E7]`.
 The declared entries take effect only when the source is deployed directly,
 not through the managed package; the permission set's own description says
 so `[E6]`.
@@ -73,6 +75,21 @@ classes are not accessible to that user `[E5]`.
 
 ## 3. Setting up a test user for reviewers
 
+**The test org provided with the security review submission is already set
+up this way.** It is a partner Enterprise Edition test org with `1.0.1.4`
+installed and two users on **Minimum Access - Salesforce**, both holding
+`atexplorer__Audit_Trail_Viewer` and a permission set that grants Lightning
+Experience User:
+
+- **ATE Reviewer** also holds the local permission set from step B below, so
+  the app opens with the search form and runs the default search `[E13]`.
+- **ATE Restricted** does not, so the app shows the "View Setup and
+  Configuration" message in place of the search form `[E8]`.
+
+The org's audit trail holds the setup changes made while it was prepared. If
+the default **Last 7 days** finds nothing, choose **Last 180 days (maximum)**
+`[E3]`. The steps below repeat that setup in another org.
+
 These steps create a user who can use the app, and a second user who
 demonstrates the access gate closing. Both use the stock profile **Minimum
 Access - Salesforce**, which grants neither the app nor "View Setup and
@@ -98,11 +115,12 @@ the same user and observe the app open.
     sf org assign permset --name atexplorer__Audit_Trail_Viewer --on-behalf-of <username> --target-org <alias>
     ```
 
-3. **Scratch and Developer Edition orgs only.** A user on **Minimum Access -
-   Salesforce** in such an org also needs the system permission **Lightning
-   Experience User** before Lightning Experience itself opens; without it the
-   login ends at "You can't access Lightning Experience" rather than at the
-   App Launcher. Grant it through a permission set that holds only that
+3. **Lightning Experience User, where the profile lacks it.** In scratch and
+   Developer Edition orgs, **Minimum Access - Salesforce** does not include the
+   system permission **Lightning Experience User**, and the two users in the
+   provided test org hold it through a permission set. Without it the login
+   ends at "You can't access Lightning Experience" rather than at the App
+   Launcher. Grant it through a permission set that holds only that
    permission (**Setup > Users > Permission Sets > New**, then **System
    Permissions > Edit**, tick **Lightning Experience User**) and assign that
    set to both test users, so that the outcome of the test still turns on
@@ -258,10 +276,9 @@ a small spinner is shown while the search is running, and the line next to
 the **N events** count reports progress `[E37]`:
 
 - while running: `Searching... examined N events, currently at <date>.`
-- when the range is exhausted: `Search complete - examined N events back to
-<date>.`, where `<date>` is the start of the date range `[E71]`
-- when the loop stopped early: `Paused - examined N events back to <date>.
-More history remains.`
+- when the range is exhausted: `Search complete - examined N events back to <date>.`,
+  where `<date>` is the start of the date range `[E71]`
+- when the loop stopped early: `Paused - examined N events back to <date>. More history remains.`
 
 "N events" is the number of matching rows on screen; "examined N events" is
 the number of rows the scan has read, matching or not `[E38]`.
@@ -377,8 +394,9 @@ it if you need the raw text.
   uses UTC `[E53]`.
 - **A search runs on every load**, including on a Home page that hosts the
   component; it is one bounded action with the default filters `[E13]`.
-- **Lightning Experience only**, and only in editions that allow custom
-  Apex (not Professional or Base Edition) `[E60]`.
+- **Lightning Experience only**, in Enterprise, Unlimited, Performance and
+  Developer Editions. Professional and Group Editions are not supported or
+  tested, and Base Edition cannot install the package `[E60]`.
 
 ## 6. Troubleshooting
 
@@ -402,9 +420,11 @@ search could not be completed" below.
 **A red alert says "The audit search could not be completed. Please try
 again, or contact your administrator if the problem persists."** The server
 hit an unexpected error and deliberately shows this fixed text rather than the
-platform message. Try again; an administrator with a trace flag on the user
-can read the underlying type and message in the Apex debug log, prefixed
-`Audit search failed:` `[E58]`.
+platform message. Try again. The underlying type and message are written to
+the Apex debug log, prefixed `Audit search failed:`; on a source deploy an
+administrator with a trace flag on the user can read it there, while in a
+managed install Salesforce hides managed-package debug output from the
+subscriber org `[E58]`.
 
 **"No audit events matched your filters in this range."** The search finished
 without a match `[E62]`. Check, in order: the date range ("Last 24 hours" is
@@ -453,8 +473,7 @@ Uninstalling leaves nothing behind because nothing is stored; see
 
 Line numbers refer to the source at commit `f0ad675`, which built version
 `1.0.1.4`. `force-app` has not changed since that commit, so the numbers are
-exact at the current `HEAD` and at the release tag `v1.0.1`, which the
-maintainer places on the final commit of this branch. Other documents in this
+exact at the release tag `v1.0.1` and at every later commit. Other documents in this
 repository are cited by section heading rather than by line, because they are
 revised more often than the code. Paths are relative to the repository root,
 and `lwc/` stands for `force-app/main/default/lwc/auditExplorer/`, `classes/`
@@ -484,9 +503,10 @@ for `force-app/main/default/classes/`.
   system permissions" (source deploy `true`, managed `false`); its
   subsection "The administrator workaround is verified, not just documented"
   (gate closed with the packaged set alone, open with a local permission set
-  added); and section "Install into a persistent Developer Edition org"
+  added); section "Install into a persistent Developer Edition org"
   (org `00Dbm00000u2XaoEAE`, `PermissionsViewSetup` and
-  `PermissionsViewRoles` `false`).
+  `PermissionsViewRoles` `false`); and section "2026-10-14 - Reviewer test
+  org for the security review" (the same two values `false`).
 - **E8** `lwc/auditExplorer.html:264-271` (the message, rendered when
   `canViewSetup` is `false`); `lwc/auditExplorer.js:82-83,96-105,126-128`
   (`canViewSetup` comes from `getContext`).

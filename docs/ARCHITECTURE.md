@@ -16,7 +16,7 @@ AuditQueryController          Single external surface. The two data-returning
   |                            Also issues one SOQL query directly, against the
   |                            standard User object, for the "changed by"
   |                            type-ahead (searchUsers) - see below.
-  |                            Every entry point throws only
+  |                            Every catchable exception leaves as
   |                            AuraHandledException - see "Error contract".
   v
 AuditQueryService             Progressive, time-sliced scan engine. Resolves
@@ -174,8 +174,10 @@ haystack is built, so the term "null" cannot match an empty field
 ## Error contract
 
 Every `@AuraEnabled` entry point — `search`, `getContext` and `searchUsers` —
-is wrapped in a try/catch and throws only `AuraHandledException`
-(`AuditQueryController.cls:21-95`). The permission failure
+is wrapped in a try/catch, and every catchable exception leaves it as an
+`AuraHandledException` (`AuditQueryController.cls:21-95`); a governor-limit
+`System.LimitException` cannot be caught in Apex, which is one reason each call's
+work is bounded. The permission failure
 (`AuditPermissionService.AuditPermissionException`) passes its user-facing
 text through, so the browser can say which permission is missing; every other
 exception — including a JSON deserialization failure and the malformed-cursor
@@ -201,9 +203,9 @@ throwing, but its body is wrapped the same way
   package deliberately does not use.
 - **Lightning Experience only.** The UI is a Lightning web component; there is
   no Aura/Visualforce/Classic equivalent.
-- **Editions without custom Apex are not supported**, because this package
-  requires it. That covers **Professional Edition** and **Base Edition**; a
-  Base Edition install fails at `Missing feature: Apex Classes`.
+- **Supported editions** are Enterprise, Unlimited, Performance and Developer.
+  **Professional** and **Group Edition** are not supported and have not been
+  tested; a **Base Edition** install fails at `Missing feature: Apex Classes`.
 - **No counts/aggregates from the platform.** Nothing is counted by SOQL.
   Apex tallies, per `search()` call, only the rows that matched the filter in
   that call (`AuditQueryService.cls:142-146`) and returns them as
@@ -239,8 +241,8 @@ package `0Hohm0000000NHZCA2`, current version `1.0.1.4` /
 `04thm000002tWirAAE`, promoted 2026-10-12; the previous released version
 `1.0.0.2` / `04thm000002OtQPAA0` was promoted 2026-09-09). "Released" is the
 Salesforce packaging state — the version installs into any org type including
-production. The package has not been submitted for or passed AppExchange
-Security Review and has no AppExchange listing.
+production. No version of the package has completed AppExchange Security
+Review; its AppExchange listing is an unpublished draft.
 
 The earlier **unlocked** lineage (`0Hobm0000005681CAA`) is superseded. An
 unlocked package cannot be converted in place into a namespaced managed
@@ -259,5 +261,4 @@ administrators must grant **View Setup and Configuration** separately. The
 same permission set remains self-sufficient for source deploys and the
 unlocked package, so this constraint is specific to managed installs. See
 [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for the verified
-install/test evidence and the exact steps remaining before
-an AppExchange managed-package listing can be created.
+install and test evidence.

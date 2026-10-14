@@ -18,7 +18,8 @@ there is nothing for a DAST tool to scan.
   Sites, and no network requests from the Lightning web component other than
   its own `@AuraEnabled` Apex methods.
 - **No external service.** Nothing runs outside Salesforce: no web server,
-  API, mobile app, browser extension or desktop agent is part of the solution.
+  API, mobile app, browser extension or desktop application is part of the
+  solution.
 - **No stored data and no integration users.** The app reads the standard
   `SetupAuditTrail` object at request time and stores nothing
   ([`PRIVACY.md`](PRIVACY.md)).

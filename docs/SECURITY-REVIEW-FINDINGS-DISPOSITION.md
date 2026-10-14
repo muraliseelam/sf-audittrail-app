@@ -4,18 +4,18 @@ Companion to `CodeAnalyzerReport.html`. That report is a build artifact and is
 deliberately not committed (see `.gitignore`); the dated result of each scan
 is recorded in
 [`docs/CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md) so the
-disposition below can be checked against a real run. Prepared ahead of an
-AppExchange security review submission. **This package has not yet been
-submitted for, or passed, AppExchange Security Review** — see
-[`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for its current
-status: released managed 2GP version `1.0.1.4` (`04thm000002tWirAAE`, built
-from commit `f0ad675`; "released" is the Salesforce packaging state only), no
-review, no listing.
+disposition below can be checked against a real run. It accompanies the
+AppExchange Security Review submission of managed 2GP version `1.0.1.4`
+(`04thm000002tWirAAE`, built from commit `f0ad675`). "Released" is the
+Salesforce packaging state only: no version of the package has completed
+AppExchange Security Review, and its AppExchange listing is an unpublished
+draft. [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) holds the
+install and test evidence.
 
 The counts below are from the run of 2026-10-12 on commit `f0ad675`, the
-`force-app` source that built `1.0.1.4`. The previous edition of this document
-described released version `1.0.0.2` (85 violations); where a count moved, the
-reason is given with it.
+`force-app` source that built `1.0.1.4`. Where a count differs from the earlier
+scan of released version `1.0.0.2` (85 violations), the reason is given with
+it.
 
 Scan command (reproducible from a clean checkout, after `npm ci`):
 
@@ -34,7 +34,7 @@ the ESLint engine at `eslint.config.js`, which loads the project's
 devDependencies. In a checkout without `node_modules` the ESLint engine fails to
 instantiate (`UninstantiableEngineError`, "Cannot find module 'eslint/config'"),
 the selector resolves to 59 rules from 4 engines, and the one Critical entry in
-the report describes the machine, not the code. That was verified on a pristine
+the report describes the machine, not the code. That was verified on a clean
 checkout of `47bd65f` on 2026-10-12.
 
 All three tags are selected deliberately, as three separate flags — a
@@ -126,9 +126,11 @@ The official AppExchange command, run from the package's top-level directory on
 the same source
 (`sf code-analyzer run --rule-selector AppExchange --rule-selector Recommended:Security --output-file CodeAnalyzerReport.html`,
 62 rules from 5 engines), reports **`Found 0 violations.`** That
-`CodeAnalyzerReport.html` is the file to upload with the `1.0.1.4` submission;
-it is kept by the maintainer outside the repository, 64,954 bytes, SHA-256
-`03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`.
+`CodeAnalyzerReport.html` (64,954 bytes, SHA-256
+`03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`) is the
+Code Analyzer report attached to this submission, zipped as
+`08-CodeAnalyzerReport.zip` because the review wizard does not accept HTML
+files.
 
 ## Environment note
 
@@ -215,8 +217,8 @@ which is why these counts did not move with the added behaviour.
 
 Decomposing the scan loop further would spread a single stateful algorithm
 across several methods that could not be understood or tested independently,
-which we judge to be worse for a reviewer than one cohesive, heavily commented
-method.
+which would be harder for a reviewer to follow than one cohesive, heavily
+commented method.
 
 The behaviour is pinned by tests.
 `multiBatchScanFindsAMatchInTheLastShortBatch`,
@@ -256,8 +258,7 @@ string. 1.0.1 replaced the seen-id set parameter with the keyset `lastId`; the
 parameter count did not change.
 
 Replacing them with a criteria object would hide the binding at the exact point
-a reviewer most wants to see it. We consider explicit parameters the safer
-shape here.
+a reviewer most wants to see it, so the parameters stay explicit.
 
 ### `CognitiveComplexity`, `CyclomaticComplexity` — `MockAuditTrailProvider`, `AuditQueryServiceTest`
 
@@ -293,11 +294,20 @@ visible marker at the call site.
 
 ### `ApexDoc` (38)
 
-**Accepted.** Every class and non-trivial method carries an explanatory
-comment; the rule requires the specific ApexDoc
-`@description`/`@param`/`@return` tag syntax, which this project does not use.
-The nine additional hits since `1.0.0.2` are on methods 1.0.1 added. No
-functional or security impact.
+**Accepted.** Every class carries a header comment that explains its role,
+including the progressive-search contract of the two `search` entry points
+(`AuditQueryController.cls:1-10`, `AuditQueryService.cls:1-23`). The rule asks
+for more: a `/** */` comment on every public method, constructor and nested
+class, an `@param` for each parameter and an `@return` on each non-void
+method. The 38 hits are 16 public members without their own `/** */` comment
+(constructors, the two `search` methods, small accessors such as
+`AuditCursor.lastDate()`), 10 comments without matching `@param` tags and 12
+without an `@return`. The project uses the tags where they add information,
+such as the six parameters of `AuditTrailProvider.fetch`
+(`AuditTrailProvider.cls:13-24`) and the `@throws` of `AuditCursor`
+(`AuditCursor.cls:49`). The net nine since `1.0.0.2` are twelve hits on
+methods 1.0.1 added, less three on methods it removed. No functional or
+security impact.
 
 ### `ApexUnitTestClassShouldHaveRunAs` (45)
 
@@ -388,9 +398,10 @@ every other exception becomes `GENERIC_ERROR`. Both halves are tested:
 absence of "Malformed", "SELECT", "SetupAuditTrail", "JSON" and field names in
 what the client receives, and `blocksControllerEntryPointsForUnprivilegedUser`
 asserts that the permission message does reach the client from `search` and
-`searchUsers`. Because this is managed-package code, a subscriber administrator
-sees that log line only subject to the org's trace flags and the debug settings
-that apply to the package's code; it is a diagnostic trail, not a notification.
+`searchUsers`. The log line is a diagnostic trail, not a notification: on a
+source deploy an administrator with a trace flag on the user can read it in the
+debug log, while in a managed install Salesforce hides managed-package debug
+output from the subscriber org.
 The line echoes the exception type and message only — never a row of audit
 data, and no credential, no session data, and no personal data.
 
@@ -433,7 +444,7 @@ server-side filtering on the two fields users most want to search. Accepted.
 
 ## Rules that fired on intermediate 1.0.1 builds
 
-For the record, the superseded `1.0.1.1` source (`47bd65f`) also reported
+The superseded `1.0.1.1` source (`47bd65f`) also reported
 `FieldNamingConventions` (2: the scan-tuning statics, once they stopped being
 `final` so tests could shrink them), `AvoidDeeplyNestedIfStmts` (1: nested
 conditions in `CompiledFilter.matches`) and `ApexUnitTestClassShouldHaveAsserts`
@@ -446,13 +457,16 @@ assertions added to the two tests — and none appears on the released source.
 ## Source Code Scanner (Checkmarx) — scan of `1.0.1.4`
 
 Partner Security Portal Source Code Scanner job `a0BKX000000pcxh2AA` (report
-scan ID `a0OKX000001JTaT2AW`), submitted on 2026-10-14 at 02:04 UTC against
+scan ID `a0OKX000001JTaT2AW`), submitted on 2026-10-14 at 02:04 UTC (the job's
+Created Date in the portal; the report header prints the scan server's own
+clock, Scan Start 2026-10-13 14:06:36 and Scan End 2026-10-13 19:07:52) against
 package version `04thm000002tWirAAE` (`1.0.1.4`, the version linked to the
 draft listing), with the portal's default profile "Security and Quality
 Rules" (`PortalAll`): Checkmarx engine 9.7 (`9.7.1.1001 HF12`), scanner
-service v3.2, 34 files and 3,144 lines of code. The HTML report is kept
-outside the repository, like `CodeAnalyzerReport.html`, and goes into the
-upload set as `09-Checkmarx-Report.html`.
+service v3.2, 34 files and 3,144 lines of code. The portal's HTML report
+(`report_phxcxmanwp001_42312.html`) is attached to this submission as
+`09-Checkmarx-Report.zip`, the zip the portal exported; like
+`CodeAnalyzerReport.html`, it is not committed to the repository.
 
 | Result                                       | Count                     |
 | -------------------------------------------- | ------------------------- |

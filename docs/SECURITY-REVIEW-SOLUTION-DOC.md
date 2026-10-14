@@ -1,12 +1,10 @@
 # Audit Trail Explorer — Solution Documentation
 
-Prepared ahead of an AppExchange/AgentExchange security review submission.
-**This package has not yet been submitted for, or passed, that review.** It
-describes managed 2GP version `1.0.1.4` (`04thm000002tWirAAE`, built 2026-10-12
-from commit `f0ad675`), which was promoted on 2026-10-12 and is the current
-released version in the Salesforce packaging sense only: it has not been
-submitted for or reviewed under AppExchange Security Review and no AppExchange
-listing exists. The previous released version is `1.0.0.2`
+Accompanies the AppExchange Security Review submission of managed 2GP version
+`1.0.1.4` (`04thm000002tWirAAE`, built 2026-10-12 from commit `f0ad675` and
+promoted the same day). "Released" here is the Salesforce packaging state
+only: no version of the package has completed AppExchange Security Review, and
+its AppExchange listing is an unpublished draft. The previous released version is `1.0.0.2`
 (`04thm000002OtQPAA0`). Versions `1.0.1.1` to `1.0.1.3` are unreleased betas that
 were superseded during the release's static-analysis work (section 10). Current
 status is tracked in [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md).
@@ -15,7 +13,7 @@ status is tracked in [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md).
 
 Audit Trail Explorer is a read-only UI over the standard Salesforce `SetupAuditTrail`
 object. Salesforce retains setup audit records for 180 days and exposes them in Setup
-only as a flat, barely filterable list with a 20-row page and a CSV download. This app
+only as a flat list with no search, a 20-row page and a CSV download. This app
 provides search, filtering, faceting, paging and export over that same data.
 
 It adds no new data. It is a viewer.
@@ -165,7 +163,7 @@ when a position exists and reads `AND (CreatedDate < :upperBound OR Id < :lastId
 reach it (see "Untrusted cursor"). The row limit is bound from the service's
 private `scanBatch` field (1000; `@TestVisible` so tests can shrink it, assigned
 nowhere outside tests, `AuditQueryService.cls:34-35`), not from the client. The
-query carries no id list and no `NOT IN`.
+query carries no list of already-seen record ids and no `NOT IN`.
 
 **LIKE wildcards.** For the user type-ahead, the search term is bound (never
 concatenated), and LIKE metacharacters are neutralised in the correct order: backslash
@@ -175,7 +173,7 @@ as `O'Brien` without adding safety. The escaping is pinned by
 `searchUsersTreatsPercentAsLiteral`, `searchUsersTreatsUnderscoreAsLiteral` and
 `searchUsersTreatsEscapedPercentAsLiteral` (`AuditQueryControllerTest.cls:195-249`);
 the test user's last name sorts first under `ORDER BY Name`, so an unescaped wildcard
-would surface it inside the 20-row limit and fail the test honestly.
+would surface it inside the 20-row limit and make the test fail.
 
 **Untrusted cursor.** The paging cursor round-trips through the browser and is therefore
 treated as untrusted input. It is fixed-size - `lastDateMillis`, `lastId`,
@@ -193,9 +191,9 @@ nothing in the cursor can grow a bind variable. Validation runs before any query
   other than `SetupAuditTrail`, by throwing an `IllegalArgumentException` whose
   message is `Malformed cursor`; the controller converts that to the generic client
   message (section 7). `malformedContinuationCursorIsRejected`,
-  `blankIdOnPositionedCursorIsRejected` and
-  `cursorIdOfAnotherObjectIsRejected` assert that the provider's fetch count stays at
-  0, i.e. that the rejection happens before any query.
+  `blankIdOnPositionedCursorIsRejected` and `cursorIdOfAnotherObjectIsRejected`
+  assert the rejection; the first and the last also assert that the provider's
+  fetch count stays at 0, i.e. that the rejection happens before any query.
 - The pinned bounds are re-clamped rather than trusted (`AuditQueryService.cls:84-93`):
   the lower bound is `max(rangeStartMillis, retention floor)` and the upper bound
   `min(lastDateMillis, rangeEndMillis)`, so a tampered cursor cannot widen the scan
@@ -204,8 +202,9 @@ nothing in the cursor can grow a bind variable. Validation runs before any query
 - A cursor that does not deserialize at all fails inside the controller and is masked
   the same way (`searchHidesDeserializationFailureDetail`).
 
-**Client-controlled quantities.** Every number or string the client can send is
-bounded on the server. `searchText` is cut to 200 characters and at most 10
+**Client-controlled quantities.** Every scalar the client can send is bounded on
+the server, and the list filters (actions, sections, user ids) are used only as
+bind variables or in-memory comparisons. `searchText` is cut to 200 characters and at most 10
 whitespace-separated terms before it is matched against up to 10,000 rows per call
 (`AuditQueryService.cls:47-48,266-270`; `searchTextIsTruncatedToTwoHundredCharacters`,
 `searchTextHonoursOnlyTheFirstTenTerms`). `lastDays` is capped at `RETENTION_DAYS`
@@ -235,8 +234,10 @@ Excel on Windows decodes it correctly; the mark precedes the quoted header cell
 ## 7. Error handling
 
 All three `@AuraEnabled` methods share one contract (`AuditQueryController.cls:7-9`):
-each body is wrapped in `try/catch`, and the only exception type that leaves the
-controller is `AuraHandledException`.
+each body is wrapped in `try/catch`, and every catchable exception leaves the
+controller as an `AuraHandledException`. (A governor-limit `System.LimitException`
+cannot be caught in Apex; the per-call bounds in section 6 keep a search well
+inside those limits.)
 
 - The permission failure is passed to the client verbatim, because it is the
   actionable, user-facing case: `permissionFailure` (`:101-107`) builds the
@@ -247,8 +248,8 @@ controller is `AuraHandledException`.
 - Every other exception, from any of the three methods, goes through
   `genericFailure` (`:109-117`): the exception type and message are written to the
   debug log with `System.debug(LoggingLevel.ERROR, ...)`, and the client receives the
-  fixed `GENERIC_ERROR` text via `setMessage()`. Platform exception text, which can
-  carry query fragments and limit details, therefore never reaches the browser.
+  fixed `GENERIC_ERROR` text via `setMessage()`. The text of a caught platform
+  exception, which can carry query fragments, therefore never reaches the browser.
   `getContext` has no permission branch (it is ungated) and uses the generic path
   only.
 - Tests: `blocksControllerEntryPointsForUnprivilegedUser` asserts the permission
@@ -277,9 +278,11 @@ exception type and message only.
   has no executable lines.
 - Re-verified 2026-10-12 in a clean subscriber org: the **released managed
   version** `1.0.1.4` passes 50/50 as namespaced `atexplorer.*` classes
-  (`RunAllTestsInOrg` run `707di0000LCKGo0`). Org-wide coverage reads 0% there
-  because Salesforce does not expose managed-package coverage to subscribers, so
-  the build-time 96% is the meaningful figure. Run ids are recorded in
+  (`RunAllTestsInOrg` run `707di0000LCKGo0`), and again 50/50 on 2026-10-14 in
+  the reviewer test org provided with this submission (run `707i800000BHk65`).
+  Org-wide coverage reads 0% there because Salesforce does not expose
+  managed-package coverage to subscribers, so the build-time 96% is the
+  meaningful figure. Run ids are recorded in
   [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md).
 - The tests added or extended in `1.0.1` pin, by name:
     - the access gate (section 4):
@@ -329,16 +332,16 @@ exception type and message only.
   stale-response guard, user-pill removal and the 25-call bound on one search
   action. Measured on the `1.0.1` source with the v8 coverage provider: `auditExplorer.js`
   **95.16% statements** / 79.34% branches / 95.65% functions / 94.84% lines, and
-  `csv.js` - the formula-injection control - at **100%**. (The stock Babel coverage
-  provider prints an empty table when Jest runs inside a git worktree on the
-  maintainer's machine; that is a measurement quirk, not a code problem.)
+  `csv.js` - the formula-injection control - at **100%**. (Jest's default Babel
+  coverage provider prints an empty table when run from a git worktree; the v8
+  provider does not.)
   `npm run lint` and `npm run prettier:verify` are clean.
 - Paging correctness on real data was validated for `1.0.0.2` in the installed
   managed package (`00DRK00000aOfV72AK`, 2026-09-13): 65 audit rows sharing one
   timestamp were seeded so that the 50-row page boundary fell inside the block, and
   paging to completion (50, 100, 118) exported **118 data rows against 118 rows in
   the org with 0 duplicate rows**. That run exercised the previous cursor design;
-  the `1.0.1` keyset cursor is pinned by the unit tests named above. A manual smoke
+  the `1.0.1` keyset cursor is pinned by the unit tests named above. A UI smoke
   test of the `1.0.1` source on 2026-10-12 (no screenshots were kept) confirmed in a
   scratch org, as an administrator, that the tab loads with data, that the user
   type-ahead returns active users and a selected pill can be removed, that editing a
@@ -348,7 +351,11 @@ exception type and message only.
   only the packaged permission set sees the full app on a source deploy, sees the
   denied message with no form and Export disabled on a managed install, and sees the
   app once a locally created permission set carrying ViewSetup and ViewRoles is
-  assigned.
+  assigned. On 2026-10-14 the released `1.0.1.4` was checked the same way in the
+  reviewer test org provided with this submission: the user holding only the
+  packaged permission set sees the access message, and the user who also holds
+  the local View Setup and Configuration permission set gets the search form,
+  the default search with results, and Export CSV.
 
 ## 9. Third-party code
 
@@ -369,9 +376,13 @@ sf code-analyzer run \
   --rule-selector AppExchange
 ```
 
-This scan has been run four times. The three runs on the `1.0.0.2` source produced
-an identical rule set and identical results; the fourth, on the `1.0.1` source,
-used the same rule set and is the result this section reports. Every run is
+This scan has been run four times on a workstation and is also run by CI. The
+three workstation runs on the `1.0.0.2` source produced an identical rule set and
+identical results; the fourth, on the `1.0.1` source, used the same rule set and
+is the result this section reports. The `Code Analyzer` GitHub Actions workflow
+reproduced it on a fresh Linux runner on 2026-10-13 (run `38462017378`, on a
+commit whose `force-app` is identical to `f0ad675`): 310 rules, 119 findings (13
+Moderate, 106 Low), and 6,537 Graph Engine paths. Every run is
 recorded in [`docs/CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md);
 the report Salesforce asks for, generated with its own command, is recorded under
 "Official AppExchange command" at the end of this section.
@@ -388,15 +399,15 @@ plugin auto-loads from the current directory, sets `eslint_config_file` to
 `eslint.config.js`, and that file requires the project's devDependencies. In a
 checkout without `node_modules` the eslint engine fails to instantiate (Critical
 `UninstantiableEngineError`, "Cannot find module 'eslint/config'"; verified on a
-pristine checkout of `47bd65f`, which then reported 59 rules from 4 engines plus
+clean checkout of `47bd65f`, which then reported 59 rules from 4 engines plus
 that one engine error). That is an environment error, not a code finding, and it
 applies to the official command below as well. Run `npm ci` first.
 
 The 5.15.0 and 5.16.0 rule lists match rule for rule, not merely in total, and the 85
 findings of the `1.0.0.2` baseline reproduced count for count on all three of its dates.
 The 2026-10-11 run additionally printed one Critical `UninstantiableEngineError` from the
-`flow` engine ("Could not locate a Python v3.10.0+ install"), because Python was not yet
-installed on that workstation. That is an engine-instantiation error with no file, not a
+`flow` engine ("Could not locate a Python v3.10.0+ install"), because no Python runtime was
+available to the scanner. That is an engine-instantiation error with no file, not a
 code finding: the flow engine is not eligible for the `force-app` workspace anyway (no
 Flow metadata), the six engines counted below all ran, and the Graph Engine completed its
 full path space both inside that run and in the separate `--rule-selector sfge` run that
@@ -405,8 +416,8 @@ followed it. The 2026-10-12 run had Python installed and printed no engine error
 **This selector resolves to 310 rules across all six engines** (202 eslint, 94 pmd, 6
 regex, 4 retire-js, 2 cpd, 2 sfge). Verify that count with `sf code-analyzer rules` using
 the same flags before trusting any result: a selector that silently resolves to zero rules
-reports "0 violations" while proving nothing, which is exactly the failure this repository
-hit previously with the intersection selector `Recommended:AppExchange`.
+reports "0 violations" while proving nothing; the intersection selector
+`Recommended:AppExchange`, for example, matches no rule at all.
 
 The three tags are passed as three separate `--rule-selector` flags because a
 colon-separated selector is an _intersection_. `Security` is included specifically to reach
@@ -456,7 +467,7 @@ is unchanged at 3. In summary:
 | `pmd:CyclomaticComplexity`             | Moderate | 3     | `AuditQueryService.search` (`:53`), `AuditQueryServiceTest` class total (`:2`), `MockAuditTrailProvider.fetch` (`:19`) | As above. The test-class total is 28 test methods counted together; the mock is test code.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `lwc:no-inline-disable`                | Moderate | 2     | `auditExplorer.js:289`, `__tests__/auditExplorer.test.js:81`                                                           | One `eslint-disable-next-line no-await-in-loop` on the progressive-search loop, and one on the Jest helper that drives it. Each call needs the paging cursor returned by the previous one, so the awaits are sequential by necessity. Scoped to a single line and justified inline. Disabling the rule file-wide instead would silence it far more broadly and leave no marker at the call site.                                                                                                                                                                                                                                          |
 | `pmd:NcssCount`                        | Moderate | 1     | `AuditQueryService.search` (`:53`)                                                                                     | As above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `pmd:AvoidDebugStatements`             | Low      | 1     | `AuditQueryController.genericFailure`                                                                                  | The single `System.debug(LoggingLevel.ERROR, ...)` is the server-side half of the generic error handling: unexpected exceptions are logged for the administrator and replaced with a non-specific client message, so platform exception text cannot leak query internals to the browser. It logs exception type and message only — no credential, session or personal data. Removing it would satisfy the linter by discarding the diagnostic trail.                                                                                                                                                                                      |
+| `pmd:AvoidDebugStatements`             | Low      | 1     | `AuditQueryController.genericFailure`                                                                                  | The single `System.debug(LoggingLevel.ERROR, ...)` is the server-side half of the generic error handling: unexpected exceptions are written to the server-side debug log and replaced with a non-specific client message, so the text of a caught exception cannot leak query internals to the browser. It logs exception type and message only — no credential, session or personal data. Removing it would satisfy the linter by discarding the diagnostic trail.                                                                                                                                                                       |
 
 On the complexity findings: `SetupAuditTrail` cannot be filtered on `Section` or `Display`
 in SOQL and supports no aggregate functions, so `AuditQueryService.search` must scan
@@ -562,17 +573,17 @@ sf code-analyzer run --rule-selector AppExchange --rule-selector Recommended:Sec
 ```
 
 **2026-10-12, the report for `1.0.1.4`.** Run on commit `f0ad675` from the release
-worktree's top-level directory after `npm ci`, with no `--config-file` and no
-`--workspace`, using plugin 5.16.0 on CLI 2.153.5, Node 24.20.0, OpenJDK 21.0.12.1
+worktree's top-level directory after `npm ci`, with no `--config-file` flag (the
+plugin still reads `code-analyzer.yml` from that directory, as described above) and
+no `--workspace`, using plugin 5.16.0 on CLI 2.153.5, Node 24.20.0, OpenJDK 21.0.12.1
 and Python 3.12.10. The selector resolved to **62 rules from 5 engines** (51 pmd,
 4 retire-js, 3 eslint, 3 flow, 1 regex; no sfge and no cpd), so the result is not
 the vacuous zero this document warns about. The run exited 0 and reported **"Found 0
 violations."** The retire-js, eslint, regex and pmd engines executed; the flow engine
-had no Flow metadata to scan. `CodeAnalyzerReport.html` is gitignored and is kept by
-the maintainer outside the repository; the copy produced by this run is 64,954 bytes
-with SHA-256
-`03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`. **This is the
-file to upload with the `1.0.1.4` submission.**
+had no Flow metadata to scan. `CodeAnalyzerReport.html` is not committed (it is
+gitignored); **the copy produced by this run is the one attached to this
+submission**: 64,954 bytes, SHA-256
+`03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`.
 
 **2026-10-11, the `1.0.0.2` record.** The same command was run from a clean
 `git worktree` at commit `934f200` (tag `v1.0.0`, the source that built `1.0.0.2`),
@@ -580,8 +591,7 @@ with no `node_modules` (that commit predates the `eslint_config_file` setting), 
 plugin 5.16.0 with OpenJDK 21.0.12.1 and Python 3.12.10: the same 62 rules from 5
 engines, exit 0, "Found 0 violations.", report 65,085 bytes with SHA-256
 `5c05b155418a8a1be3fa2ff77132260f3b62e628380b25afa4dc293d93c9169e`. That report and
-the interim `1.0.1.2` report are superseded for the `1.0.1` submission by the
-2026-10-12 file above.
+the interim `1.0.1.2` report are superseded by the 2026-10-12 report above.
 
 Comparing the two rule lists (`sf code-analyzer rules` with each selector), 48 of the 62
 official rules are also in the three-tag union above. The other 14 are rules the union
@@ -593,11 +603,13 @@ Visualforce rules (`AvoidCreateElementScriptLinkTag`, `AvoidHardcodedSecretsInVF
 `VfUnescapeEl`) and the 3 flow rules; the package contains no Visualforce pages or
 components and no Flows, so none of the 14 had anything to evaluate. What the official
 selector does not reach is the two Graph Engine rules, and the 119 style findings fall
-outside it. The official report is the file to upload; the three-tag scan and the
+outside it. The official report is the one attached to this submission; the three-tag scan and the
 `--rule-selector sfge` run remain the supporting evidence. Full detail is in
 [`docs/CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
 
 ## 11. Editions and compatibility
 
-Lightning Experience only (the app is Lightning Web Components). Professional Edition is
-not supported, because it cannot run custom Apex.
+Lightning Experience only (the app is Lightning Web Components). Supported editions are
+Enterprise, Unlimited, Performance and Developer. Professional and Group Editions are
+not supported and have not been tested; Base Edition cannot install the package because
+it has no custom Apex.

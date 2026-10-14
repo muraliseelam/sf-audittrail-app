@@ -54,10 +54,3 @@ rules.txt
 rules-*.json
 CodeAnalyzerReport.html
 CodeAnalyzerReport.csv
-
-# Local spec-driven-development workflow tooling (OpenSpec change drafts and
-# editor/assistant prompt definitions). Personal working state, not part of the
-# shipped app.
-openspec/
-.github/skills/
-.github/prompts/

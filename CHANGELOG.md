@@ -112,9 +112,9 @@ separately. The permission set's own description now says so.
   the access tri-state, CSV export (BOM, object-URL lifecycle, no-row no-op)
   and the search-loop bounds (25-call cap, Stop). `auditExplorer.js` coverage
   is 95.16% statements / 79.34% branch / 95.65% functions / 94.84% lines
-  (measured with the v8 coverage provider; the stock Babel provider reports an
-  empty table when run inside a git worktree on the maintainer's machine, a
-  measurement quirk, not a code problem) and `csv.js` 100%.
+  (measured with the v8 coverage provider, because the stock Babel provider
+  reported an empty coverage table when Jest ran inside the release worktree)
+  and `csv.js` 100%.
 - `sfdx-project.json`: `packageAliases` for `Audit Trail Explorer@1.0.1-1`
   through `@1.0.1-4`.
 - `.github/workflows/code-analyzer.yml`: a weekly and on-demand Salesforce
@@ -130,19 +130,18 @@ separately. The permission set's own description now says so.
   reproduction (plugin 5.16.0, Runs 1-3), which includes Salesforce's official
   AppExchange selector run from a clean `934f200` worktree: 62 rules from 5
   engines, "Found 0 violations.", exit 0.
-- `docs/SECURITY-REVIEW-SUBMISSION.md` (2026-10-11): the AppExchange Security
-  Review submission plan - verified status, blockers, should-fix and accepted
-  findings, the end-to-end runbook, listing-asset gaps, fees and timeline,
-  and open questions.
-- `docs/USER-GUIDE.md`: the end-user and reviewer usage guide the submission
-  plan lists in its section 2.3 - the two grants, a test-user setup for
+- An AppExchange Security Review submission plan (2026-10-11): verified
+  status, blockers, should-fix and accepted findings, the end-to-end runbook,
+  listing-asset gaps, fees and timeline. Kept outside the repository since
+  2026-10-14.
+- `docs/USER-GUIDE.md`: the end-user and reviewer usage guide that plan
+  calls for - the two grants, a test-user setup for
   reviewers, date range, free-text search, section and user filters, facets,
   row detail, CSV export, limits, troubleshooting and uninstall, each
   behaviour claim pointing at the file and line that implements it.
 - `docs/SECURITY-PROGRAM-STATEMENT.md`: the one-page security program
-  statement the submission plan lists in its section 2.3, drafted for the
-  publisher's signature; the publisher name reads "(to be supplied by the
-  publisher)".
+  statement that plan calls for, drafted for the publisher's signature
+  (completed and signed 2026-10-14).
 
 ### Changed
 
@@ -229,7 +228,7 @@ separately. The permission set's own description now says so.
   not the pill's `name`;
   `handleUserRemove` now reads `detail.item.name` and falls back to the pill
   at `detail.index`. The user is dropped from the next search (Jest) and the
-  pill's x removes it in the org (manual smoke test below).
+  pill's x removes it in the org (UI smoke test below).
 - `AuditQueryService.CompiledFilter.matches`: a blank `display`, `section`,
   `action` or `userName` reached the haystack as the literal word "null"
   (`String.valueOf(null)`), so the search term "null" matched every row with
@@ -284,10 +283,10 @@ separately. The permission set's own description now says so.
   contract as `search`.
 - Export CSV is gated on confirmed access as well as on rows, and nothing
   actionable is rendered before `getContext` has answered.
-- `docs/SECURITY-REVIEW-SUBMISSION.md` records the audit this release answers
-  (67 candidates, 63 confirmed: 0 blocker, 0 high, 12 medium, 41 low, 10
-  info; 4 rejected). Resolved here by code: its items 3.4 to 3.8 and 3.10 to
-  3.12 and the section 4 code rows. Deliberately unchanged and accepted: the
+- This release answers the pre-submission review recorded in
+  `docs/LIVE-ORG-VALIDATION.md` ("Readiness audit": 63 findings, 0 blocker,
+  0 high, 12 medium, 41 low, 10 info). Resolved here by code: the eight medium
+  code findings and the low-severity code findings. Deliberately unchanged and accepted: the
   SLDS hardcoded values (now 22 hits), the type-ahead list and live-region
   semantics, browser-timezone formatting in the detail panel and progress
   text, the auto-search on connect, the permission set still declaring
@@ -333,7 +332,7 @@ separately. The permission set's own description now says so.
   user - the two-grant sequence `README.md` describes. In the source-deploy
   org `ate-101` the same kind of user sees the full app, because the shipped
   permission set's ViewSetup entry is honoured outside managed packaging.
-- **Manual UI smoke test** (2026-10-12, `ate-101`, administrator): the tab
+- **UI smoke test** (2026-10-12, `ate-101`, administrator): the tab
   loads with data; the type-ahead returns active users; selecting one adds a
   pill and the pill's x removes it (the `1.0.0.2` defect is gone); editing a
   filter shows the "Filters changed" hint; "Search further back" continued the
@@ -359,10 +358,9 @@ separately. The permission set's own description now says so.
   engines, **"Found 0 violations."** (executed: retire-js, eslint, regex, pmd;
   there is no Flow metadata for the flow engine). The report
   (`CodeAnalyzerReport.html`, 64,954 bytes, SHA-256
-  `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`) is kept
-  outside the repository by the maintainer and is the one to upload with the
-  `1.0.1.4` submission; the `1.0.0.2` and `1.0.1.2` report hashes are
-  superseded for that purpose.
+  `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`) is not
+  committed and is the one attached to the `1.0.1.4` submission; the `1.0.0.2`
+  and `1.0.1.2` report hashes are superseded for that purpose.
 - **Three-tag union** (`Recommended` + `Security` + `AppExchange` with the
   committed `code-analyzer.yml`, 310 rules from 6 engines, run 2026-10-12, 11
   minutes) on `f0ad675`: exit 0, **0 Critical, 0 High**, 119 violations across

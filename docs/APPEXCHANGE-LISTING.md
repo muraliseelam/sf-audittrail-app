@@ -5,19 +5,17 @@ makes no claims of AppExchange certification, security review approval,
 customer adoption, or install counts — those are added by Salesforce/AppExchange
 processes, not by this repository.
 
-> **Not ready to publish as-is.** The package described here is a **released
-> managed 2GP version** (`1.0.1.4`, `04thm000002tWirAAE`, promoted
-> 2026-10-12) that has **not** been submitted for, or passed, AppExchange
-> Security Review, and has **no** AppExchange listing. Promotion satisfied
-> the packaging precondition for submission; the review itself is still
-> outstanding. Do not publish this listing, or any variant of it, until
+> **Not published.** The package described here is a **released managed 2GP
+> version** (`1.0.1.4`, `04thm000002tWirAAE`, promoted 2026-10-12) that has
+> **not** yet passed AppExchange Security Review. Its listing exists only as a
+> draft in the Partner Console (created 2026-10-14, linked to `1.0.1.4`). Do
+> not publish the listing, or any variant of it, until
 > [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) records that the
-> review has actually been passed. Update the install link and version
-> references below at that time.
+> review has been passed. Update the install link and version references
+> below at that time.
 
-This draft cites no Salesforce source for a character or pixel limit on any
-field; read the limit for each field from the Listing Builder's own field help
-before pasting the copy below.
+The Listing Builder's own field help gives each field's character limit; the
+draft listing was entered within those limits.
 
 ## Listing name
 
@@ -93,34 +91,39 @@ Community support via GitHub issues:
 `https://github.com/muraliseelam/sf-audittrail-app/issues`. See
 [SECURITY.md](../SECURITY.md) for reporting security concerns privately.
 
-## Fields the Listing Builder also requires
+## Other Listing Builder fields (draft listing, 2026-10-14)
 
-The sections above cover only part of the form. The builder also asks for the
-following; values marked "(to be supplied by the publisher)" are not decided
-by anything in this repository.
+The sections above cover only part of the form. The draft listing holds these
+values for the remaining fields:
 
-- Highlights: (to be supplied by the publisher).
-- SEO description: (to be supplied by the publisher).
-- Required and Compatible Salesforce products: Lightning Experience; editions
-  that can run custom Apex (Enterprise, Unlimited, Performance and Developer -
-  see the edition note under Install in [README.md](../README.md#install)).
+- Highlights:
+    - Search up to 180 days of Setup Audit Trail changes by text, section,
+      user and date.
+    - Export results to CSV with spreadsheet-formula-injection protection.
+    - Stores nothing: queries the audit trail live, with no custom objects and
+      no external callouts.
+    - Respects Salesforce permissions: users need View Setup and
+      Configuration, granted by your admin.
+- SEO title: Audit Trail Explorer - Search and Export Your Setup Audit Trail.
+- Required Salesforce products: none. Supported editions: Enterprise,
+  Unlimited, Performance and Developer (see the edition note under Install in
+  [README.md](../README.md#install)).
 - Supported languages: English.
-- Supported features: (to be supplied by the publisher).
-- Industries: (to be supplied by the publisher).
-- Target user persona: Salesforce administrators, security and compliance
-  auditors.
-- Business needs: (to be supplied by the publisher).
+- Supported features: Lightning Experience.
+- Industries: none selected (not industry-specific).
+- Target user persona: Administrator.
+- Business needs: Analytics; IT & Administration.
 - Installation method: install from the AppExchange listing.
-- Lead org: (to be supplied by the publisher).
-- Support email, hours and SLA: (to be supplied by the publisher); the
-  GitHub-issues channel above is not a support SLA.
-- Provider company name, description, website and phone: (to be supplied by
-  the publisher).
-- Customer terms and conditions: (to be supplied by the publisher).
+- Lead org: not set.
+- Support: community support through GitHub issues (the knowledge center link
+  is this repository); no support email, phone or SLA is published yet.
+- Provider: Murali Mohan Reddy Seelam (individual publisher); website and phone
+  not set.
+- Customer terms and conditions: none beyond Salesforce's own.
   [LICENSE](../LICENSE) is the Apache-2.0 software licence, not customer
   terms.
-- Privacy policy URL: (to be supplied by the publisher). The builder needs a
-  hosted URL; [docs/PRIVACY.md](PRIVACY.md) exists only in the repository.
+- Privacy policy URL: not set yet. The builder needs a hosted URL;
+  [docs/PRIVACY.md](PRIVACY.md) is the policy text.
 
 ## Visual assets
 
@@ -148,7 +151,7 @@ Screenshots still to be produced (not included in this repo):
 ## Claims explicitly NOT made in this draft
 
 Per project policy, this draft does not state or imply: AppExchange security
-review approval/certification, a specific install/download count, customer
-testimonials or reviews, or any EB-1A/immigration-related claim. Any such
+review approval/certification, a specific install/download count, or customer
+testimonials or reviews. Any such
 statement must come from the actual AppExchange review outcome and real,
 consenting customers — not from this repository.

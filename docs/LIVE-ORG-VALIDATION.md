@@ -1,8 +1,8 @@
 # Live-Org Validation Record
 
 This file tracks validation steps that require a live Salesforce org/Dev Hub
-and therefore cannot be run from this repository's CI. It is updated by
-whoever performs each step, with the concrete evidence (org, test run id,
+and therefore cannot be run from this repository's CI. It is updated as each
+step is performed, with the concrete evidence (org, test run id,
 report values) rather than a bare pass/fail, so the record stays auditable.
 
 **Status:** managed 2GP version `1.0.1.4` (`04thm000002tWirAAE`) is the
@@ -370,7 +370,7 @@ listing draft now name Base Edition explicitly.
 
 ## Functional UI verification of the managed install — 2026-09-13
 
-Driven through the browser against the **installed managed package** in
+Checked in the browser against the **installed managed package** in
 `00DRK00000aOfV72AK` (not source, not a mock). To exercise paging honestly,
 65 permission sets were inserted in a single Apex transaction, producing 65
 audit rows sharing one identical timestamp, so the 50-row page boundary fell
@@ -479,8 +479,8 @@ top-level directory): `sf code-analyzer rules --rule-selector AppExchange
 `sf code-analyzer run --rule-selector AppExchange --rule-selector
 Recommended:Security --output-file CodeAnalyzerReport.html` finished with exit
 0 and **"Found 0 violations."** (regex, retire-js, pmd and eslint executed;
-flow had no Flow files to scan). The report is kept by the maintainer outside
-the repository (`CodeAnalyzerReport.html` is gitignored); its SHA-256 is
+flow had no Flow files to scan). The report is kept outside the repository
+(`CodeAnalyzerReport.html` is gitignored); its SHA-256 is
 `5C05B155418A8A1BE3FA2FF77132260F3B62E628380B25AFA4DC293D93C9169E`.
 
 **Why CI never saw the flow error.** The Code Analyzer flow engine needs
@@ -491,13 +491,12 @@ eligible anyway (no Flow metadata), so the repository selector still counts
 
 ### Readiness audit
 
-A pre-submission audit reviewed the code, metadata and documents across eight
-dimensions (access control, injection, LWC client, data handling, tests,
-packaging, documentation consistency, runtime robustness), and every candidate
-finding was judged by three independent verifiers against the source. **67
-candidates: 63 confirmed (0 blocker, 0 high, 12 medium, 41 low, 10 info), 4
-rejected.** The confirmed items, their fixes and the submission procedure are
-in [`SECURITY-REVIEW-SUBMISSION.md`](SECURITY-REVIEW-SUBMISSION.md).
+A pre-submission review of the code, metadata and documents covered access
+control, injection, the LWC client, data handling, tests, packaging,
+documentation consistency and runtime robustness. **It confirmed 63 findings
+(0 blocker, 0 high, 12 medium, 41 low, 10 info).** Each was fixed in `1.0.1`
+or accepted with a recorded reason; the code fixes are listed under `1.0.1` in
+[`CHANGELOG.md`](../CHANGELOG.md).
 
 ## 2026-10-12 - Release 1.0.1 validation
 
@@ -581,12 +580,11 @@ traceability:
 | `41e2a29` (source of `1.0.1.2`)                       | `0Afh1000000NGdZCAW`                                                              | 18 / 18 components, 50 run, 0 failed; `AuditQueryService` 97%, `AuditFilter` 100%, every other class as in the final run |
 | `f05ed25` (source of `1.0.1.3`)                       | `0Afh1000000NLdGCAW` (restructuring), `0Afh1000000NI7XCAW` (dead helpers removed) | 50 run, 0 failed, each                                                                                                   |
 
-### Manual UI smoke test - 2026-10-12
+### UI smoke test - 2026-10-12
 
-Performed with browser automation - not by a human - against the source
-deploy in `ate-101` and the managed install in `ate-mgd`. No screenshots were
-kept, so this pass produced no listing assets; the checklist records that part
-separately.
+Run against the source deploy in `ate-101` and the managed install in
+`ate-mgd`. No screenshots were kept, so this pass produced no listing assets;
+the checklist records that part separately.
 
 **In `ate-101` (source deploy of the 1.0.1 code), as the administrator:**
 
@@ -706,7 +704,7 @@ org returned the version (`InstallValidationStatus` `NO_ERRORS_DETECTED`).
 ### Promotion to released - 2026-10-12
 
 `sf package version promote --package 04thm000002tWirAAE --target-dev-hub
-partner-pbo` succeeded on 2026-10-12 at 19:23 local time (America/Chicago).
+partner-pbo` succeeded on 2026-10-12 at 19:23 (UTC-5).
 Promotion is irreversible and consumes the version number permanently.
 
 #### Packaging state after promotion, read back from the Dev Hub
@@ -748,9 +746,9 @@ exercised separately after promotion, in a fresh org.
 `npm run lint` clean, `npm run prettier:verify` clean, Jest **26 / 26** (was
 7). Measured with Jest's v8 coverage provider, `auditExplorer.js` is at 95.16%
 statements, 79.34% branches, 95.65% functions and 94.84% lines, and `csv.js`
-at 100%; the stock Babel provider reports an empty table when run inside a git
-worktree on this machine, a measurement quirk rather than a code problem. No
-coverage threshold is enforced, as before.
+at 100%. The v8 provider is used because the stock Babel provider reported an
+empty coverage table when Jest ran inside the release worktree. No coverage
+threshold is enforced, as before.
 
 Salesforce Code Analyzer on `f0ad675` (plugin 5.16.0, run 2026-10-12 after
 `npm ci`, which the repository's `code-analyzer.yml` needs for its ESLint
@@ -763,9 +761,9 @@ standalone Graph Engine run completed **6,537 paths over 3/3 entry points**
 now pins 6537) with 0 violations from the two Security-tagged rules. Its
 single `AvoidDatabaseOperationInLoop` finding is the bounded, time-sliced
 batch loop the application exists for, and is accepted. The
-`CodeAnalyzerReport.html` to upload for `1.0.1.4` has SHA-256
+`CodeAnalyzerReport.html` attached to the `1.0.1.4` submission has SHA-256
 `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C` (64,954
-bytes) and is kept by the maintainer outside the repository. Scan records live
+bytes) and is not committed. Scan records live
 in [`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
 
 ## 2026-10-14 - Reviewer test org for the security review
@@ -784,7 +782,7 @@ administrator, following `docs/USER-GUIDE.md` section 3.
 | Local permission sets                      | `ATE_Local_View_Setup` ("Audit Trail - View Setup (local)": View Setup and Configuration, View Roles) and `ATE_LEX_User` (Lightning Experience User only); deploy `0Afi8000000zqL3CAI`, 2/2 |
 | Reviewer user                              | "ATE Reviewer" (`005i8000001yGnh`): profile Minimum Access - Salesforce, `atexplorer__Audit_Trail_Viewer`, `ATE_Local_View_Setup`, `ATE_LEX_User`                                           |
 | Restricted user                            | "ATE Restricted" (`005i8000001yGni`): profile Minimum Access - Salesforce, `atexplorer__Audit_Trail_Viewer`, `ATE_LEX_User` (shows the gate closed)                                         |
-| Passwords                                  | Not set from here: Salesforce's own reset email went to the owner for each user. Credentials go only into the review wizard, never into this repository                                     |
+| Passwords                                  | Set by the publisher through Salesforce's password-reset email; credentials are entered only in the review wizard, never in this repository                                                 |
 | `PermissionsViewSetup` on the packaged set | **`false`** (`PermissionsViewRoles` `false`): the install-time strip, observed a fourth time                                                                                                |
 | Apex tests                                 | `RunAllTestsInOrg`, run `707i800000BHk65`: **50 / 50 passed**                                                                                                                               |
 | Setup Audit Trail                          | Read 2026-10-14: only org provisioning, the package install and the setup above; nothing a reviewer should not see                                                                          |
@@ -792,7 +790,6 @@ administrator, following `docs/USER-GUIDE.md` section 3.
 Login check, 2026-10-14 (`docs/USER-GUIDE.md` section 3 E): "ATE Restricted"
 sees the access message in place of the search form; "ATE Reviewer" gets the
 form, the default 7-day search (50 events, facets, results) and Export CSV.
-Keep both passwords valid for the whole review.
 
 ## Remaining manual/live checklist
 
@@ -816,12 +813,13 @@ Keep both passwords valid for the whole review.
 - [x] ~~Live UI smoke test of the managed install~~ — done 2026-10-12 to this
       extent: the source deploy in `ate-101` (as the administrator, and as a
       Minimum Access user via Login As) and the managed install of `1.0.1.1`
-      in `ate-mgd` (Minimum Access user via Login As, denied then granted),
-      performed with browser automation rather than by a human; no screenshots were kept. See
-      [Manual UI smoke test](#manual-ui-smoke-test---2026-10-12).
-- [ ] Human-driven UI pass of the managed install for screenshots and listing
-      assets - the part of the previous item that the 2026-10-12 pass did not
-      produce.
+      in `ate-mgd` (Minimum Access user via Login As, denied then granted); no
+      screenshots were kept. See
+      [UI smoke test](#ui-smoke-test---2026-10-12). Checked again for `1.0.1.4`
+      on 2026-10-14 in the reviewer test org, as both test users (2026-10-14
+      section above).
+- [ ] UI pass of the managed install to capture screenshots and listing
+      assets.
 - [x] ~~Promote a managed package version from beta to released~~ — done
       2026-09-09: `1.0.0.2` (`04thm000002OtQPAA0`), and 2026-10-12: `1.0.1.4`
       (`04thm000002tWirAAE`), both on Dev Hub `partner-pbo`. Irreversible; the

@@ -115,12 +115,13 @@ Salesforce retains Setup Audit Trail entries for 180 days; the app cannot
 show, and does not attempt to reconstruct, anything older. See
 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) for how retention is enforced.
 
-## Opt-in future analytics
+## Future analytics
 
-Any future adoption/usage analytics for this package (for example, via
-AppExchange/License Management App analytics rather than custom telemetry)
-will be **opt-in**, will not include audit row content, and will be documented
-here before being enabled.
+The package sends no telemetry. If adoption or usage analytics are ever
+enabled for it (for example, Salesforce's AppExchange App Analytics or the
+License Management App rather than custom telemetry), they will never include
+audit row content, and this document will describe them before they are
+enabled.
 
 ## Questions
 

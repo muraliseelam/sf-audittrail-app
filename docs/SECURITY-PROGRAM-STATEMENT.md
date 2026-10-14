@@ -8,16 +8,17 @@
 - **Statement date:** 2026-10-14
 
 This statement describes how Audit Trail Explorer is developed, released and
-supported, for upload with an AppExchange Security Review submission. The
-package has **not** been submitted for that review, has **not** been reviewed
-and has **no** AppExchange listing. Every practice below is one the public
-repository evidences; the references point at that evidence.
+supported. It accompanies the AppExchange Security Review submission of
+version `1.0.1.4`. No version of the package has completed that review, and
+its AppExchange listing is an unpublished draft. Every practice below is one
+the public repository evidences; the references point at that evidence.
 
 ## 1. Scope and organisation
 
-The publisher is a single maintainer distributing an open-source Salesforce
-package. There is no separate security team; the maintainer owns every
-function below, and the contacts in section 8 reach that person directly. No
+The publisher is an individual developer distributing an open-source
+Salesforce package. There is no separate security team; the publisher owns
+every function below, and the contacts in section 8 reach the publisher
+directly. No
 third-party certification, external penetration test or cyber insurance is
 claimed. In scope: the metadata under `force-app/` (14 Apex classes, of which
 four are test classes and one is a test-only mock provider, one Lightning web
@@ -70,9 +71,9 @@ tooling committed beside it, and the release and support process.
 - **Cadence.** Salesforce Code Analyzer runs weekly (Mondays 06:00 UTC) and on
   demand (`.github/workflows/code-analyzer.yml`). The workflow fails unless
   the selector resolves to 310 rules from 6 engines, fails on any Critical or
-  High finding, and accepts the Graph Engine only at 6,537 paths across 3/3
-  entry points with no internal error. A clean result is accepted only with
-  its counts (`code-analyzer.yml`).
+  High finding in that three-tag scan, and accepts the standalone Graph Engine
+  run only at 6,537 paths across 3/3 entry points with no internal error. A
+  clean result is accepted only with its counts (`code-analyzer.yml`).
 - **Records.** Dated results are kept in `docs/CODE-ANALYZER-SCAN-RECORD.md`;
   the report files are not committed (`.gitignore:55`). Every Moderate and Low
   finding is dispositioned in `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`;
@@ -86,17 +87,18 @@ tooling committed beside it, and the release and support process.
   or `AppExchange`; Salesforce's official AppExchange command (62 rules from 5
   engines), 0 violations, with the resulting `CodeAnalyzerReport.html` (64,954
   bytes, SHA-256
-  `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`) kept
-  outside the repository for upload; Graph Engine alone, 6,537 paths from 3/3
+  `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`)
+  attached to this submission; Graph Engine alone, 6,537 paths from 3/3
   entry points with no internal error, 0 violations on the two Security rules
   (`ApexFlsViolation`, `DatabaseOperationsMustUseWithSharing`) and one
   accepted Performance finding (`AvoidDatabaseOperationInLoop`, the bounded
   batch loop; dispositioned in
   `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`).
-- **Source Code Scanner** (Partner Security Portal, Checkmarx; 2026-10-14 on
-  `1.0.1.4`): no Critical, High or Serious issue and no quality issue; three
-  Medium issues, all in one test class, dispositioned as false positives in
-  `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`.
+- **Source Code Scanner** (Partner Security Portal, Checkmarx; job
+  `a0BKX000000pcxh2AA`, submitted 2026-10-14 02:04 UTC, on `1.0.1.4`; report
+  attached to this submission): no Critical, High or Serious issue and no
+  quality issue; three Medium issues, all in one test class, dispositioned as
+  false positives in `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`.
 
 ## 5. Change management and release
 
@@ -108,13 +110,13 @@ tooling committed beside it, and the release and support process.
   submission the source is checked against the tag and the version is
   re-verified by static analysis, a source deploy with tests, and the
   installed version in a subscriber org (`docs/LIVE-ORG-VALIDATION.md`,
-  "Pre-submission re-verification").
+  "2026-10-12 - Release 1.0.1 validation").
 - Versions built after a review declare the reviewed version as their 2GP
   ancestor in `sfdx-project.json`, a resubmission carries only the security
-  fixes asked for, and no version is created while a review is pending
-  (`docs/SECURITY-REVIEW-SUBMISSION.md`, steps 10, 17 and 18). No version has
-  been reviewed yet; `1.0.1.4` declares the previous release, `1.0.0.2`, as
-  its ancestor (`sfdx-project.json`, `ancestorVersion` `HIGHEST`).
+  fixes asked for, and no version is created while a review is pending. No
+  version has completed review yet; `1.0.1.4` declares the previous release,
+  `1.0.0.2`, as its ancestor (`sfdx-project.json`, `ancestorVersion`
+  `HIGHEST`).
 
 ## 6. Dependencies
 

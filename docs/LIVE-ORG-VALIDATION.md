@@ -789,10 +789,10 @@ administrator, following `docs/USER-GUIDE.md` section 3.
 | Apex tests                                 | `RunAllTestsInOrg`, run `707i800000BHk65`: **50 / 50 passed**                                                                                                                               |
 | Setup Audit Trail                          | Read 2026-10-14: only org provisioning, the package install and the setup above; nothing a reviewer should not see                                                                          |
 
-Still to do here: log in as each test user once (`docs/USER-GUIDE.md`
-section 3 E) to confirm the search opens for "ATE Reviewer" and the access
-message appears for "ATE Restricted", then keep both passwords valid for the
-whole review.
+Login check, 2026-10-14 (`docs/USER-GUIDE.md` section 3 E): "ATE Restricted"
+sees the access message in place of the search form; "ATE Reviewer" gets the
+form, the default 7-day search (50 events, facets, results) and Export CSV.
+Keep both passwords valid for the whole review.
 
 ## Remaining manual/live checklist
 

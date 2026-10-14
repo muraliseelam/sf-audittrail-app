@@ -10,17 +10,16 @@
 This statement describes how Audit Trail Explorer is developed, released and
 supported. It accompanies the AppExchange Security Review submission of
 version `1.0.1.4`. No version of the package has completed that review, and
-its AppExchange listing is an unpublished draft. Every practice below is one
-the public repository evidences; the references point at that evidence.
+its AppExchange listing is an unpublished draft. Each practice below cites the
+file in the public repository that shows it.
 
-## 1. Scope and organisation
+## 1. Scope and organization
 
 The publisher is an individual developer distributing an open-source
 Salesforce package. There is no separate security team; the publisher owns
 every function below, and the contacts in section 8 reach the publisher
-directly. No
-third-party certification, external penetration test or cyber insurance is
-claimed. In scope: the metadata under `force-app/` (14 Apex classes, of which
+directly. No third-party certification, external penetration test or cyber
+insurance is claimed. In scope: the metadata under `force-app/` (14 Apex classes, of which
 four are test classes and one is a test-only mock provider, one Lightning web
 component, one permission set, one app, one tab), the build, test and scan
 tooling committed beside it, and the release and support process.
@@ -29,11 +28,9 @@ tooling committed beside it, and the release and support process.
 
 - **Reads only.** The standard `SetupAuditTrail` object and, for a user
   type-ahead, `Id`, `Name` and `Username` of active users (`docs/PRIVACY.md`).
-  No custom object, Big Object, file or custom setting; the runtime code
-  performs no DML (the nine DML statements in `force-app/`, all `insert`, are
-  inside test classes: eight in
-  `AuditPermissionServiceTest.cls:49,74,112,145,153,154,212,221` and one in
-  `AuditQueryControllerTest.cls:24`).
+  No custom object, Big Object, file or custom setting. The runtime code
+  performs no DML; the nine `insert` statements in `force-app/` are all in two
+  test classes, `AuditPermissionServiceTest` and `AuditQueryControllerTest`.
 - **No external surface.** No callout, named credential, remote site setting,
   Connected App or endpoint; no telemetry; no browser storage
   (`docs/PRIVACY.md`, "What the app does not do"). The publisher holds no
@@ -69,42 +66,32 @@ tooling committed beside it, and the release and support process.
 ## 4. Static analysis
 
 - **Cadence.** Salesforce Code Analyzer runs weekly (Mondays 06:00 UTC) and on
-  demand (`.github/workflows/code-analyzer.yml`). The workflow fails unless
-  the selector resolves to 310 rules from 6 engines, fails on any Critical or
-  High finding in that three-tag scan, and accepts the standalone Graph Engine
-  run only at 6,537 paths across 3/3 entry points with no internal error. A
-  clean result is accepted only with its counts (`code-analyzer.yml`).
+  demand in GitHub Actions (`.github/workflows/code-analyzer.yml`). The
+  workflow fails unless the rule selection resolves to 310 rules from 6
+  engines, fails on any Critical or High finding in that scan, and accepts the
+  separate Graph Engine run only if it reports 6,537 paths across 3/3 entry
+  points with no internal error.
 - **Records.** Dated results are kept in `docs/CODE-ANALYZER-SCAN-RECORD.md`;
-  the report files are not committed (`.gitignore:55`). Every Moderate and Low
-  finding is dispositioned in `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`;
-  none is suppressed in `code-analyzer.yml`, and the two inline suppressions
-  (`auditExplorer.js:289` and `__tests__/auditExplorer.test.js:81`, both
-  `no-await-in-loop` on sequential cursor-driven calls) are themselves
-  reported by the scan and dispositioned.
-- **Current results** (2026-10-12, plugin 5.16.0, commit `f0ad675`, the
-  source of `1.0.1.4`): repository selector, 310 rules from 6 engines, 119
-  findings (13 Moderate, 106 Low), 0 Critical, 0 High, none tagged `Security`
-  or `AppExchange`; Salesforce's official AppExchange command (62 rules from 5
-  engines), 0 violations, with the resulting `CodeAnalyzerReport.html` (64,954
-  bytes, SHA-256
-  `03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`)
-  attached to this submission; Graph Engine alone, 6,537 paths from 3/3
-  entry points with no internal error, 0 violations on the two Security rules
-  (`ApexFlsViolation`, `DatabaseOperationsMustUseWithSharing`) and one
-  accepted Performance finding (`AvoidDatabaseOperationInLoop`, the bounded
-  batch loop; dispositioned in
-  `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`).
-- **Source Code Scanner** (Partner Security Portal, Checkmarx; job
-  `a0BKX000000pcxh2AA`, submitted 2026-10-14 02:04 UTC, on `1.0.1.4`; report
-  attached to this submission): no Critical, High or Serious issue and no
-  quality issue; three Medium issues, all in one test class, dispositioned as
-  false positives in `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`.
+  the report files themselves are not committed. Every Moderate and Low
+  finding is explained in `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`. No
+  rule is suppressed in `code-analyzer.yml`, and the two inline suppressions
+  (`no-await-in-loop` on sequential, cursor-driven calls in `auditExplorer.js`
+  and its Jest test) are themselves reported by the scan and explained.
+
+Current results for `1.0.1.4` (source commit `f0ad675`):
+
+| Scan                                                                  | Date       | Result                                                                                                                                                       |
+| --------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Code Analyzer, Salesforce's AppExchange command (62 rules, 5 engines) | 2026-10-12 | 0 violations; report attached to this submission                                                                                                             |
+| Code Analyzer, broader selection (310 rules, 6 engines)               | 2026-10-12 | 0 Critical, 0 High, 13 Moderate, 106 Low; none tagged `Security` or `AppExchange`                                                                            |
+| Code Analyzer, Graph Engine alone                                     | 2026-10-12 | 6,537 paths from 3/3 entry points, no internal error; 0 violations on the two security rules; one accepted performance finding                               |
+| Source Code Scanner (Checkmarx), job `a0BKX000000pcxh2AA`             | 2026-10-14 | No Critical, High or Serious issue and no quality issue; 3 Medium issues in one test class, explained as false positives; report attached to this submission |
 
 ## 5. Change management and release
 
 - Every change to `main` runs the CI gates; external contributions arrive as
   pull requests and follow the `CONTRIBUTING.md` checklist (tests for changed
-  behaviour, Apex results reported against an org, no new object, trigger,
+  behavior, Apex results reported against an org, no new object, trigger,
   job, callout or stored data without discussion).
 - A managed version is built from a specific commit, which is tagged; before
   submission the source is checked against the tag and the version is
@@ -145,19 +132,18 @@ findings on every recorded run.
   data through this package. An incident is a vulnerability in shipped code
   or a compromise of the repository or packaging Dev Hub; it follows the
   process above, is disclosed in `CHANGELOG.md` and the repository, and,
-  where Salesforce requires it, is reported through the Security Review
-  contact designated in the Partner Console (`muralirseelam@gmail.com`).
+  where Salesforce requires it, is reported to Salesforce from the contact
+  addresses given for this security review (section 8).
 
 ## 8. Contacts and signature
 
-| Role                                      | Contact                                          |
-| ----------------------------------------- | ------------------------------------------------ |
-| Security reports                          | `muralirseelam+sf-audittrail-security@gmail.com` |
-| Questions and bugs                        | GitHub issues at the repository above            |
-| Security review contact (Partner Console) | `muralirseelam@gmail.com`                        |
+| Role                     | Contact                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| Security reports         | `muralirseelam+sf-audittrail-security@gmail.com`                                |
+| Questions and bugs       | GitHub issues at the repository above                                           |
+| Security review contacts | `muralirseelam+partner@gmail.com` (primary), `muralirseelam@gmail.com` (backup) |
 
-- Publisher name: Murali Mohan Reddy Seelam
-- Title: Independent Developer
-- Company: Murali Mohan Reddy Seelam (individual publisher)
-- Date: 2026-10-14
-- Signature: /s/ Murali Mohan Reddy Seelam
+Publisher: Murali Mohan Reddy Seelam (individual publisher)\
+Title: Independent Developer\
+Date: 2026-10-14\
+Signature: /s/ Murali Mohan Reddy Seelam

@@ -27,9 +27,9 @@ Version `1.0.0.2` was promoted to a released version on **2026-09-09**
 `IsReleased` is now `true`. Promotion is irreversible and consumes the version
 number permanently.
 
-**Released is a Salesforce packaging state, not an AppExchange listing.** This
-package has not been submitted for or passed AppExchange Security Review and
-has no listing. What changed is that it now installs into any org type,
+**Released is a Salesforce packaging state, not an AppExchange listing.** At
+that point the package had not been submitted for AppExchange Security Review
+and had no listing. What changed is that it now installs into any org type,
 including production, and carries normal managed upgrade guarantees.
 
 Validated end to end in a **fresh scratch org created for this purpose**, with
@@ -416,8 +416,7 @@ Everything in this section was run on one Windows 11 workstation (7.72 GB RAM)
 at source commit `f27a009`. **No Salesforce org was authenticated on that
 workstation, so nothing org-dependent was re-run**: the install records, Apex
 test runs and permission-set observations above stand as recorded on their own
-dates. Nothing here is a review outcome; the package remains not submitted,
-not reviewed and not listed.
+dates. Nothing here is a review outcome.
 
 ### Toolchain
 
@@ -588,14 +587,14 @@ the checklist records that part separately.
 
 **In `ate-101` (source deploy of the 1.0.1 code), as the administrator:**
 
-| Check                                     | Result                                                                                                                                                                    |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tab loads                                 | Renders with data                                                                                                                                                         |
-| User type-ahead                           | Returns active users; selecting one adds a pill                                                                                                                           |
-| Pill removal                              | Clicking the pill's x removes it - the `1.0.0.2` defect is gone                                                                                                           |
-| Filter edited after a search              | The hint "Filters changed. Click Search to apply them; Search further back continues the current search." appears                                                         |
-| "Search further back" with a pending edit | Continued the original search: rows 50 -> 64, progress "Search complete - examined 64 events back to <range boundary>"; the pending non-matching term was **not** applied |
-| Enter in the search box                   | Applied the pending term: 0 events, the empty state, hint cleared                                                                                                         |
+| Check                                     | Result                                                                                                                                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tab loads                                 | Renders with data                                                                                                                                                               |
+| User type-ahead                           | Returns active users; selecting one adds a pill                                                                                                                                 |
+| Pill removal                              | Clicking the pill's x removes it - the `1.0.0.2` defect is gone                                                                                                                 |
+| Filter edited after a search              | The hint "Filters changed. Click Search to apply them; Search further back continues the current search." appears                                                               |
+| "Search further back" with a pending edit | Continued the original search: rows 50 -> 64, progress "Search complete - examined 64 events back to &lt;range boundary&gt;"; the pending non-matching term was **not** applied |
+| Enter in the search box                   | Applied the pending term: 0 events, the empty state, hint cleared                                                                                                               |
 
 **In `ate-101` via Login As, as a Minimum Access - Salesforce user holding only
 the packaged `Audit_Trail_Viewer` permission set:** the full app loads. In a
@@ -772,24 +771,34 @@ The org the reviewers get. The Developer Edition org `00Dbm00000u2XaoEAE`
 (above) stays on `1.0.0.2` and is not used: its login was no longer
 available. This one was created from the Environment Hub of the partner
 business org (`00Dhm000004MOXjEAO`, purpose "Test/Demo"), so it is long-lived
-and has user licences to spare. Set up from the CLI as the org's
+and has user licenses to spare. Set up from the CLI as the org's
 administrator, following `docs/USER-GUIDE.md` section 3.
 
-| Item                                       | Result                                                                                                                                                                                      |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Org                                        | "Audit Trail Explorer Review", `00Di8000003OeVvEAK`, partner Enterprise Edition test org, created 2026-10-14, expires 2027-10-15; 20 Salesforce licences                                    |
-| Installed version                          | `04thm000002tWirAAE` (`1.0.1.4`), install request `0Hfi8000000AEphCAG`: `SUCCESS`, security type admins only                                                                                |
-| Local permission sets                      | `ATE_Local_View_Setup` ("Audit Trail - View Setup (local)": View Setup and Configuration, View Roles) and `ATE_LEX_User` (Lightning Experience User only); deploy `0Afi8000000zqL3CAI`, 2/2 |
-| Reviewer user                              | "ATE Reviewer" (`005i8000001yGnh`): profile Minimum Access - Salesforce, `atexplorer__Audit_Trail_Viewer`, `ATE_Local_View_Setup`, `ATE_LEX_User`                                           |
-| Restricted user                            | "ATE Restricted" (`005i8000001yGni`): profile Minimum Access - Salesforce, `atexplorer__Audit_Trail_Viewer`, `ATE_LEX_User` (shows the gate closed)                                         |
-| Passwords                                  | Set by the publisher through Salesforce's password-reset email; credentials are entered only in the review wizard, never in this repository                                                 |
-| `PermissionsViewSetup` on the packaged set | **`false`** (`PermissionsViewRoles` `false`): the install-time strip, observed a fourth time                                                                                                |
-| Apex tests                                 | `RunAllTestsInOrg`, run `707i800000BHk65`: **50 / 50 passed**                                                                                                                               |
-| Setup Audit Trail                          | Read 2026-10-14: only org provisioning, the package install and the setup above; nothing a reviewer should not see                                                                          |
+| Item                                       | Result                                                                                                                                                                                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Org                                        | "Audit Trail Explorer Review", `00Di8000003OeVvEAK`, partner Enterprise Edition test org, created 2026-10-14, expires 2027-10-15; 20 Salesforce licenses                                                                          |
+| Installed version                          | `04thm000002tWirAAE` (`1.0.1.4`), install request `0Hfi8000000AEphCAG`: `SUCCESS`, security type admins only                                                                                                                      |
+| Local permission sets                      | `ATE_Local_View_Setup` ("Audit Trail - View Setup (local)": View Setup and Configuration, View Roles) and `ATE_LEX_User` (Lightning Experience User only); deploy `0Afi8000000zqL3CAI`, 2/2                                       |
+| Reviewer user                              | "ATE Reviewer" (`005i8000001yGnh`): profile Minimum Access - Salesforce, `atexplorer__Audit_Trail_Viewer`, `ATE_Local_View_Setup`, `ATE_LEX_User`                                                                                 |
+| Restricted user                            | "ATE Restricted" (`005i8000001yGni`): profile Minimum Access - Salesforce, `atexplorer__Audit_Trail_Viewer`, `ATE_LEX_User` (shows the gate closed)                                                                               |
+| Passwords                                  | Set by the publisher through Salesforce's password-reset email; credentials are entered only in the review wizard, never in this repository                                                                                       |
+| `PermissionsViewSetup` on the packaged set | **`false`** (`PermissionsViewRoles` `false`): the install-time strip, observed a fourth time                                                                                                                                      |
+| Apex tests                                 | `RunAllTestsInOrg`, run `707i800000BHk65`: **50 / 50 passed**                                                                                                                                                                     |
+| Setup Audit Trail                          | Read 2026-10-14: only org provisioning, the package install and the setup above; nothing a reviewer should not see                                                                                                                |
+| Escaping test data                         | Custom object "ATE Review Test Data" (not part of the package) with one field labeled `<img src=x onerror=alert(1)>`, so the audit trail holds `Created custom field <img src=x onerror=alert(1)> (Text) on ATE Review Test Data` |
 
 Login check, 2026-10-14 (`docs/USER-GUIDE.md` section 3 E): "ATE Restricted"
 sees the access message in place of the search form; "ATE Reviewer" gets the
 form, the default 7-day search (50 events, facets, results) and Export CSV.
+
+Escaping check, 2026-10-14, as the org's administrator: a search for
+"onerror" returns the test row above, and the Description column shows the
+label as text. No element was added to the page and no script ran.
+
+Login verification: the org has no trusted IP ranges, so the first login from
+a new browser is challenged for an emailed code (Device Activation; recorded
+in `VerificationHistory` for both test users on 2026-10-14). The test users'
+email addresses belong to the publisher, who relays a code on request.
 
 ## Remaining manual/live checklist
 
@@ -810,11 +819,10 @@ form, the default 7-day search (50 events, facets, results) and Export CSV.
       2026-10-12 in `ate-mgd` (managed `1.0.1.1`): denied with the packaged
       permission set alone, open after a local permission set granting
       `ViewSetup` was added.
-- [x] ~~Live UI smoke test of the managed install~~ — done 2026-10-12 to this
-      extent: the source deploy in `ate-101` (as the administrator, and as a
-      Minimum Access user via Login As) and the managed install of `1.0.1.1`
-      in `ate-mgd` (Minimum Access user via Login As, denied then granted); no
-      screenshots were kept. See
+- [x] ~~Live UI smoke test of the managed install~~: done 2026-10-12 for the
+      source deploy in `ate-101` (as the administrator, and as a Minimum
+      Access user via Login As) and the managed install of `1.0.1.1` in
+      `ate-mgd` (Minimum Access user via Login As, denied then granted). See
       [UI smoke test](#ui-smoke-test---2026-10-12). Checked again for `1.0.1.4`
       on 2026-10-14 in the reviewer test org, as both test users (2026-10-14
       section above).
@@ -825,7 +833,8 @@ form, the default 7-day search (50 events, facets, results) and Export CSV.
       (`04thm000002tWirAAE`), both on Dev Hub `partner-pbo`. Irreversible; the
       version numbers are permanently consumed.
 - [ ] Submit the released managed package version `1.0.1.4`
-      (`04thm000002tWirAAE`) for AppExchange Security Review.
+      (`04thm000002tWirAAE`) for AppExchange Security Review, with the
+      reviewer test org described above.
 - [ ] After review approval: add the listing URL and the review outcome, in
       Salesforce's own words, to `README.md`, `docs/APPEXCHANGE-LISTING.md`
       and this file. (The install URL for `04thm000002tWirAAE` is recorded
@@ -833,8 +842,8 @@ form, the default 7-day search (50 events, facets, results) and Export CSV.
 
 **Current state: released managed 2GP version `1.0.1.4`
 (`04thm000002tWirAAE`), promoted 2026-10-12; `1.0.0.2` remains released as the
-previous version. Not submitted for AppExchange Security Review. No
-AppExchange listing.**
+previous version. No version has completed AppExchange Security Review, and
+the AppExchange listing is an unpublished draft.**
 
 "Released" is the Salesforce packaging state and nothing more: the version
 installs into any org type including production and carries normal managed

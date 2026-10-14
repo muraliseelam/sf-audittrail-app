@@ -22,9 +22,9 @@ way - `1.0.1.1` (`04thm000002tVurAAE`), `1.0.1.2` (`04thm000002tVwTAAU`) and
 `sfdx-project.json` for traceability. Tag `v1.0.1` marks the release commit,
 whose `force-app` is identical to `f0ad675`.
 
-**Not an AppExchange release.** The package has not been submitted for
-AppExchange Security Review, has not been reviewed and is not listed on
-AppExchange. "Released" is the Salesforce packaging state only. Installation is
+**Not an AppExchange release.** At release the package had not been submitted
+for AppExchange Security Review and was not listed on AppExchange. "Released"
+is the Salesforce packaging state only. Installation is
 by direct URL:
 <https://login.salesforce.com/packaging/installPackage.apexp?p0=04thm000002tWirAAE>
 (sandboxes: `test.salesforce.com`), or with
@@ -409,9 +409,9 @@ Released managed 2GP version `1.0.0.2` (`04thm000002OtQPAA0`), promoted from
 beta on 2026-09-09. A released managed version installs into any org type,
 including production, and carries normal managed-package upgrade guarantees.
 
-**Not an AppExchange release.** This package has not been submitted for or
-passed AppExchange Security Review and has no AppExchange listing. "Released"
-here is the Salesforce packaging state only. Installation is by direct URL:
+**Not an AppExchange release.** At release the package had not been submitted
+for AppExchange Security Review and had no AppExchange listing. "Released" here
+is the Salesforce packaging state only. Installation is by direct URL:
 <https://login.salesforce.com/packaging/installPackage.apexp?p0=04thm000002OtQPAA0>
 
 **Both grants are required.** Managed packaging strips system permissions on

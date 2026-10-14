@@ -8,8 +8,8 @@ generated reports (`CodeAnalyzerReport.html`, `ca-report.json`) are build
 artifacts and are deliberately gitignored; this file is the committed evidence
 of what they contained.
 
-**This is a static-analysis record, not a review outcome.** The package has not
-been submitted for, or passed, AppExchange Security Review and has no
+**This is a static-analysis record, not a review outcome.** No version of the
+package has completed AppExchange Security Review, and it has no published
 AppExchange listing. See
 [`LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md).
 
@@ -502,9 +502,8 @@ still describe this scan. No violation of any severity carries the `Security`,
 **0 violations** on the same source.
 
 A clean report from the official command is one of the files a submission
-requires; it is static-analysis evidence and nothing more. The package has not
-been submitted for, has not passed, and is not listed after AppExchange
-Security Review, and this entry does not change that.
+requires; it is static-analysis evidence and nothing more, not a review
+outcome.
 
 ### Operational note — Python and the `flow` engine
 
@@ -542,8 +541,8 @@ commits on the branch touch configuration and documentation only;
 the source of the released version.
 
 **This entry is a static-analysis record, not a review outcome.** "Released"
-is the Salesforce packaging state only. The package is not submitted for, not
-reviewed by and not listed on AppExchange, and nothing below changes that.
+is the Salesforce packaging state only. No version has completed AppExchange
+Security Review, and the package is not listed on AppExchange.
 
 ### Why this run exists
 

@@ -1,4 +1,4 @@
-# Dynamic Application Security Testing (DAST): not applicable
+# Dynamic Application Security Testing (DAST): Not Applicable
 
 Audit Trail Explorer, managed package `atexplorer`, version `1.0.1.4`
 (`04thm000002tWirAAE`), package `0Hohm0000000NHZCA2`.
@@ -25,8 +25,8 @@ there is nothing for a DAST tool to scan.
   ([`PRIVACY.md`](PRIVACY.md)).
 
 All of the solution's code runs on the Salesforce Platform and is covered by
-the Salesforce Code Analyzer report and the Source Code Scanner report
-submitted with this review.
+the Salesforce Code Analyzer report (document 08) and the Source Code Scanner
+report (document 09) attached to this submission.
 
 ## Evidence
 
@@ -36,6 +36,5 @@ submitted with this review.
 - Data handling statement: [`PRIVACY.md`](PRIVACY.md).
 - Package source: `force-app/` at tag `v1.0.1`.
 
-Publisher: Murali Mohan Reddy Seelam (individual publisher)
-
+Publisher: Murali Mohan Reddy Seelam (individual publisher)\
 Date: 2026-10-14

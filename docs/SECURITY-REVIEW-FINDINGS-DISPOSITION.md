@@ -1,23 +1,93 @@
-# Audit Trail Explorer — Code Analyzer and Source Code Scanner Findings Disposition
+# Scanner Findings and False Positives
 
-Companion to `CodeAnalyzerReport.html`. That report is a build artifact and is
-deliberately not committed (see `.gitignore`); the dated result of each scan
-is recorded in
-[`docs/CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md) so the
-disposition below can be checked against a real run. It accompanies the
-AppExchange Security Review submission of managed 2GP version `1.0.1.4`
-(`04thm000002tWirAAE`, built from commit `f0ad675`). "Released" is the
-Salesforce packaging state only: no version of the package has completed
-AppExchange Security Review, and its AppExchange listing is an unpublished
-draft. [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) holds the
-install and test evidence.
+This document covers every finding in the two scan reports attached to this
+submission for Audit Trail Explorer `1.0.1.4` (`04thm000002tWirAAE`), and the
+code-quality findings of the broader Code Analyzer scan that each release
+also gets.
 
-The counts below are from the run of 2026-10-12 on commit `f0ad675`, the
-`force-app` source that built `1.0.1.4`. Where a count differs from the earlier
-scan of released version `1.0.0.2` (85 violations), the reason is given with
-it.
+| Report                                                         | Result                                                                                                                                         | Covered in                 |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Source Code Scanner (Checkmarx), document 09                   | 3 Medium issues from one query, all in one test class; 0 quality issues                                                                        | Section 1, false positives |
+| Salesforce Code Analyzer, AppExchange command, document 08     | 62 rules, 0 violations                                                                                                                         | Section 2                  |
+| Broader Code Analyzer scan and Graph Engine run (not attached) | 119 code-quality findings (13 Moderate, 106 Low) and 1 Graph Engine performance finding; none tagged `Security`, `AppExchange` or `ErrorProne` | Section 3                  |
 
-Scan command (reproducible from a clean checkout, after `npm ci`):
+Line numbers refer to commit `f0ad675`, the source of `1.0.1.4`. `force-app`
+has not changed since that commit.
+
+## 1. Source Code Scanner (Checkmarx): false positives
+
+| Item            | Value                                                                                        |
+| --------------- | -------------------------------------------------------------------------------------------- |
+| Job             | `a0BKX000000pcxh2AA`; report scan ID `a0OKX000001JTaT2AW`                                    |
+| Package version | `1.0.1.4` (`04thm000002tWirAAE`)                                                             |
+| Submitted       | Wed Oct 14 02:04:53 GMT 2026 (the job's Created Date in the Partner Security Portal)         |
+| Report header   | Scan Start 2026-10-13 14:06:36, Scan End 2026-10-13 19:07:52, as printed by the scanner      |
+| Profile         | Security and Quality Rules (`PortalAll`)                                                     |
+| Engine          | Checkmarx 9.7, scanner service v3.2                                                          |
+| Attached as     | `09-Checkmarx-Report.zip`, the portal's export, containing `report_phxcxmanwp001_42312.html` |
+
+The report lists 28 checks, and only one has results: `Apex SOQL SOSL User
+Mode Missing` (Medium), with 3 issues. All 15 Critical, High and Serious
+checks report "No Issues Found". Among them are SOQL SOSL Injection, Stored
+XSS and Reflected XSS (Critical); the four client DOM XSS and code-injection
+checks (High); and FLS Create, FLS Update, CRUD Delete, Sharing, URL
+Redirection Attack and XSRF (Serious). All 11 code-quality checks also report
+no issues.
+
+### `Apex SOQL SOSL User Mode Missing` (3, Medium)
+
+| #   | File                             | Query lines | Data path in the report | Test method                                                  |
+| --- | -------------------------------- | ----------- | ----------------------- | ------------------------------------------------------------ |
+| 1   | `AuditPermissionServiceTest.cls` | 215-220     | 42, 43, 214, 218, 215   | `packagedPermissionSetOpensTheAppWhenItCanGrantViewSetup`    |
+| 2   | `AuditPermissionServiceTest.cls` | 248-253     | 42, 43, 247, 251, 248   | `packagedPermissionSetGrantsApexAccessRegardlessOfPackaging` |
+| 3   | `AuditPermissionServiceTest.cls` | 264-270     | 42, 43, 247, 269, 264   | `packagedPermissionSetGrantsApexAccessRegardlessOfPackaging` |
+
+Queries 1 and 2 read `PermissionSet` by name and namespace. Query 3 reads
+`ApexClass` for the three runtime classes. Each data path starts at
+`AuditPermissionServiceTest.class.getName()` on line 42 and ends in the
+query's `:ns` bind.
+
+**Disposition: false positive.** The flagged queries are test code that no
+user can reach:
+
+- The class is `@IsTest` and `private` (`AuditPermissionServiceTest.cls:10-11`).
+  Nothing outside it can reference it, and its methods run only when Apex
+  tests run. No page, component, Apex entry point or API request reaches
+  these queries.
+- The bound value is not user input. `packageNamespace()` (lines 41-44)
+  returns the namespace prefix of the test class's own name: `atexplorer` in a
+  managed install and `null` in a source deploy. It is used only as a bind
+  variable and is never concatenated into query text.
+- The queries read setup metadata, not customer records: the packaged
+  permission set and the three runtime classes, so that the two tests can
+  check what the shipped permission set grants.
+- The runtime queries run in user mode and were not flagged:
+  `SetupAuditTrailProvider.cls:42` (`Database.query(soql, AccessLevel.USER_MODE)`)
+  and `AuditQueryController.cls:80-83` (`WITH USER_MODE`) are the only SOQL
+  statements outside test classes.
+
+## 2. Salesforce Code Analyzer: AppExchange command
+
+Document 08 is the report of Salesforce's AppExchange command, run on
+2026-10-12 against commit `f0ad675` with Code Analyzer plugin 5.16.0:
+
+```
+sf code-analyzer run --rule-selector AppExchange --rule-selector Recommended:Security \
+  --output-file CodeAnalyzerReport.html
+```
+
+The selector resolved to 62 rules from 5 engines, and the run reported
+**"Found 0 violations."** There is nothing to disposition. The attached
+`CodeAnalyzerReport.html` is 64,954 bytes, SHA-256
+`03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`. It is
+zipped as `08-CodeAnalyzerReport.zip` because the review wizard does not
+accept HTML files.
+
+## 3. Broader Code Analyzer scan
+
+Each release is also scanned with a wider selection, the `Recommended`,
+`Security` and `AppExchange` tags together, using the repository's
+`code-analyzer.yml`:
 
 ```
 sf code-analyzer run \
@@ -25,35 +95,22 @@ sf code-analyzer run \
   --workspace force-app \
   --rule-selector Recommended \
   --rule-selector Security \
-  --rule-selector AppExchange \
-  --output-file CodeAnalyzerReport.html
+  --rule-selector AppExchange
 ```
 
-`npm ci` is part of the procedure, not a convenience: `code-analyzer.yml` points
-the ESLint engine at `eslint.config.js`, which loads the project's
-devDependencies. In a checkout without `node_modules` the ESLint engine fails to
-instantiate (`UninstantiableEngineError`, "Cannot find module 'eslint/config'"),
-the selector resolves to 59 rules from 4 engines, and the one Critical entry in
-the report describes the machine, not the code. That was verified on a clean
-checkout of `47bd65f` on 2026-10-12.
+The selection resolves to 310 rules from six engines (202 ESLint, 94 PMD,
+6 regex, 4 RetireJS, 2 CPD and 2 Graph Engine rules). The `Security` tag adds
+the Graph Engine rules `sfge:ApexFlsViolation` and
+`sfge:DatabaseOperationsMustUseWithSharing`, which the other two tags do not
+select. The same scan runs weekly in GitHub Actions. Its reports are not
+attached; the results of every run are recorded in
+[`docs/CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
 
-All three tags are selected deliberately, as three separate flags — a
-colon-separated selector is an _intersection_, and the old
-`Recommended:AppExchange` matched no rule at all. `AppExchange` alone resolves
-to 29 PMD rules and does **not** engage the Graph Engine, ESLint, RetireJS or
-the secrets-regex engine. `Security` is what reaches `sfge:ApexFlsViolation`
-and `sfge:DatabaseOperationsMustUseWithSharing`, which are tagged `DevPreview`
-and so are selected by neither of the other two tags — yet they are the two
-rules most relevant to this review.
+### Result
 
-**The selector resolves to 310 rules** (202 eslint, 94 pmd, 6 regex,
-4 retire-js, 2 cpd, 2 sfge). Confirm that with `sf code-analyzer rules` and the
-same flags before trusting a clean result.
-
-## Result
-
-Three-tag run of 2026-10-12 on `f0ad675`, Code Analyzer plugin 5.16.0,
-11 minutes, exit 0 with `--severity-threshold 2`:
+Run of 2026-10-12 on `f0ad675` with Code Analyzer plugin 5.16.0, exit 0 with
+`--severity-threshold 2`. The GitHub Actions workflow reproduced the same
+counts on 2026-10-13 (run `38462017378`).
 
 | Severity  | Count   |
 | --------- | ------- |
@@ -62,8 +119,6 @@ Three-tag run of 2026-10-12 on `f0ad675`, Code Analyzer plugin 5.16.0,
 | Moderate  | 13      |
 | Low       | 106     |
 | **Total** | **119** |
-
-119 violations across 16 files, by rule:
 
 | Rule                                            | Engine | Severity | Count |
 | ----------------------------------------------- | ------ | -------- | ----- |
@@ -77,26 +132,20 @@ Three-tag run of 2026-10-12 on `f0ad675`, Code Analyzer plugin 5.16.0,
 | `NcssCount`                                     | pmd    | Moderate | 1     |
 | `AvoidDebugStatements`                          | pmd    | Low      | 1     |
 
-Against the `1.0.0.2` baseline (85 = 11 Moderate + 74 Low) the movement is
-+19 `ApexUnitTestClassShouldHaveRunAs` (50 Apex test methods, up from 29),
-+9 `ApexDoc` (new methods), +4 SLDS advisories (new CSS),
-+1 `CyclomaticComplexity` (the `AuditQueryServiceTest` class total) and
-+1 `no-inline-disable` (in the Jest file). `CognitiveComplexity` is unchanged
-at 3. Three rules that fired on intermediate 1.0.1 builds —
-`FieldNamingConventions`, `AvoidDeeplyNestedIfStmts` and
-`ApexUnitTestClassShouldHaveAsserts` — were addressed in the code before release
-and do not appear in this run; see the note at the end of this document.
+No finding carries the `Security`, `AppExchange` or `ErrorProne` tag. All 29
+PMD AppExchange rules are clean, and RetireJS, the regex secrets engine, CPD
+and the two Graph Engine security rules report 0 violations. Every finding is
+a code-quality or style rule, and none is suppressed in `code-analyzer.yml`.
 
-All six engines execute as part of the single command above. **RetireJS, the
-regex secrets engine and CPD each report 0 violations, and so do the two Graph
-Engine rules the selector reaches.** In this run the Graph Engine portion also
-ran to completion inside the six-engine scan (`analyzed 6537 path(s) from 3
-entry point(s)`), which the trimmed 1.0.1 search path made possible; that is
-not relied upon, for the reason that follows.
+Compared with the scan of `1.0.0.2` (85 findings: 11 Moderate, 74 Low), the
+changes are +19 `ApexUnitTestClassShouldHaveRunAs` (50 Apex test methods, up
+from 29), +9 `ApexDoc` (new methods), +4 SLDS advisories (new CSS), +1
+`CyclomaticComplexity` (the `AuditQueryServiceTest` class total) and +1
+`no-inline-disable` (in the Jest file). `CognitiveComplexity` is unchanged at 3.
 
-The Graph Engine result is the one that needs its evidence stated, because a
-bare "0 violations" from it can mean the analysis never finished. Verify it with
-its own run on an otherwise idle machine:
+### Graph Engine on its own
+
+The Graph Engine was also run by itself on 2026-10-12:
 
 ```
 sf code-analyzer run \
@@ -105,413 +154,221 @@ sf code-analyzer run \
   --rule-selector sfge
 ```
 
-which must report **`6537 path(s)` from `3/3 entry point(s)`** and no
-`Internal execution error` (757 s on 2026-10-12; `1.0.0.2` analysed in 14,503
-paths and ~7 minutes). Anything less means the analysis was abandoned part-way
-and the "0 violations" proves nothing — see the environment note below. The two
-Security-tagged Graph Engine rules, `ApexFlsViolation` and
-`DatabaseOperationsMustUseWithSharing`, report **0 violations**, i.e. the
-CRUD/FLS and sharing enforcement described in section 5 of the solution
-document is confirmed by path-sensitive analysis, not only by inspection. This
-standalone run selects _every_ Graph Engine rule, not only the two in the
-310-rule selection, and on the 1.0.1 source it reports **one** violation of the
-Performance rule `AvoidDatabaseOperationInLoop`; that finding is outside the
-three-tag result above and is dispositioned in its own section near the end.
+It analyzed 6,537 paths from all 3 entry points in 757 seconds, with no
+internal error. The two security rules, `ApexFlsViolation` and
+`DatabaseOperationsMustUseWithSharing`, reported 0 violations, so the CRUD/FLS
+and sharing enforcement described in section 5 of document 01 is confirmed by
+path analysis as well as by reading the code. This run selects every Graph
+Engine rule, so it also reported one performance finding,
+`AvoidDatabaseOperationInLoop`, explained at the end of this section.
 
-**No violation of any severity carries the `Security`, `AppExchange` or
-`ErrorProne` tag.** All 29 PMD AppExchange security rules are clean. Every
-remaining item is a code-quality or style rule, dispositioned below.
+### `CognitiveComplexity` (2 of 3), `CyclomaticComplexity` (1 of 3) and `NcssCount` (1) in `AuditQueryService`
 
-The official AppExchange command, run from the package's top-level directory on
-the same source
-(`sf code-analyzer run --rule-selector AppExchange --rule-selector Recommended:Security --output-file CodeAnalyzerReport.html`,
-62 rules from 5 engines), reports **`Found 0 violations.`** That
-`CodeAnalyzerReport.html` (64,954 bytes, SHA-256
-`03E6CE52D69C7A26A3D5EA2F40B68AF7EA6655A17957F5CE95FA6C534532BA1C`) is the
-Code Analyzer report attached to this submission, zipped as
-`08-CodeAnalyzerReport.zip` because the review wizard does not accept HTML
-files.
+**Accepted.** The locations are the class total (`AuditQueryService.cls:24`)
+and `search()` (`AuditQueryService.cls:53`) for `CognitiveComplexity`, and
+`search()` for `CyclomaticComplexity` and `NcssCount`.
 
-## Environment note
+The complexity comes from the problem. `SetupAuditTrail` cannot be filtered on
+`Section` or `Display` in SOQL and supports no aggregate functions, so the
+service has to scan backwards through time in bounded windows, filter in
+Apex, and keep an exact cursor across window boundaries, all within governor
+limits whatever the size of the org.
 
-PMD, the Graph Engine and CPD require a local JDK, the Flow engine requires
-Python 3.10 or later, and the ESLint engine requires the project's
-`node_modules` (above). If one is missing the engine **fails to load**:
-depending on the plugin version it is either skipped silently, so the scan
-reports a false all-clear, or, as 5.16.0 does, reported as a Critical
-`UninstantiableEngineError` with no file, which is not a code finding (seen for
-the flow engine without Python on 2026-10-11 and for the ESLint engine without
-`node_modules` on 2026-10-12). Every recorded run had OpenJDK 21, so PMD, CPD
-and the Graph Engine genuinely executed. The flow engine is not eligible for
-the `force-app` workspace (no Flow metadata). The 2026-10-12 runs used Code
-Analyzer plugin 5.16.0 on `@salesforce/cli` 2.153.5 (win32-x64), Node 24.20.0,
-OpenJDK 21.0.12.1 (Microsoft build) and Python 3.12.10, from the release
-worktree after `npm ci`. Check the engine and rule counts rather than the
-violation total; each run's environment is in
-[`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
+Version 1.0.1 moved more of the contract into `search()`. The date range is
+resolved on the first call and pinned in the cursor (`pinRange`), paging is
+keyset-based on `CreatedDate` and `Id` with the continuation id validated
+before any query runs, and the range and position that come back from the
+client are re-clamped on every call. The method was also kept to as few
+branches as possible, so that the Graph Engine can analyze every path through
+it, which is why these counts did not grow with the added behavior. Splitting
+the scan loop further would spread one stateful algorithm across methods that
+could not be understood or tested on their own.
 
-Two further ways this scan can report a false all-clear, both guarded against
-in `code-analyzer.yml`:
-
-- **Selector syntax.** A colon-separated rule selector is an _intersection_. No
-  rule carries both the `Recommended` and `AppExchange` tags, so
-  `Recommended:AppExchange` selects **0 rules** and reports `0 violations`
-  while proving nothing. The tags must be passed as separate `--rule-selector`
-  flags, which unions them — three flags here (`Recommended`, `Security`,
-  `AppExchange`), 310 rules, the same count `code-analyzer.yml` and the CI gate
-  check. Always confirm the count with `sf code-analyzer rules` before trusting
-  a clean result.
-- **Graph Engine path timeouts.** The path count is a property of the code:
-  every conditional between `AuditQueryController.search` and the SOQL
-  multiplies it. On `1.0.0.2` the entry point had a 14,503-path space, far
-  beyond the stock 30 s per-path budget, and `code-analyzer.yml` raised
-  `java_thread_timeout` to 600 s. On timeout the engine still prints
-  `0 violations`, with the abandoned entry point reported only as an
-  `Internal execution error` in the surrounding output. The first 1.0.1 builds
-  showed how quickly that budget is lost: range pinning and cursor validation
-  added conditionals on the search path, and on the sources of `1.0.1.2` and
-  `1.0.1.3` the standalone run timed out even at a diagnostic 1,800,000 ms,
-  printing `3 path(s) from 2 entry point(s)` and the vacuous all-clear.
-  `AuditQueryService.search` was rewritten in `f05ed25` and `f0ad675` with the
-  minimum of branches (`Math.min`/`Math.max` clamps from `f05ed25`;
-  unconditional set inserts with nulls removed once and one ternary for the
-  cursor from `f0ad675` — `AuditQueryService.cls:57-73`),
-  which brought the count to 6,537; `code-analyzer.yml` now sets
-  `java_thread_timeout` to 1,800,000 ms and
-  `.github/workflows/code-analyzer.yml` pins `6537 path(s)`. If `search()` or
-  anything it calls gains a conditional, re-measure before trusting a result.
-- **Graph Engine memory.** `java_max_heap_size` is set to `2g` deliberately, not
-  higher. Requesting more heap than the host can spare makes the JVM thrash and
-  the analysis times out regardless: on an 8 GB machine a 4g request yielded
-  `3 path(s) from 2 entry point(s)` plus an error, while 2g with 4 threads
-  completed all 14,503 paths of `1.0.0.2`, and the same setting completed the
-  6,537 paths of `1.0.1` in 757 s. Running the Graph Engine concurrently with
-  the other five engines can lose the same memory race, so verify it with its
-  own run. Treat any Graph Engine result that does not name the path and
-  entry-point counts as unproven.
-
----
-
-## Moderate findings
-
-### `CognitiveComplexity` (2 of 3), `CyclomaticComplexity` (1 of 3), `NcssCount` (1) — `AuditQueryService`
-
-**Accepted, not a defect.**
-
-Locations: the class total (`AuditQueryService.cls:24`) and `search()`
-(`AuditQueryService.cls:53`) for `CognitiveComplexity`; `search()` for
-`CyclomaticComplexity` and `NcssCount`.
-
-The complexity is inherent to the problem. `SetupAuditTrail` cannot be filtered
-on `Section` or `Display` in SOQL, and supports no aggregate functions at all.
-The service therefore has to scan backwards through time in bounded windows,
-post-filter in Apex, and maintain an exact cursor across window boundaries —
-all while staying inside governor limits regardless of org size.
-
-1.0.1 moved more of the contract into `search()`: the date range is resolved on
-the first call and pinned in the cursor (`pinRange`), paging is keyset-based on
-(`CreatedDate`, `Id`) with the continuation id validated before any query runs,
-and the client-supplied bounds are re-clamped rather than trusted. At the same
-time the method lost branches for the Graph Engine (see the environment note),
-which is why these counts did not move with the added behaviour.
-
-Decomposing the scan loop further would spread a single stateful algorithm
-across several methods that could not be understood or tested independently,
-which would be harder for a reviewer to follow than one cohesive, heavily
-commented method.
-
-The behaviour is pinned by tests.
-`multiBatchScanFindsAMatchInTheLastShortBatch`,
+The behavior is covered by tests. `multiBatchScanFindsAMatchInTheLastShortBatch`,
 `sameTimestampRowsPageByIdAcrossBatches` and
 `ceilingStopsACallWithoutLosingProgress` (`AuditQueryServiceTest.cls:425-527`)
-shrink the scan to `scanBatch = 100` and `maxBatchesPerCall = 3` through the
-two `@TestVisible` fields (`useSmallBatches()`,
-`AuditQueryServiceTest.cls:49-52`; `AuditQueryService.cls:34-37`), so a few
-hundred mock rows cross real batch boundaries: a match that exists only in a
-short third batch is found and the range reported done after exactly three
-fetches; 250 rows sharing one timestamp are paged by id across both batch and
-page boundaries, every row returned exactly once; and a call stopped by the
-ceiling at 300 scanned rows leaves the cursor on the last scanned row, with the
-next call finishing the remaining 50 in a single short batch.
-`pagingCoversEveryRowExactlyOnce` and `handlesManyRowsSharingOneTimestamp` hold
-the same no-duplicate, no-skip invariant within one batch, and
-`searchRoundTripsCursorJson` (`AuditQueryControllerTest.cls:67-100`) that the
-keyset id and the pinned range survive the JSON round trip through the browser.
-All 50 Apex tests passed on the released source (source deploy
-`0Afh1000000NfiTCAS`, 50 run, 0 failed) and against the installed `1.0.1.4` in
-a subscriber org (run `707di0000LCKGo0`, 50 passed, 0 failed).
+shrink the scan to `scanBatch = 100` and `maxBatchesPerCall = 3` through two
+`@TestVisible` fields (`AuditQueryService.cls:34-37`), so that a few hundred
+mock rows cross real batch boundaries:
 
-### `ExcessiveParameterList` (4) — `AuditTrailProvider`, `SetupAuditTrailProvider`, `MockAuditTrailProvider`
+- a match that exists only in a short third batch is found, and the range is
+  reported done after exactly three fetches;
+- 250 rows that share one timestamp are paged by id across batch and page
+  boundaries, and every row is returned exactly once;
+- a call stopped by the ceiling at 300 scanned rows leaves the cursor on the
+  last scanned row, and the next call finishes the remaining 50 in one short
+  batch.
 
-**Accepted, not a defect.**
+`pagingCoversEveryRowExactlyOnce` and `handlesManyRowsSharingOneTimestamp`
+check the same no-duplicate, no-skip rule within one batch, and
+`searchRoundTripsCursorJson` (`AuditQueryControllerTest.cls:67-100`) checks
+that the keyset id and the pinned range survive the JSON round trip through
+the browser. All 50 Apex tests passed on the released source (source deploy
+`0Afh1000000NfiTCAS`) and against the installed `1.0.1.4` in a subscriber org
+(run `707di0000LCKGo0`).
 
-Locations: `fetch` on the interface (`AuditTrailProvider.cls:25`), on the
-production provider (`SetupAuditTrailProvider.cls:9`) and on the mock
+### `ExcessiveParameterList` (4) in `AuditTrailProvider`, `SetupAuditTrailProvider` and `MockAuditTrailProvider`
+
+**Accepted.** The locations are `fetch` on the interface
+(`AuditTrailProvider.cls:25`), on the production provider
+(`SetupAuditTrailProvider.cls:9`) and on the mock
 (`MockAuditTrailProvider.cls:19`), six parameters each, and the mock's `row`
 test-data builder (`MockAuditTrailProvider.cls:69`), five.
 
-This is the seam that makes the code testable. `SetupAuditTrail` records cannot
-be inserted in an Apex test, so the query is placed behind an interface with an
-injectable mock. The parameters are the query's filter criteria, passed
-explicitly so that each one is visibly bound rather than assembled into a
-string. 1.0.1 replaced the seen-id set parameter with the keyset `lastId`; the
-parameter count did not change.
+This interface is what makes the code testable. `SetupAuditTrail` records
+cannot be inserted in an Apex test, so the query sits behind an interface that
+tests replace with a mock. The parameters are the query's filter values,
+passed one by one so that each is visibly a bind variable. A criteria object
+would hide the binding at the point a reviewer most wants to see it, so the
+parameters stay explicit.
 
-Replacing them with a criteria object would hide the binding at the exact point
-a reviewer most wants to see it, so the parameters stay explicit.
+### `CognitiveComplexity` and `CyclomaticComplexity` in `MockAuditTrailProvider` and `AuditQueryServiceTest`
 
-### `CognitiveComplexity`, `CyclomaticComplexity` — `MockAuditTrailProvider`, `AuditQueryServiceTest`
-
-**Accepted.** Test-support code only; none of it is part of the runtime path.
+**Accepted.** This is test-support code, not part of the runtime path.
 `MockAuditTrailProvider.fetch` (`MockAuditTrailProvider.cls:19`) is reported
-under both rules: it now mirrors the real provider's keyset contract, which is
-what lets the tests above exercise paging without inserting `SetupAuditTrail`
-rows. The class total of `AuditQueryServiceTest` (`AuditQueryServiceTest.cls:2`,
-`CyclomaticComplexity`) is the one Moderate location new since `1.0.0.2`: 28
-test methods in one class, each of them small.
+under both rules because it mirrors the real provider's keyset paging, which
+is what lets the tests above exercise paging without inserting
+`SetupAuditTrail` rows. The class total of `AuditQueryServiceTest`
+(`AuditQueryServiceTest.cls:2`, `CyclomaticComplexity`) counts its 28 small
+test methods together.
 
-### `@lwc/lwc-platform/no-inline-disable` (2) — `auditExplorer.js`, `auditExplorer.test.js`
+### `@lwc/lwc-platform/no-inline-disable` (2) in `auditExplorer.js` and `auditExplorer.test.js`
 
-**Accepted, justified suppression.**
-
-Two `// eslint-disable-next-line no-await-in-loop` comments exist. The first is
-in the progressive-search loop (`auditExplorer.js:289`): the awaits are
-sequential by necessity, because each server call needs the paging cursor
-returned by the previous one, so they cannot be parallelised. The second, new
-in 1.0.1, is in the Jest suite's `settle()` helper
-(`__tests__/auditExplorer.test.js:81`), which drains that same chain of
-sequential calls one flush at a time so the tests can observe each step. Each
-suppression is narrowly scoped to a single line and carries an inline
-justification comment.
-
-The alternative — disabling `no-await-in-loop` for the whole file in
-`eslint.config.js` — would silence the rule far more broadly and leave no
-visible marker at the call site.
-
----
-
-## Low findings
+**Accepted.** There are two `// eslint-disable-next-line no-await-in-loop`
+comments. The first is in the progressive-search loop
+(`auditExplorer.js:289`): each server call needs the paging cursor returned by
+the previous one, so the calls have to run one after another. The second is in
+the Jest suite's `settle()` helper (`__tests__/auditExplorer.test.js:81`),
+which steps through the same chain of calls so the tests can check each step.
+Each suppression covers a single line and carries a comment explaining it.
+Turning the rule off for the whole file would silence it far more widely and
+leave no marker at the call site.
 
 ### `ApexDoc` (38)
 
-**Accepted.** Every class carries a header comment that explains its role,
+**Accepted.** Every class has a header comment that explains its role,
 including the progressive-search contract of the two `search` entry points
 (`AuditQueryController.cls:1-10`, `AuditQueryService.cls:1-23`). The rule asks
 for more: a `/** */` comment on every public method, constructor and nested
 class, an `@param` for each parameter and an `@return` on each non-void
-method. The 38 hits are 16 public members without their own `/** */` comment
-(constructors, the two `search` methods, small accessors such as
+method. The 38 findings are 16 public members without their own `/** */`
+comment (constructors, the two `search` methods and small accessors such as
 `AuditCursor.lastDate()`), 10 comments without matching `@param` tags and 12
-without an `@return`. The project uses the tags where they add information,
-such as the six parameters of `AuditTrailProvider.fetch`
+without an `@return`. The code uses the tags where they add information, for
+example for the six parameters of `AuditTrailProvider.fetch`
 (`AuditTrailProvider.cls:13-24`) and the `@throws` of `AuditCursor`
-(`AuditCursor.cls:49`). The net nine since `1.0.0.2` are twelve hits on
-methods 1.0.1 added, less three on methods it removed. No functional or
-security impact.
+(`AuditCursor.cls:49`). The net increase of nine since `1.0.0.2` is twelve new
+findings on methods that 1.0.1 added, less three that went away with methods it
+removed. No functional or security impact.
 
 ### `ApexUnitTestClassShouldHaveRunAs` (45)
 
-**Accepted, and deliberately not blanket-applied.**
+**Accepted.** The four test classes hold 50 `@IsTest` methods. The rule flags
+the 45 that run as the test runner; the other 5 use `System.runAs`, and they
+are the five tests of the access gate, all in `AuditPermissionServiceTest.cls`:
 
-The four test classes hold 50 `@IsTest` methods (29 in `1.0.0.2`). The rule
-flags the 45 that run as the test user; the other 5 use `System.runAs`, and
-they are exactly the five that test the access gate, all in
-`AuditPermissionServiceTest.cls`:
-
-- `deniesUserWithoutViewSetup` (`AuditPermissionServiceTest.cls:46-69`): a user
-  on the stock **Minimum Access - Salesforce** profile, which lacks **View
-  Setup and Configuration**, gets `false` from `canViewSetup()` and the
-  permission exception from `assertCanViewSetup()`.
-- `blocksControllerEntryPointsForUnprivilegedUser` (`:71-104`): the same user
-  is refused by `search` and `searchUsers`, the two `@AuraEnabled` methods that
-  return data, and since 1.0.1 the test asserts that each refusal is an
-  `AuraHandledException` whose message names **View Setup and Configuration**
-  — proof that the controller calls `setMessage()`, without which the client
+- `deniesUserWithoutViewSetup` (lines 46-69): a user on the standard
+  **Minimum Access - Salesforce** profile, which lacks **View Setup and
+  Configuration**, gets `false` from `canViewSetup()` and the permission
+  exception from `assertCanViewSetup()`.
+- `blocksControllerEntryPointsForUnprivilegedUser` (lines 71-104): the same
+  user is refused by `search` and `searchUsers`, the two `@AuraEnabled` methods
+  that return data. The test checks that each refusal is an
+  `AuraHandledException` whose message names **View Setup and Configuration**,
+  which shows that the controller calls `setMessage()`; without it the client
   would see only "Script-thrown exception".
-- `restrictedUserGetContextReportsNoAccessWithoutThrowing` (`:106-121`, new):
-  the controller's third `@AuraEnabled` method, `getContext`, is ungated by
-  design and returns no audit data (`AuditQueryController.cls:39-56`); for the
-  same user it must answer `canViewSetup = false` rather than throw, because
-  the UI uses that answer to choose between the search form and the "ask your
+- `restrictedUserGetContextReportsNoAccessWithoutThrowing` (lines 106-121): the
+  controller's third `@AuraEnabled` method, `getContext`, returns no audit data
+  and is not gated (`AuditQueryController.cls:39-56`). For the same user it
+  must answer `canViewSetup = false` instead of throwing, because the page uses
+  that answer to choose between the search form and the "ask your
   administrator" message.
 - `restrictedUserWithLocalViewSetupPermissionSetCanUseEveryEntryPoint`
-  (`:130-195`, new): the deterministic positive case. The same user, granted
-  **View Setup and Configuration** through a permission set created in the test
-  org — which is what a managed-package subscriber's administrator has to do —
-  can use `search`, `getContext` and `searchUsers`. A local permission set is
-  never stripped by packaging, so this holds in source, unlocked and managed
-  contexts alike.
-- `packagedPermissionSetOpensTheAppWhenItCanGrantViewSetup` (`:197-240`): the
-  same user, assigned only the shipped `Audit_Trail_Viewer` permission set,
-  passes the gate exactly when that permission set genuinely carries
-  `ViewSetup`. Under managed packaging it does not — Salesforce strips the
-  system permission on install — so in a subscriber org the test pins the gate
-  shut until the administrator grants the permission separately
-  (`CHANGELOG.md`, "Managed-package installs require ...").
+  (lines 130-195): the same user, given **View Setup and Configuration**
+  through a permission set created in the test org, can use `search`,
+  `getContext` and `searchUsers`. This is what a subscriber's administrator
+  does, and because packaging never strips a local permission set, the test
+  holds for source deploys and managed installs alike.
+- `packagedPermissionSetOpensTheAppWhenItCanGrantViewSetup` (lines 197-240):
+  the same user, assigned only the shipped `Audit_Trail_Viewer` permission set,
+  passes the gate exactly when that permission set carries `ViewSetup`. In a
+  managed install it does not, because Salesforce strips the system permission
+  at install, so in a subscriber org the test confirms the gate stays shut
+  until the administrator grants the permission separately.
 
-Of the remaining 45 methods, 31 do not depend on who runs them: the 28 in
-`AuditQueryServiceTest` (paging, cursor, range pinning, filter and facet logic
+Of the other 45 methods, 31 do not depend on who runs them: the 28 in
+`AuditQueryServiceTest` (paging, cursor, date range, filter and facet logic
 against the mock provider), the two `AuditEventRow` mapping tests in
-`SetupAuditTrailProviderTest`, and the Apex-class-access check in
-`AuditPermissionServiceTest`. The other 14 pass only when the running user
-holds `ViewSetup`, because they call a gated entry point, assert the running
+`SetupAuditTrailProviderTest`, and the Apex class access check in
+`AuditPermissionServiceTest`. The remaining 14 pass only when the running user
+holds `ViewSetup`, because they call a gated entry point, check the running
 user's access, or run the real `SetupAuditTrail` query in user mode:
-`allowsUserWithViewSetup`; all 11 methods of `AuditQueryControllerTest` (the
-five `search` tests, two of which assert the generic error message;
-`contextExposesRetentionWindow`, which since 1.0.1 asserts
-`canViewSetup = true` rather than merely that a value is present; and the five
-`searchUsers` tests, which pass the permission gate before the term-length
-check); and the two real-SOQL tests in `SetupAuditTrailProviderTest`. A 50/50
-pass — source deploy `0Afh1000000NfiTCAS` of the released source and run
-`707di0000LCKGo0` against the installed `1.0.1.4`
-([`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md)) — therefore implies
-the runner held `ViewSetup`; a runner without it would fail these 14. Wrapping
-the 45 in `runAs` to satisfy the rule would add ceremony without adding
-assurance. CSV escaping is covered by the Jest suite
+`allowsUserWithViewSetup`, all 11 methods of `AuditQueryControllerTest`, and
+the two real-query tests in `SetupAuditTrailProviderTest`. The 50/50 passes
+recorded in [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) therefore
+show that the runner held `ViewSetup`. Wrapping these 45 tests in `runAs` to
+satisfy the rule would add code without adding assurance. CSV escaping is
+tested in the Jest suite
 (`force-app/main/default/lwc/auditExplorer/__tests__/auditExplorer.test.js:311-347`
-and the `CSV export` block at `:689-762`), not by Apex.
+and the `CSV export` block at lines 689-762), not in Apex.
 
 ### `@salesforce-ux/slds/no-hardcoded-values-slds2` (22)
 
-**Accepted.** SLDS 2 design-token advisories in the component stylesheet
-(`auditExplorer.css`); the four added since `1.0.0.2` come from the 14 lines
-1.0.1 added for the "Filters changed" hint and the spinner placeholders.
-Cosmetic only; no security or functional impact.
+**Accepted.** These are SLDS 2 design-token advisories in the component
+stylesheet (`auditExplorer.css`). The four added since `1.0.0.2` come from the
+14 lines that 1.0.1 added for the "Filters changed" hint and the spinner
+placeholders. Cosmetic only, with no security or functional impact.
 
 ### `AvoidDebugStatements` (1)
 
-**Accepted, intentional.**
+**Accepted.** The single `System.debug(LoggingLevel.ERROR, ...)`
+(`AuditQueryController.cls:110`) is in `genericFailure`, the server-side half
+of the error handling: an unexpected exception is written to the Apex debug
+log and replaced with a fixed message to the client, so platform exception
+text cannot reveal query details to the browser. `search`, `getContext` and
+`searchUsers` each wrap their whole body in the same two catch blocks
+(`AuditQueryController.cls:21-95`). The permission exception is the one whose
+text reaches the client, through `permissionFailure` (lines 101-107), because
+it is written for the user and names the missing permission. Every other
+exception becomes `GENERIC_ERROR`.
 
-The single `System.debug(LoggingLevel.ERROR, ...)`
-(`AuditQueryController.cls:110`) sits in `genericFailure`, the server-side half
-of the generic error handling: an unexpected exception is written to the Apex
-debug log and replaced with a non-specific message to the client, so platform
-exception text cannot leak query internals to the browser. In `1.0.0.2` only
-`search` went through that handler; since 1.0.1 every entry point does.
-`search`, `getContext` and `searchUsers` each wrap their whole body in the same
-two catch blocks (`AuditQueryController.cls:21-95`): the permission exception
-is the one whose text passes through, via `permissionFailure` (`:101-107`),
-because it is written for the user and names the permission they lack, and
-every other exception becomes `GENERIC_ERROR`. Both halves are tested:
-`searchHidesInternalErrorDetail` and `searchHidesDeserializationFailureDetail`
-(`AuditQueryControllerTest.cls:102-153`) assert the generic text and the
-absence of "Malformed", "SELECT", "SetupAuditTrail", "JSON" and field names in
-what the client receives, and `blocksControllerEntryPointsForUnprivilegedUser`
-asserts that the permission message does reach the client from `search` and
-`searchUsers`. The log line is a diagnostic trail, not a notification: on a
-source deploy an administrator with a trace flag on the user can read it in the
-debug log, while in a managed install Salesforce hides managed-package debug
-output from the subscriber org.
-The line echoes the exception type and message only — never a row of audit
-data, and no credential, no session data, and no personal data.
+Both halves are tested. `searchHidesInternalErrorDetail` and
+`searchHidesDeserializationFailureDetail` (`AuditQueryControllerTest.cls:102-153`)
+check that the client receives the generic text and none of "Malformed",
+"SELECT", "SetupAuditTrail", "JSON" or field names, and
+`blocksControllerEntryPointsForUnprivilegedUser` checks that the permission
+message does reach the client from `search` and `searchUsers`.
 
-Removing it would satisfy the linter by discarding the diagnostic trail, which
-is the wrong trade.
+The log line is a diagnostic record, not a notification. On a source deploy
+an administrator with a trace flag on the user can read it in the debug log;
+in a managed install, Salesforce hides managed-package debug output from the
+subscriber org. The line contains the exception type and message only: never
+a row of audit data, and no credential, session data or personal data.
+Removing it would satisfy the rule by giving up that record.
 
----
+### `sfge:AvoidDatabaseOperationInLoop` (1, Graph Engine run only)
 
-## Outside the three-tag selection: the standalone Graph Engine run
+**Accepted.** The standalone Graph Engine run reports one violation of this
+rule: "A database operation occurred inside a loop [WhileLoopStatement at
+AuditQueryService:116]", with the entry point at `AuditQueryController.cls:22`
+and the `Database.query` at `SetupAuditTrailProvider.cls:42`. The report scores
+it High; its tags are `DevPreview`, `Performance` and `Apex`, not `Security` or
+`AppExchange`. The runs on `1.0.0.2` recorded 0 violations, so it first
+appears on the 1.0.1 source.
 
-### `sfge:AvoidDatabaseOperationInLoop` (1)
-
-**Accepted, by design and bounded.**
-
-The `--rule-selector sfge` verification run selects every Graph Engine rule,
-not only the two Security-tagged rules in the 310-rule selection, so it is the
-one scan in which a `Performance` rule can appear. On `f0ad675` it reports,
-alongside the 6,537-path completion and 0 violations from `ApexFlsViolation`
-and `DatabaseOperationsMustUseWithSharing`, one violation of
-`AvoidDatabaseOperationInLoop`: "A database operation occurred inside a loop
-[WhileLoopStatement at AuditQueryService:116]", with the entry point at
-`AuditQueryController.cls:22` and the `Database.query` at
-`SetupAuditTrailProvider.cls:42`. The report scores it High; its tags are
-`DevPreview`, `Performance` and `Apex`, not `Security` or `AppExchange`. The
-`1.0.0.2` standalone runs recorded 0 violations from 14,503 paths, so it first
-fires on the 1.0.1 source.
-
-The loop it names is the progressive, time-sliced scan the application exists
-for (`AuditQueryService.cls:116-167`): `SetupAuditTrail` cannot be filtered on
+The loop is the progressive, time-sliced scan that the application exists for
+(`AuditQueryService.cls:116-167`). `SetupAuditTrail` cannot be filtered on
 `Section` or `Display` in SOQL, so the service fetches bounded batches and
-post-filters them, and the batch loop is where each fetch happens. It is
-bounded in every direction: at most `maxBatchesPerCall` (10) queries per
-transaction against the limit of 100 SOQL queries, each client call is its own
-transaction, the loop also exits on a full page or a short batch, and the
-ceiling is pinned by `ceilingStopsACallWithoutLosingProgress`
-(`AuditQueryServiceTest.cls:484-527`). Removing the query from the loop would
-mean either fetching the whole window in one query — the heap and row-limit
-failure in large orgs that the design exists to avoid — or giving up
-server-side filtering on the two fields users most want to search. Accepted.
+filters them in Apex, and each batch is one query. The loop is bounded in
+every direction: at most `maxBatchesPerCall` (10) queries per transaction
+against the limit of 100 SOQL queries; each client call is its own
+transaction; and the loop also stops on a full page or a short batch. The
+ceiling is covered by `ceilingStopsACallWithoutLosingProgress`
+(`AuditQueryServiceTest.cls:484-527`). Taking the query out of the loop would
+mean either fetching the whole date range in one query, which runs into heap
+and row limits in large orgs, or giving up server-side filtering on the two
+fields users most want to search.
 
-## Rules that fired on intermediate 1.0.1 builds
-
-The superseded `1.0.1.1` source (`47bd65f`) also reported
-`FieldNamingConventions` (2: the scan-tuning statics, once they stopped being
-`final` so tests could shrink them), `AvoidDeeplyNestedIfStmts` (1: nested
-conditions in `CompiledFilter.matches`) and `ApexUnitTestClassShouldHaveAsserts`
-(2: assertions that lived in a shared helper). All were addressed in the code
-before release — the statics renamed `scanBatch` / `maxBatchesPerCall` and
-documented as deliberately non-final (`AuditQueryService.cls:28-37`), the
-nested `if` folded into one condition (`AuditQueryService.cls:275`), direct
-assertions added to the two tests — and none appears on the released source.
-
-## Source Code Scanner (Checkmarx) — scan of `1.0.1.4`
-
-Partner Security Portal Source Code Scanner job `a0BKX000000pcxh2AA` (report
-scan ID `a0OKX000001JTaT2AW`), submitted on 2026-10-14 at 02:04 UTC (the job's
-Created Date in the portal; the report header prints the scan server's own
-clock, Scan Start 2026-10-13 14:06:36 and Scan End 2026-10-13 19:07:52) against
-package version `04thm000002tWirAAE` (`1.0.1.4`, the version linked to the
-draft listing), with the portal's default profile "Security and Quality
-Rules" (`PortalAll`): Checkmarx engine 9.7 (`9.7.1.1001 HF12`), scanner
-service v3.2, 34 files and 3,144 lines of code. The portal's HTML report
-(`report_phxcxmanwp001_42312.html`) is attached to this submission as
-`09-Checkmarx-Report.zip`, the zip the portal exported; like
-`CodeAnalyzerReport.html`, it is not committed to the repository.
-
-| Result                                       | Count                     |
-| -------------------------------------------- | ------------------------- |
-| Security issues                              | **3**, all from one query |
-| Quality issues                               | **0**                     |
-| Checks listed in the report's summary        | 28                        |
-| Critical, High or Serious checks with issues | **0** of 15               |
-
-The one query with results is `Apex SOQL SOSL User Mode Missing` (Medium).
-Every other check in the summary reports "No Issues Found": among them SOQL
-SOSL Injection, Stored XSS and Reflected XSS (Critical); the four client DOM
-XSS and code-injection checks (High); FLS Create, FLS Update, CRUD Delete,
-Sharing, URL Redirection Attack and XSRF (Serious); and all 11 code-quality
-checks.
-
-### `Apex SOQL SOSL User Mode Missing` (3, Medium) — `AuditPermissionServiceTest`
-
-| #   | Flagged query                            | Reads                                  | Test method                                                  |
-| --- | ---------------------------------------- | -------------------------------------- | ------------------------------------------------------------ |
-| 1   | `AuditPermissionServiceTest.cls:215-220` | `PermissionSet`, by name and namespace | `packagedPermissionSetOpensTheAppWhenItCanGrantViewSetup`    |
-| 2   | `AuditPermissionServiceTest.cls:248-253` | `PermissionSet`, by name and namespace | `packagedPermissionSetGrantsApexAccessRegardlessOfPackaging` |
-| 3   | `AuditPermissionServiceTest.cls:264-270` | `ApexClass`, the three runtime classes | `packagedPermissionSetGrantsApexAccessRegardlessOfPackaging` |
-
-Each reported data path starts at `AuditPermissionServiceTest.class.getName()`
-(`:42`) and ends in the query's `:ns` bind.
-
-**Disposition: false positive — test code that no user can reach.**
-
-- The class is `@IsTest` and `private` (`AuditPermissionServiceTest.cls:10-11`):
-  nothing outside it can reference it, and its methods run only when Apex
-  tests run. No page, component, Apex entry point or API request reaches
-  these queries.
-- The bound value is not user input. `packageNamespace()` (`:41-44`) returns
-  the namespace prefix of the test class's own name: `atexplorer` in a
-  managed install, `null` in a source deploy. It is used only as a bind
-  variable, never concatenated into query text.
-- The queries read setup metadata, not customer records: the packaged
-  permission set and the three runtime classes, so that the two tests can
-  assert what the shipped permission set grants. `WITH USER_MODE` would not
-  make them safer; it would only make a structural test depend on the
-  permissions of whichever user runs the test suite.
-- The runtime queries run in user mode and were not flagged:
-  `SetupAuditTrailProvider.cls:42` (`Database.query(soql, AccessLevel.USER_MODE)`)
-  and `AuditQueryController.cls:80-83` (`WITH USER_MODE`) are the only SOQL
-  statements outside test classes.
-
-Line numbers refer to `f0ad675`, the source of `1.0.1.4`; `force-app` is
-unchanged since.
+Earlier scans, their environments, and the scan history of `1.0.0.2` and of the
+unreleased 1.0.1 builds are recorded in
+[`docs/CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).

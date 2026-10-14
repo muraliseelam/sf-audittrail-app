@@ -6,18 +6,18 @@
 Browser (Lightning Web Component: auditExplorer)
   |  imperative Apex (@AuraEnabled, all three methods cacheable=false)
   v
-AuditQueryController          Single external surface. The two data-returning
-  |                            methods, search and searchUsers, call
-  |                            AuditPermissionService before doing anything
-  |                            else. getContext is ungated by design: it returns
+AuditQueryController          The only entry point from the browser. The two
+  |                            data-returning methods, search and searchUsers,
+  |                            call AuditPermissionService before doing anything
+  |                            else. getContext is not gated: it returns
   |                            retention constants, the server time, the default
   |                            page size and the caller's own canViewSetup
-  |                            flag - no audit or user data.
+  |                            flag, and no audit or user data.
   |                            Also issues one SOQL query directly, against the
   |                            standard User object, for the "changed by"
-  |                            type-ahead (searchUsers) - see below.
-  |                            Every catchable exception leaves as
-  |                            AuraHandledException - see "Error contract".
+  |                            type-ahead (searchUsers); see below.
+  |                            Every catchable exception leaves as an
+  |                            AuraHandledException; see "Error contract".
   v
 AuditQueryService             Progressive, time-sliced scan engine. Resolves
   |                            and pins the date range, pages by keyset on
@@ -39,18 +39,15 @@ but it is not the only class in the package that issues SOQL:
 against the standard `User` object (`Id`, `Name`, `Username` only, for active
 users, under `WITH USER_MODE`) to power the "changed by" filter's type-ahead.
 See [`docs/PRIVACY.md`](PRIVACY.md#what-the-app-reads) for what that query
-reads, why, and its permission gate. Its results are never persisted or
-logged, and they are not cached in either direction: the server keeps nothing
-between calls, and `searchUsers` is declared `cacheable=false`
-(`AuditQueryController.cls:59`), as are `search` and `getContext`
-(`AuditQueryController.cls:21,40`), so the Lightning client-side action cache
-is never used.
+reads, why, and its permission gate. Its results are never stored, logged or
+cached; like `search` and `getContext`, `searchUsers` is declared
+`cacheable=false` (`AuditQueryController.cls:21,40,59`).
 
 Supporting types: `AuditFilter` (request), `AuditCursor` (keyset position plus
 the pinned date range), `AuditEventRow` (one flattened result row),
 `AuditSearchResult` (one page of results + facets + cursor),
 `AuditPermissionService` (the authorization gate), `MockAuditTrailProvider`
-(test double — `SetupAuditTrail` rows cannot be inserted by Apex tests).
+(test double, because `SetupAuditTrail` rows cannot be inserted by Apex tests).
 
 There is no trigger, scheduled job, batch job, platform event, custom object,
 custom setting or cache partition anywhere in the package, and the Apex uses
@@ -62,8 +59,8 @@ no Platform Cache: nothing is kept server-side between calls.
 
 - `Section` and `Display` (the description) are **not filterable** in a SOQL
   `WHERE` clause, even though they are exactly what users want to search on.
-- The object supports **no aggregate functions** — `COUNT()`, `GROUP BY`,
-  `MIN(CreatedDate)`, etc. all fail.
+- The object supports **no aggregate functions**: `COUNT()`, `GROUP BY`,
+  `MIN(CreatedDate)` and the like all fail.
 - A large org can have a very long history within the 180-day retention
   window; naively pulling it all into Apex to filter would exceed the 50,000
   row SOQL limit and Apex heap limits.
@@ -74,7 +71,7 @@ bounded batches (`scanBatch` = 1,000 rows per query, up to
 pushes what SOQL _can_ filter (date range, `Action`, `CreatedById` and the
 keyset position) into the query, applies the `Section` and free-text filters
 in Apex over each batch, and returns as soon as a page is filled or the range
-is exhausted — handing back a cursor (`AuditCursor`) so the browser can resume
+is exhausted, handing back a cursor (`AuditCursor`) so the browser can resume
 where the server left off. Each call is a fresh transaction with its own
 governor limits, so the total scan depth is bounded only by how many times
 the client chooses to call `search()` again (bounded client-side by
@@ -87,7 +84,7 @@ multi-batch and per-call-ceiling paths with a few hundred mock rows
 ### The date range is resolved on the server and pinned
 
 The browser sends either `lastDays` (the preset ranges) or explicit
-`startDateMillis`/`endDateMillis` (a custom range) — never both in effect
+`startDateMillis`/`endDateMillis` (a custom range), never both in effect
 (`AuditFilter.cls:10-22`, `auditExplorer.js:198-218`). On the first call of a
 search, `pinRange()` resolves the window from the server clock: a positive
 `lastDays` gives end = now and start = now minus min(`lastDays`, 180);
@@ -95,9 +92,9 @@ otherwise the explicit dates apply, a null end meaning now, and the start is
 clamped to the retention floor (`AuditQueryService.cls:200-211`). The result
 is written into the cursor as `rangeStartMillis`/`rangeEndMillis`, and every
 continuation pages over exactly that window, so a stale or skewed browser
-clock cannot widen it and the lower bound cannot drift between pages. Pinned
-by `lastDaysUsesServerClockAndPinsRange`, `lastDaysIsCappedAtTheRetentionWindow`
-and `exhaustedScanReportsRangeBoundary`. Independently, the browser snapshots
+clock cannot widen it and the lower bound cannot drift between pages. Tests:
+`lastDaysUsesServerClockAndPinsRange`, `lastDaysIsCappedAtTheRetentionWindow`
+and `exhaustedScanReportsRangeBoundary`. Separately, the browser snapshots
 the filter when a search starts and reuses it verbatim for every "Search
 further back" call (`activeFilterJson`, `auditExplorer.js:72-76,268-273`),
 showing a "Filters changed" hint while edits are pending.
@@ -117,7 +114,7 @@ rows older than the timestamp, plus rows at the same timestamp with a smaller
 id. Because the id is part of the sort key there is no list of already-seen
 ids to carry, no cap on how many rows one timestamp may hold, and the cursor
 stays a fixed size. Within one call the service advances between batches the
-same way (`AuditQueryService.cls:162-166`). This is pinned by
+same way (`AuditQueryService.cls:162-166`). This is covered by
 `AuditQueryServiceTest.handlesManyRowsSharingOneTimestamp` and
 `sameTimestampRowsPageByIdAcrossBatches` (the mock provider sorts and resumes
 by the same contract), and
@@ -137,7 +134,7 @@ therefore validates it on every call (`AuditQueryService.cls:67-93`):
   round-trips the whole cursor), starts the search afresh instead of resuming
   (`AuditQueryService.cls:67-72`;
   `continuationCursorMissingRangeRestartsTheSearch`).
-- The pinned bounds are re-clamped rather than trusted: the lower bound is
+- The pinned bounds are re-clamped on the server: the lower bound is
   raised to the retention floor computed on the server, and the upper bound
   is the lower of the cursor position and the pinned range end
   (`AuditQueryService.cls:84-93`;
@@ -161,33 +158,33 @@ first.
 `Section` is a case-insensitive set match (`AuditQueryService.cls:275`). The
 free-text filter is bounded on purpose, because it runs once per scanned row
 and a call may scan up to 10,000 rows: only the first 200 characters of
-`searchText` and the first 10 whitespace-separated terms are honoured
+`searchText` and the first 10 whitespace-separated terms are used
 (`MAX_SEARCH_TEXT_LENGTH`, `MAX_SEARCH_TERMS`;
 `AuditQueryService.cls:47-48,260-271`). All terms must appear in the row's
 description, section, action or user name; null fields are dropped before the
-haystack is built, so the term "null" cannot match an empty field
-(`AuditQueryService.cls:287-289`). Pinned by
+text to search is assembled, so the term "null" cannot match an empty field
+(`AuditQueryService.cls:287-289`). Tests:
 `searchTextIsTruncatedToTwoHundredCharacters`,
 `searchTextHonoursOnlyTheFirstTenTerms` and
 `blankFieldDoesNotMatchTheWordNull`.
 
 ## Error contract
 
-Every `@AuraEnabled` entry point — `search`, `getContext` and `searchUsers` —
+Every `@AuraEnabled` entry point (`search`, `getContext` and `searchUsers`)
 is wrapped in a try/catch, and every catchable exception leaves it as an
 `AuraHandledException` (`AuditQueryController.cls:21-95`); a governor-limit
 `System.LimitException` cannot be caught in Apex, which is one reason each call's
 work is bounded. The permission failure
 (`AuditPermissionService.AuditPermissionException`) passes its user-facing
-text through, so the browser can say which permission is missing; every other
-exception — including a JSON deserialization failure and the malformed-cursor
-rejection above — is collapsed to one fixed generic message, with the
+text through, so the browser can say which permission is missing. Every other
+exception, including a JSON deserialization failure and the malformed-cursor
+rejection above, is collapsed to one fixed generic message, with the
 exception type and message written only to the server-side debug log
 (`AuditQueryController.cls:101-117`). Both paths call `setMessage()`, without
 which the client would see only "Script-thrown exception". `getContext` is
 ungated and answers `canViewSetup` false for an unprivileged user rather than
 throwing, but its body is wrapped the same way
-(`AuditQueryController.cls:40-56`). Pinned by
+(`AuditQueryController.cls:40-56`). Tests:
 `AuditPermissionServiceTest.blocksControllerEntryPointsForUnprivilegedUser`
 (which asserts that the message names View Setup and Configuration),
 `restrictedUserGetContextReportsNoAccessWithoutThrowing`,
@@ -213,8 +210,8 @@ throwing, but its body is wrapped the same way
   The browser does not use those server tallies: it recomputes "Top
   sections"/"Top users" over every matched row accumulated in the page so far,
   across all calls of the current search (`auditExplorer.js:316-323`). The
-  facets therefore describe the result set on screen — matched rows within the
-  range scanned so far — not every row examined and not the org's entire audit
+  facets therefore describe the result set on screen (matched rows within the
+  range scanned so far), not every row examined and not the org's entire audit
   history: a search that has scanned back 30 days shows facets for its matches
   in those 30 days, not all 180. Separately, the "Sections" filter options are
   discovered from every row scanned, matched or not (`observedSections`,
@@ -230,8 +227,9 @@ throwing, but its body is wrapped the same way
   10 terms of the search text take part in matching (see "Filters applied in
   Apex"); anything beyond those bounds is ignored without a warning.
 - **Type-ahead user search (`searchUsers`) is capped at 20 results** and
-  requires at least 2 characters, to bound both the query and the risk of
-  using the endpoint as a general user-enumeration tool.
+  requires at least 2 characters, which keeps each query small. Who can use it
+  is controlled by the same View Setup and Configuration check as the audit
+  data.
 
 ## Packaging
 
@@ -240,15 +238,13 @@ This package is distributed as a **released managed (2GP) version** under the
 package `0Hohm0000000NHZCA2`, current version `1.0.1.4` /
 `04thm000002tWirAAE`, promoted 2026-10-12; the previous released version
 `1.0.0.2` / `04thm000002OtQPAA0` was promoted 2026-09-09). "Released" is the
-Salesforce packaging state — the version installs into any org type including
-production. No version of the package has completed AppExchange Security
-Review; its AppExchange listing is an unpublished draft.
+Salesforce packaging state: the version installs into any org type, including
+production.
 
-The earlier **unlocked** lineage (`0Hobm0000005681CAA`) is superseded. An
-unlocked package cannot be converted in place into a namespaced managed
-package, so the managed lineage was created fresh from the same source once
-the `atexplorer` namespace was linked to the packaging Dev Hub. The managed
-lineage is permanently bound to that Dev Hub.
+An earlier **unlocked** package (`0Hobm0000005681CAA`) is superseded by this
+managed package. An unlocked package cannot be converted into a namespaced
+managed package, so the managed package was created from the same source once
+the `atexplorer` namespace was linked to the packaging Dev Hub.
 
 ### Managed packaging strips system permissions
 
@@ -257,8 +253,9 @@ sets on install, as an anti-privilege-escalation measure. The shipped
 `Audit_Trail_Viewer` permission set therefore **cannot** grant `ViewSetup` to
 subscribers of the managed package, even though the source declares it; it
 still grants the app, its tab, and its Apex classes. Subscriber
-administrators must grant **View Setup and Configuration** separately. The
-same permission set remains self-sufficient for source deploys and the
-unlocked package, so this constraint is specific to managed installs. See
+administrators must grant **View Setup and Configuration** separately. On a
+source deploy the same permission set does grant it, as its description says
+(`Audit_Trail_Viewer.permissionset-meta.xml:4-5`), so this constraint is
+specific to managed installs. See
 [`docs/LIVE-ORG-VALIDATION.md`](LIVE-ORG-VALIDATION.md) for the verified
 install and test evidence.

@@ -5,9 +5,8 @@ It does not collect, store, or transmit any data of its own.
 
 ## What the app reads
 
-The standard Salesforce `SetupAuditTrail` object — the same setup/configuration
-change history visible (in a much less usable form) under
-**Setup → Audit Trail** in every org. This can include the display names and
+The standard Salesforce `SetupAuditTrail` object: the same setup change history
+that Setup shows under **View Setup Audit Trail** in every org. This can include the display names and
 usernames of users who made setup changes, and human-readable descriptions of
 those changes (for example, "Changed profile Sales User").
 
@@ -31,8 +30,8 @@ renders and which the CSV export writes.
 | `CreatedByContext`           | Context Salesforce recorded for the change, if any       | No            | No            | No              |
 | `CreatedByIssuer`            | Issuer Salesforce recorded for that context, if any      | No            | No            | No              |
 
-Three of the selected fields — `CreatedById`, `CreatedByContext` and
-`CreatedByIssuer` — are returned to the browser in every row but are never
+Three of the selected fields, `CreatedById`, `CreatedByContext` and
+`CreatedByIssuer`, are returned to the browser in every row but are never
 displayed or exported; nothing in the component reads them. `Id` is used only
 as the row key of the results table (`auditExplorer.html:190`). The rendered
 columns are defined at `auditExplorer.js:7-26`, the detail panel at
@@ -40,25 +39,18 @@ columns are defined at `auditExplorer.js:7-26`, the detail panel at
 `auditExplorer.js:454-466`.
 
 **User type-ahead.** The "Filter by user" field also queries the standard
-`User` object — `Id`, `Name`, and `Username` only, for **active users**
-matching what the caller typed (`AuditQueryController.searchUsers`, backed by
-a `SELECT ... FROM User ... WITH USER_MODE` query). This exists solely so the
-caller can pick a person to filter the audit search by, without needing to
-already know that user's Id. It is gated behind the same "View Setup and
-Configuration" check as the audit data itself (so it cannot be used as a
-general user-directory lookup by someone who shouldn't have access to the
-audit trail in the first place), runs under `USER_MODE` so field-level
-security on `User` is enforced for the running user, requires at least 2
-characters of input, returns at most 20 matches, and — like everything else
-in this app — the results are used only to render the UI and are never
-stored or logged. They are not cached in either direction: the server
-performs no caching of its own (no Platform Cache, no custom object, nothing
-kept between calls), and `searchUsers` is declared
-`@AuraEnabled(cacheable=false)` (`AuditQueryController.cls:59`), as are
-`search` and `getContext` (`AuditQueryController.cls:21,40`), so the Lightning
-client-side action cache is not used and no result is ever served from it.
-The list lives only in the component's in-memory state while the page is
-open.
+`User` object for **active users** matching what the caller typed: `Id`,
+`Name` and `Username` only (`AuditQueryController.searchUsers`, a
+`SELECT ... FROM User ... WITH USER_MODE` query). It exists so that the caller
+can pick a person to filter the audit search by without knowing that user's
+Id. It is gated behind the same "View Setup and Configuration" check as the
+audit data, so it cannot serve as a user directory for someone who has no
+access to the audit trail. It runs in user mode, so field-level security on
+`User` applies to the running user; it needs at least 2 characters and
+returns at most 20 matches. Like everything else in the app, its results are
+used only to render the page and are never stored, logged or cached (see the
+table below). The list lives only in the component's in-memory state while
+the page is open.
 
 ## What the app does _not_ do
 
@@ -77,7 +69,7 @@ The **Export CSV** button builds a file entirely in the browser from the rows
 already loaded into the page (`Blob` + `URL.createObjectURL`); the file is
 never uploaded anywhere. It is written to the location your browser saves
 downloads to, under your organization's normal device and browser security
-policies — the app has no visibility into or control over that file once it
+policies; the app has no visibility into or control over that file once it
 is downloaded. The file starts with the UTF-8 byte-order mark so that Excel on
 Windows decodes it as UTF-8 (`auditExplorer.js:45-46,471`); the mark is an
 encoding signal ahead of the quoted header cell, not data, and no cell content
@@ -85,28 +77,28 @@ depends on it.
 
 Exported cells are escaped to prevent spreadsheet formula/CSV injection when
 the file is opened in Excel, Google Sheets, or similar tools (see
-`force-app/main/default/lwc/auditExplorer/csv.js`). This is a security
-control, not a data-handling one, and it changes the exported text in exactly
-one way. Every cell is wrapped in double quotes with any embedded double quote
-doubled, which is standard CSV quoting and loses nothing. In addition, a cell
+`force-app/main/default/lwc/auditExplorer/csv.js`). Every cell is wrapped in
+double quotes, with any embedded double quote doubled; this is standard CSV
+quoting and loses nothing. In addition, a cell
 whose first character is a formula trigger (`=`, `+`, `-`, `@`, or their
 full-width forms), a whitespace character, a C0 control character or a
 zero-width space gets a single apostrophe (`'`) prepended (`csv.js:25-47`).
-That apostrophe is the only modification. It is there because spreadsheets
+That prefix is the only change to any value. It is there because spreadsheets
 treat such a leading character as the start of a formula, and audit
 descriptions echo text an administrator controls (for example a renamed field
-label), so without the prefix an exported cell could execute on the auditor's
-machine when the file is opened. The prefix is visible in the exported file;
-no value is removed, truncated or reordered, and the data shown in the page
-is untouched.
+label), so without the prefix an exported cell could run as a formula on the
+auditor's machine when the file is opened. The prefix is visible in the
+exported file; no value is removed, truncated or reordered, and the data shown
+in the page is unchanged.
 
 ## Access control
 
 Nothing above changes who can _see_ the data. The app enforces the same
 "View Setup and Configuration" permission Salesforce itself requires to view
-the Setup Audit Trail (see `AuditPermissionService`), and every SOQL query
-runs in `USER_MODE`/`WITH USER_MODE`, so field- and object-level security are
-enforced by the platform for the running user. The app cannot show a user
+the Setup Audit Trail (see `AuditPermissionService`), and every production
+SOQL query runs in user mode (`AccessLevel.USER_MODE` or `WITH USER_MODE`), so
+field- and object-level security are enforced by the platform for the running
+user. The app cannot show a user
 audit data they could not already see via Setup.
 
 ## Retention

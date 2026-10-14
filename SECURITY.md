@@ -5,17 +5,17 @@ external callouts, and stores no data outside the standard `SetupAuditTrail`
 object it reads (plus one type-ahead query against the standard `User` object -
 see [`docs/PRIVACY.md`](docs/PRIVACY.md)). See
 [`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)
-for the full architecture and data-handling review prepared ahead of an
-eventual AppExchange security review, and
+for the full architecture and data-handling review prepared for the
+AppExchange Security Review submission, and
 [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md)
 for the Salesforce Code Analyzer findings and their disposition.
 
 > **Package status:** the current package version is **released managed 2GP
 > `1.0.1.4`** (`04thm000002tWirAAE`, namespace `atexplorer`), promoted
 > 2026-10-12. "Released" is the Salesforce packaging state: it installs into
-> any org type including production. The package has **not** been submitted
-> for, or passed, AppExchange Security Review, and has **no** AppExchange
-> listing. See
+> any org type including production. No version has completed AppExchange
+> Security Review, and the package has **no** published AppExchange listing.
+> See
 > [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md) for the exact
 > current status.
 

@@ -6,10 +6,10 @@ A Salesforce app that gives admins and auditors a fast, filterable UI over the
 > **Package status: released managed version `1.0.1.4`** (`04thm000002tWirAAE`,
 > promoted 2026-10-12; `1.0.0.2` is the previous released version). This is
 > distributed as a **released** managed 2GP version under the `atexplorer`
-> namespace, so it installs into any org including production. It has **not**
-> been submitted for or passed AppExchange Security Review, and has **no
-> AppExchange listing** — "released" here is the Salesforce packaging state,
-> not a marketplace listing. Installation is by direct URL only. See
+> namespace, so it installs into any org including production. No version has
+> completed AppExchange Security Review, and it has **no published AppExchange
+> listing**: "released" here is the Salesforce packaging state, not a
+> marketplace listing. Installation is by direct URL only. See
 > [Packaging status](#packaging-status) below.
 
 ## What it does
@@ -234,9 +234,9 @@ evidence and remaining checklist.
 > unlocked aliases are retained in `sfdx-project.json` for traceability only
 > and should not be installed.
 
-**This package has not undergone AppExchange security review, has not been
-submitted for it, and has no AppExchange listing.** Nothing in this
-repository should be read as claiming otherwise.
+**No version of this package has completed AppExchange Security Review, and
+it has no published AppExchange listing.** Nothing in this repository should
+be read as claiming otherwise.
 
 ## More documentation
 

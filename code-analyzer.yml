@@ -1,11 +1,14 @@
 # Salesforce Code Analyzer configuration.
 #
-# Committed so the AppExchange security-review scan is reproducible: running
+# Committed so the broader scan of each release is reproducible: running
 #
 #   sf code-analyzer run --config-file code-analyzer.yml --workspace force-app \
 #     --rule-selector Recommended --rule-selector Security --rule-selector AppExchange
 #
-# from a clean checkout must produce the same report that was submitted.
+# from a clean checkout, after `npm ci`, reproduces the results recorded in
+# docs/CODE-ANALYZER-SCAN-RECORD.md. The report attached to the AppExchange
+# security review comes from Salesforce's own AppExchange command instead; see
+# docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md, section 2.
 #
 # THIS SELECTOR MUST RESOLVE TO 310 RULES (202 eslint, 94 pmd, 6 regex,
 # 4 retire-js, 2 cpd, 2 sfge). Check with `sf code-analyzer rules` and the same

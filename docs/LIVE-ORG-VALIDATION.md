@@ -768,6 +768,32 @@ batch loop the application exists for, and is accepted. The
 bytes) and is kept by the maintainer outside the repository. Scan records live
 in [`CODE-ANALYZER-SCAN-RECORD.md`](CODE-ANALYZER-SCAN-RECORD.md).
 
+## 2026-10-14 - Reviewer test org for the security review
+
+The org the reviewers get. The Developer Edition org `00Dbm00000u2XaoEAE`
+(above) stays on `1.0.0.2` and is not used: its login was no longer
+available. This one was created from the Environment Hub of the partner
+business org (`00Dhm000004MOXjEAO`, purpose "Test/Demo"), so it is long-lived
+and has user licences to spare. Set up from the CLI as the org's
+administrator, following `docs/USER-GUIDE.md` section 3.
+
+| Item                                       | Result                                                                                                                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Org                                        | "Audit Trail Explorer Review", `00Di8000003OeVvEAK`, partner Enterprise Edition test org, created 2026-10-14, expires 2027-10-15; 20 Salesforce licences                                    |
+| Installed version                          | `04thm000002tWirAAE` (`1.0.1.4`), install request `0Hfi8000000AEphCAG`: `SUCCESS`, security type admins only                                                                                |
+| Local permission sets                      | `ATE_Local_View_Setup` ("Audit Trail - View Setup (local)": View Setup and Configuration, View Roles) and `ATE_LEX_User` (Lightning Experience User only); deploy `0Afi8000000zqL3CAI`, 2/2 |
+| Reviewer user                              | "ATE Reviewer" (`005i8000001yGnh`): profile Minimum Access - Salesforce, `atexplorer__Audit_Trail_Viewer`, `ATE_Local_View_Setup`, `ATE_LEX_User`                                           |
+| Restricted user                            | "ATE Restricted" (`005i8000001yGni`): profile Minimum Access - Salesforce, `atexplorer__Audit_Trail_Viewer`, `ATE_LEX_User` (shows the gate closed)                                         |
+| Passwords                                  | Not set from here: Salesforce's own reset email went to the owner for each user. Credentials go only into the review wizard, never into this repository                                     |
+| `PermissionsViewSetup` on the packaged set | **`false`** (`PermissionsViewRoles` `false`): the install-time strip, observed a fourth time                                                                                                |
+| Apex tests                                 | `RunAllTestsInOrg`, run `707i800000BHk65`: **50 / 50 passed**                                                                                                                               |
+| Setup Audit Trail                          | Read 2026-10-14: only org provisioning, the package install and the setup above; nothing a reviewer should not see                                                                          |
+
+Still to do here: log in as each test user once (`docs/USER-GUIDE.md`
+section 3 E) to confirm the search opens for "ATE Reviewer" and the access
+message appears for "ATE Restricted", then keep both passwords valid for the
+whole review.
+
 ## Remaining manual/live checklist
 
 - [x] ~~Link the `atexplorer` namespace to the packaging Dev Hub~~ — done

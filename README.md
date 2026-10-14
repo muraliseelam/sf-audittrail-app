@@ -240,22 +240,22 @@ repository should be read as claiming otherwise.
 
 ## More documentation
 
-| Document                                                                                       | Covers                                                                |
-| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                                                 | Component design, why progressive search is needed, known limitations |
-| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md)                                                     | Using the app; setting up a test user for reviewers                   |
-| [`docs/PRIVACY.md`](docs/PRIVACY.md)                                                           | What data the app reads, what it never stores/sends                   |
-| [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)                                   | Live-org install/test/namespace validation evidence and checklist     |
-| [`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)                 | Full security architecture review (CRUD/FLS, injection, auth)         |
-| [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Code Analyzer findings and their disposition                          |
-| [`docs/SECURITY-REVIEW-SUBMISSION.md`](docs/SECURITY-REVIEW-SUBMISSION.md)                     | Security Review submission status, findings and runbook               |
-| [`docs/SECURITY-PROGRAM-STATEMENT.md`](docs/SECURITY-PROGRAM-STATEMENT.md)                     | Publisher security program statement                                  |
-| [`docs/DAST-STATEMENT.md`](docs/DAST-STATEMENT.md)                                             | Why dynamic scanning (DAST) does not apply: no external endpoint      |
-| [`docs/CODE-ANALYZER-SCAN-RECORD.md`](docs/CODE-ANALYZER-SCAN-RECORD.md)                       | Dated Code Analyzer run records: rule counts, results, validity       |
-| [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                        |
-| [`SECURITY.md`](SECURITY.md)                                                                   | How to report a vulnerability                                         |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                           | Development setup and PR checklist                                    |
-| [`CHANGELOG.md`](CHANGELOG.md)                                                                 | Notable changes by version                                            |
+| Document                                                                                       | Covers                                                                           |
+| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                                                 | Component design, why progressive search is needed, known limitations            |
+| [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md)                                                     | Using the app; setting up a test user for reviewers                              |
+| [`docs/PRIVACY.md`](docs/PRIVACY.md)                                                           | What data the app reads, what it never stores/sends                              |
+| [`docs/LIVE-ORG-VALIDATION.md`](docs/LIVE-ORG-VALIDATION.md)                                   | Live-org install/test/namespace validation evidence and checklist                |
+| [`docs/SECURITY-REVIEW-SOLUTION-DOC.md`](docs/SECURITY-REVIEW-SOLUTION-DOC.md)                 | Full security architecture review (CRUD/FLS, injection, auth)                    |
+| [`docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`](docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md) | Code Analyzer and Source Code Scanner (Checkmarx) findings and their disposition |
+| [`docs/SECURITY-REVIEW-SUBMISSION.md`](docs/SECURITY-REVIEW-SUBMISSION.md)                     | Security Review submission status, findings and runbook                          |
+| [`docs/SECURITY-PROGRAM-STATEMENT.md`](docs/SECURITY-PROGRAM-STATEMENT.md)                     | Publisher security program statement                                             |
+| [`docs/DAST-STATEMENT.md`](docs/DAST-STATEMENT.md)                                             | Why dynamic scanning (DAST) does not apply: no external endpoint                 |
+| [`docs/CODE-ANALYZER-SCAN-RECORD.md`](docs/CODE-ANALYZER-SCAN-RECORD.md)                       | Dated Code Analyzer run records: rule counts, results, validity                  |
+| [`docs/APPEXCHANGE-LISTING.md`](docs/APPEXCHANGE-LISTING.md)                                   | Draft AppExchange listing copy                                                   |
+| [`SECURITY.md`](SECURITY.md)                                                                   | How to report a vulnerability                                                    |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                           | Development setup and PR checklist                                               |
+| [`CHANGELOG.md`](CHANGELOG.md)                                                                 | Notable changes by version                                                       |
 
 ## License
 

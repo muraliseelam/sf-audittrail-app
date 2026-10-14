@@ -1,4 +1,4 @@
-# Audit Trail Explorer — Code Analyzer Findings Disposition
+# Audit Trail Explorer — Code Analyzer and Source Code Scanner Findings Disposition
 
 Companion to `CodeAnalyzerReport.html`. That report is a build artifact and is
 deliberately not committed (see `.gitignore`); the dated result of each scan
@@ -442,3 +442,62 @@ before release — the statics renamed `scanBatch` / `maxBatchesPerCall` and
 documented as deliberately non-final (`AuditQueryService.cls:28-37`), the
 nested `if` folded into one condition (`AuditQueryService.cls:275`), direct
 assertions added to the two tests — and none appears on the released source.
+
+## Source Code Scanner (Checkmarx) — scan of `1.0.1.4`
+
+Partner Security Portal Source Code Scanner job `a0BKX000000pcxh2AA` (report
+scan ID `a0OKX000001JTaT2AW`), submitted on 2026-10-14 at 02:04 UTC against
+package version `04thm000002tWirAAE` (`1.0.1.4`, the version linked to the
+draft listing), with the portal's default profile "Security and Quality
+Rules" (`PortalAll`): Checkmarx engine 9.7 (`9.7.1.1001 HF12`), scanner
+service v3.2, 34 files and 3,144 lines of code. The HTML report is kept
+outside the repository, like `CodeAnalyzerReport.html`, and goes into the
+upload set as `09-Checkmarx-Report.html`.
+
+| Result                                       | Count                     |
+| -------------------------------------------- | ------------------------- |
+| Security issues                              | **3**, all from one query |
+| Quality issues                               | **0**                     |
+| Checks listed in the report's summary        | 28                        |
+| Critical, High or Serious checks with issues | **0** of 15               |
+
+The one query with results is `Apex SOQL SOSL User Mode Missing` (Medium).
+Every other check in the summary reports "No Issues Found": among them SOQL
+SOSL Injection, Stored XSS and Reflected XSS (Critical); the four client DOM
+XSS and code-injection checks (High); FLS Create, FLS Update, CRUD Delete,
+Sharing, URL Redirection Attack and XSRF (Serious); and all 11 code-quality
+checks.
+
+### `Apex SOQL SOSL User Mode Missing` (3, Medium) — `AuditPermissionServiceTest`
+
+| #   | Flagged query                            | Reads                                  | Test method                                                  |
+| --- | ---------------------------------------- | -------------------------------------- | ------------------------------------------------------------ |
+| 1   | `AuditPermissionServiceTest.cls:215-220` | `PermissionSet`, by name and namespace | `packagedPermissionSetOpensTheAppWhenItCanGrantViewSetup`    |
+| 2   | `AuditPermissionServiceTest.cls:248-253` | `PermissionSet`, by name and namespace | `packagedPermissionSetGrantsApexAccessRegardlessOfPackaging` |
+| 3   | `AuditPermissionServiceTest.cls:264-270` | `ApexClass`, the three runtime classes | `packagedPermissionSetGrantsApexAccessRegardlessOfPackaging` |
+
+Each reported data path starts at `AuditPermissionServiceTest.class.getName()`
+(`:42`) and ends in the query's `:ns` bind.
+
+**Disposition: false positive — test code that no user can reach.**
+
+- The class is `@IsTest` and `private` (`AuditPermissionServiceTest.cls:10-11`):
+  nothing outside it can reference it, and its methods run only when Apex
+  tests run. No page, component, Apex entry point or API request reaches
+  these queries.
+- The bound value is not user input. `packageNamespace()` (`:41-44`) returns
+  the namespace prefix of the test class's own name: `atexplorer` in a
+  managed install, `null` in a source deploy. It is used only as a bind
+  variable, never concatenated into query text.
+- The queries read setup metadata, not customer records: the packaged
+  permission set and the three runtime classes, so that the two tests can
+  assert what the shipped permission set grants. `WITH USER_MODE` would not
+  make them safer; it would only make a structural test depend on the
+  permissions of whichever user runs the test suite.
+- The runtime queries run in user mode and were not flagged:
+  `SetupAuditTrailProvider.cls:42` (`Database.query(soql, AccessLevel.USER_MODE)`)
+  and `AuditQueryController.cls:80-83` (`WITH USER_MODE`) are the only SOQL
+  statements outside test classes.
+
+Line numbers refer to `f0ad675`, the source of `1.0.1.4`; `force-app` is
+unchanged since.

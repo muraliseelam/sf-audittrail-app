@@ -1,11 +1,11 @@
 # Information Security Program Statement
 
-- **Publisher:** (to be supplied by the publisher)
+- **Publisher:** Murali Mohan Reddy Seelam (individual publisher)
 - **Product:** Audit Trail Explorer, managed 2GP package `atexplorer`
   (`0Hohm0000000NHZCA2`), released version `1.0.1.4` (`04thm000002tWirAAE`)
 - **Source:** <https://github.com/muraliseelam/sf-audittrail-app>, Apache
   License 2.0
-- **Statement date:** 2026-10-12
+- **Statement date:** 2026-10-14
 
 This statement describes how Audit Trail Explorer is developed, released and
 supported, for upload with an AppExchange Security Review submission. The
@@ -47,9 +47,9 @@ tooling committed beside it, and the release and support process.
 ## 3. Secure development
 
 - **Public source**, Apache-2.0 (`LICENSE`). Version `1.0.1.4` was built from
-  commit `f0ad675`; the 1.0.1 release commit is to be tagged `v1.0.1`, and its
+  commit `f0ad675`; the release is tagged `v1.0.1`, and the tagged
   `force-app/` is identical to that commit
-  (`git diff --stat f0ad675..HEAD -- force-app` is empty on 2026-10-12).
+  (`git diff --stat f0ad675..v1.0.1 -- force-app` is empty).
 - **Coding standard** (`CONTRIBUTING.md`, "Code style"): `with sharing` on
   every production class, bind variables only, `USER_MODE` for CRUD/FLS, no
   `innerHTML`, `eval` or `lwc:dom="manual"`. The CSV export escapes formula
@@ -60,10 +60,10 @@ tooling committed beside it, and the release and support process.
   `auditExplorer.js` 95.16% statements, measured with the v8 coverage
   provider).
 - **Apex tests** need a live org, so they run outside CI: 50 tests, 96%
-  coverage at package build, re-run 50/50 in two orgs: a namespaced scratch
-  org by source deploy (`0Afh1000000NfiTCAS`) and a subscriber org on the
-  installed version (test run `707di0000LCKGo0`); see
-  `docs/LIVE-ORG-VALIDATION.md`.
+  coverage at package build, re-run 50/50 in three orgs: a namespaced scratch
+  org by source deploy (`0Afh1000000NfiTCAS`), a subscriber org on the
+  installed version (test run `707di0000LCKGo0`) and the reviewer test org
+  (test run `707i800000BHk65`); see `docs/LIVE-ORG-VALIDATION.md`.
 
 ## 4. Static analysis
 
@@ -93,6 +93,10 @@ tooling committed beside it, and the release and support process.
   accepted Performance finding (`AvoidDatabaseOperationInLoop`, the bounded
   batch loop; dispositioned in
   `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`).
+- **Source Code Scanner** (Partner Security Portal, Checkmarx; 2026-10-14 on
+  `1.0.1.4`): no Critical, High or Serious issue and no quality issue; three
+  Medium issues, all in one test class, dispositioned as false positives in
+  `docs/SECURITY-REVIEW-FINDINGS-DISPOSITION.md`.
 
 ## 5. Change management and release
 
@@ -131,17 +135,16 @@ findings on every recorded run.
   the reporter; fix; publish a new package version; credit the reporter in
   `CHANGELOG.md` unless anonymity is requested. Fixes are issued against the
   current released version only. No paid bounty is offered.
-- **Targets.** `SECURITY.md` commits to acknowledgement "within a reasonable
-  time" and states no numeric target. Acknowledgement: (to be supplied by the
-  publisher). Fix release: (to be supplied by the publisher).
+- **Targets** (also stated in `SECURITY.md`). Acknowledgement: within 5
+  business days of a report. Fix release: a fixed package version within 30
+  days for a confirmed Critical or High issue.
 - **Incidents.** The publisher holds no subscriber data, credentials or org
   access, so a compromise of the publisher's systems cannot expose subscriber
   data through this package. An incident is a vulnerability in shipped code
   or a compromise of the repository or packaging Dev Hub; it follows the
   process above, is disclosed in `CHANGELOG.md` and the repository, and,
   where Salesforce requires it, is reported through the Security Review
-  contact designated in the Partner Console (to be supplied by the
-  publisher).
+  contact designated in the Partner Console (`muralirseelam@gmail.com`).
 
 ## 8. Contacts and signature
 
@@ -149,10 +152,10 @@ findings on every recorded run.
 | ----------------------------------------- | ------------------------------------------------ |
 | Security reports                          | `muralirseelam+sf-audittrail-security@gmail.com` |
 | Questions and bugs                        | GitHub issues at the repository above            |
-| Security review contact (Partner Console) | (to be supplied by the publisher)                |
+| Security review contact (Partner Console) | `muralirseelam@gmail.com`                        |
 
-- Publisher name: (to be supplied by the publisher)
-- Title: (to be supplied by the publisher)
-- Company: (to be supplied by the publisher)
-- Date: (to be supplied by the publisher)
-- Signature: (to be supplied by the publisher)
+- Publisher name: Murali Mohan Reddy Seelam
+- Title: Independent Developer
+- Company: Murali Mohan Reddy Seelam (individual publisher)
+- Date: 2026-10-14
+- Signature: /s/ Murali Mohan Reddy Seelam

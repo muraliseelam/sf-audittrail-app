@@ -35,6 +35,6 @@ submitted with this review.
 - Data handling statement: [`PRIVACY.md`](PRIVACY.md).
 - Package source: `force-app/` at tag `v1.0.1`.
 
-Publisher: (to be supplied by the publisher)
+Publisher: Murali Mohan Reddy Seelam (individual publisher)
 
-Date: (to be supplied by the publisher)
+Date: 2026-10-14

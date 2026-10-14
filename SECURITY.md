@@ -64,10 +64,12 @@ Please include:
 
 ## What to expect
 
-- We will acknowledge new reports within a reasonable time and work with you
+- We will acknowledge new reports within 5 business days and work with you
   to confirm the issue.
-- Once a fix is available, we will publish a new package version and credit
-  the reporter (unless anonymity is requested) in the [CHANGELOG](CHANGELOG.md).
+- For a confirmed Critical or High issue we aim to publish a fixed package
+  version within 30 days. Once a fix is available, we will publish a new
+  package version and credit the reporter (unless anonymity is requested) in
+  the [CHANGELOG](CHANGELOG.md).
 - We do not currently offer a paid bug bounty.
 
 ## Scope

@@ -1,29 +1,29 @@
 {
-  "upload_type": "software",
-  "title": "Audit Trail Explorer (sf-audittrail-app): a filterable UI over the Salesforce Setup Audit Trail",
-  "description": "Audit Trail Explorer is a Salesforce managed 2GP application that gives administrators and auditors a fast, filterable interface over the Setup Audit Trail with zero storage footprint. It searches 180 days of setup and configuration changes by description text, section, user, and date range, streams results with live progress, summarizes top sections and users over the matched set, shows per-row detail, and exports the current result set to CSV.",
-  "creators": [
-    {
-      "name": "Seelam, Murali Mohan Reddy"
-    }
-  ],
-  "license": "Apache-2.0",
-  "access_right": "open",
-  "keywords": [
-    "Salesforce",
-    "Setup Audit Trail",
-    "auditing",
-    "compliance",
-    "Apex",
-    "managed package",
-    "2GP",
-    "change tracking"
-  ],
-  "related_identifiers": [
-    {
-      "identifier": "https://github.com/muraliseelam/sf-audittrail-app",
-      "relation": "isSupplementTo",
-      "scheme": "url"
-    }
-  ]
+    "upload_type": "software",
+    "title": "Audit Trail Explorer (sf-audittrail-app): a filterable UI over the Salesforce Setup Audit Trail",
+    "description": "Audit Trail Explorer is a Salesforce managed 2GP application that gives administrators and auditors a fast, filterable interface over the Setup Audit Trail with zero storage footprint. It searches 180 days of setup and configuration changes by description text, section, user, and date range, streams results with live progress, summarizes top sections and users over the matched set, shows per-row detail, and exports the current result set to CSV.",
+    "creators": [
+        {
+            "name": "Seelam, Murali Mohan Reddy"
+        }
+    ],
+    "license": "Apache-2.0",
+    "access_right": "open",
+    "keywords": [
+        "Salesforce",
+        "Setup Audit Trail",
+        "auditing",
+        "compliance",
+        "Apex",
+        "managed package",
+        "2GP",
+        "change tracking"
+    ],
+    "related_identifiers": [
+        {
+            "identifier": "https://github.com/muraliseelam/sf-audittrail-app",
+            "relation": "isSupplementTo",
+            "scheme": "url"
+        }
+    ]
 }
